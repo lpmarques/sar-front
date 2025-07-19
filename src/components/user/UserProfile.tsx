@@ -1,49 +1,39 @@
-import axios from 'axios';
-import { Link, useNavigate, useParams } from "react-router";
-import { Avatar, Button, Center, Container, Group, Loader, Paper, Stack, Text } from '@mantine/core';
+import axios, { AxiosResponse } from 'axios';
+import { useNavigate, useParams } from "react-router";
+import { Avatar, Button, Center, Container, Group, Paper, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { IconAt, IconBuildings, IconWorldPin } from '@tabler/icons-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { HttpError } from '../common/HttpError';
 import { useAuth } from "../../hooks/useAuth";
 import { deleteUser, deleteUserToken, getUser, UserReadData } from "../../apis/core";
 import classes from './UserProfile.module.css';
-import { useState } from 'react';
+import { QueryLoader } from '../common/QueryLoader';
 
 export default function UserProfile() {
   let { userId } = useParams();
-  const [isError, setIsError] = useState(true);
 
   let queryKey = [];
-  if (userId !== undefined) queryKey.push(userId);
-  
-  const { data, error, isLoading } = useQuery({
+  if (userId !== undefined)
+    queryKey.push(userId);
+
+  const userQueryParams = {
     queryKey,
     queryFn: getUser
-  });
-
-  if (isLoading) {
-    return (
-      <Center>
-        <Loader pt={80} />
-      </Center>
-    )
   }
-    
-  if (error && axios.isAxiosError(error) && error.response)
-    return <HttpError status={error.response.status} statusText={error.response.statusText} queryKey={queryKey} />;
+  
+  const { data } = useQuery(userQueryParams);
 
-  if (data) {
-    return (
+  return (
+    <QueryLoader {...userQueryParams}>
       <Container size={300}>
-        <UserDataCard {...data.data} />
+        <UserDataCard data={data} />
         {userId === undefined && <UserOptions />}
       </Container>
-    )
-  }
+    </QueryLoader>
+  )
 }
 
-function UserDataCard(data: UserReadData) {
+function UserDataCard({ data }: any) {
 
   return (
     <Paper withBorder shadow="sm" p={25} mt={20} mb={30} radius="md">

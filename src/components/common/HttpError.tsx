@@ -1,20 +1,18 @@
 import { Button, Container, Group, Text, Title } from '@mantine/core';
 import classes from './HttpError.module.css';
 import { useNavigate } from "react-router";
-import { Dispatch, SetStateAction } from "react";
 import { useQueryClient } from '@tanstack/react-query';
 
 type HttpErrorInput = {
-  status: number | string,
+  status: number,
   statusText: string,
   message?: string,
-  queryKey: string[]
+  queryKey?: string[]
 }
 
 export function HttpError({ status, statusText, queryKey }: HttpErrorInput) {
   const navigate = useNavigate();
-  
-  status = typeof status === "number" ? status : Number(status)
+    
   const queryClient = useQueryClient();
 
   function tryAgain() {
@@ -51,7 +49,8 @@ export function HttpError({ status, statusText, queryKey }: HttpErrorInput) {
     <Container className={classes.root}>
       <div className={classes.label}>{status}</div>
       <Title className={classes.title}>{statusText}</Title>
-      {(status >= 400 && status < 500) ?
+      {
+      (status >= 400 && status < 500) ?
       clientErrorContent :
       (status >= 500) ?
       serverErrorContent : <></>

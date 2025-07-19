@@ -1,13 +1,13 @@
-import axios from "axios";
-import { Anchor, Button, Container, Loader, Paper, PasswordInput, Select, Text, TextInput, Title, NumberInput } from '@mantine/core';
+import { Anchor, Button, Container, Loader, Paper, PasswordInput, Select, Text, TextInput, Title } from '@mantine/core';
 import { isNotEmpty, useForm } from '@mantine/form';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from "react-router";
 import classes from './Login.module.css';
 import InputTip from '../common/InputTip';
 import { createUserToken, createUser, UserCreateData } from "../../apis/core";
+import { showMutationError } from "../../apis/common";
 import { getCountryList, getStateList, getMunicipalityList } from "../../apis/geography";
-import { showError, showSuccess } from '../common/notifications';
+import { showSuccess } from '../common/notifications';
 import { useAuth } from "../../hooks/useAuth";
 import { useNavigate } from "react-router";
 
@@ -28,9 +28,7 @@ export default function Signup() {
       });
       navigate("/user");
     },
-    onError: (error) => {
-      if (axios.isAxiosError(error)) showError(JSON.stringify(error.response?.data.msg));
-    }
+    onError: showMutationError
   });
   
   const userCreation = useMutation({
@@ -39,9 +37,7 @@ export default function Signup() {
       userTokenCreation.mutate(form.values);
       showSuccess(JSON.stringify(data.data.msg));
     },
-    onError: (error) => {
-      if (axios.isAxiosError(error)) showError(JSON.stringify(error.response?.data.msg));
-    }
+    onError: showMutationError
   });
 
   interface SignupForm extends UserCreateData {
@@ -82,20 +78,17 @@ export default function Signup() {
     })
   });
 
-  form.watch('countryId', ({value}) => {
+  form.watch('countryId', () => {
     form.setValues({
       stateId: undefined,
       municipalityId: undefined
     });
   });
 
-  form.watch('stateId', ({value}) => {
+  form.watch('stateId', () => {
     form.setValues({
       municipalityId: undefined
     })
-  });
-
-  form.watch('municipalityId', ({value}) => {
   });
 
   const countries = useQuery({
@@ -113,21 +106,21 @@ export default function Signup() {
     queryFn: getMunicipalityList
   });
 
-  let countryOptions = countries.data?.data.map(
+  let countryOptions = countries.data?.map(
     country => ({
       value: country.id.toString(),
       label: country.name
     })
   ).sort((a, b) => a.label.localeCompare(b.label));
 
-  let stateOptions = states.data?.data.map(
+  let stateOptions = states.data?.map(
     state => ({
       value: state.id.toString(),
       label: state.name
     })
   ).sort((a, b) => a.label.localeCompare(b.label));
 
-  let municipalityOptions = municipalities.data?.data.map(
+  let municipalityOptions = municipalities.data?.map(
     municipality => ({
       value: municipality.id.toString(),
       label: municipality.name
@@ -238,9 +231,10 @@ export default function Signup() {
       </Title>
       <Paper withBorder shadow="sm" p={22} mt={30} mb={30} radius="md">
         {inputs}
-        <Button fullWidth mt="xl" radius="md" type="submit" onClick={handleSignup}>
+        <Button loading={userCreation.isPending} fullWidth mt="xl" radius="md" type="submit" onClick={handleSignup}>
           Criar conta
         </Button>
+        {/* {userCreation.isPending ? <Loader size={25} mt={20}/> : <></>} */}
       </Paper>
       
       <Text className={classes.footer}>

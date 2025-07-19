@@ -1,6 +1,5 @@
-import axios, { AxiosResponse } from 'axios';
-import { queryFnInput } from './common';
-import { MunicipalityData } from './geography';
+import axios from 'axios';
+import { QueryFnInput } from './common';
 
 // MUTATIONS
 
@@ -98,10 +97,11 @@ export interface UserReadData {
   municipality?: string,
 };
 
-export async function getUser({ queryKey: [userId] }: queryFnInput): Promise<AxiosResponse<UserReadData>> {
+export async function getUser({ queryKey: [userId] }: QueryFnInput): Promise<UserReadData> {
   const endpoint = userId ? `/core/users/${userId}` : "/core/user";
 
   let res = await axios.get(endpoint);
+  
   res.data = {
     firstName: res.data.first_name,
     lastName: res.data.last_name,
@@ -114,5 +114,5 @@ export async function getUser({ queryKey: [userId] }: queryFnInput): Promise<Axi
     municipality: res.data.municipality,
   }
 
-  return res;
+  return res.data;
 }
