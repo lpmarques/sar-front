@@ -7,7 +7,7 @@ import "@mantine/core/styles.css";
 import '@mantine/notifications/styles.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { defaultRequestRetry } from './apis/common';
-import { Header, Home, LoggedOnlyRoute, UnloggedOnlyRoute } from './components';
+import { Home, LoggedOnlyRoute, Shell, UnloggedOnlyRoute } from './components';
 import { Plant, PlantList } from './components/catalog';
 import { HttpError } from './components/common/HttpError';
 import { Login, UserProfile, Signup } from './components/user';
@@ -37,35 +37,36 @@ export default function App() {
         <MantineProvider theme={theme}>
           <ModalsProvider>
             <Notifications />
-            <Header />
-            <Routes>
-              <Route index element={<Home />}/>
-              <Route path="login" element={
-                <UnloggedOnlyRoute>
-                  <Login />
-                </UnloggedOnlyRoute>
-              }/>
-              <Route path="signup" element={
-                <UnloggedOnlyRoute>
-                  <Signup />
-                </UnloggedOnlyRoute>
-              }/>
-              <Route path="user" element={
-                <LoggedOnlyRoute>
-                  <UserProfile />
-                </LoggedOnlyRoute>
-              }/>
-              <Route path="users/:userId" element={
-                <LoggedOnlyRoute>
-                  <UserProfile />
-                </LoggedOnlyRoute>
-              }/>
-              <Route path="plants">
-                <Route index element={<PlantList />}/>
-                <Route path=":id" element={<Plant />}/>
-              </Route>
-              <Route path='*' element={<HttpError status="404" statusText="Página inexistente"/>} />
-            </Routes>
+            <Shell>
+              <Routes>
+                <Route index element={<Home />}/>
+                <Route path="login" element={
+                  <UnloggedOnlyRoute>
+                    <Login />
+                  </UnloggedOnlyRoute>
+                }/>
+                <Route path="signup" element={
+                  <UnloggedOnlyRoute>
+                    <Signup />
+                  </UnloggedOnlyRoute>
+                }/>
+                <Route path="user" element={
+                  <LoggedOnlyRoute>
+                    <UserProfile />
+                  </LoggedOnlyRoute>
+                }/>
+                <Route path="users/:userId" element={
+                  <LoggedOnlyRoute>
+                    <UserProfile />
+                  </LoggedOnlyRoute>
+                }/>
+                <Route path="plants">
+                  <Route index element={<PlantList />}/>
+                  <Route path=":id" element={<Plant />}/>
+                </Route>
+                <Route path='*' element={<HttpError status={404} statusText="Página inexistente"/>} />
+              </Routes>
+            </Shell>
           </ModalsProvider>
         </MantineProvider>
       </QueryClientProvider>
