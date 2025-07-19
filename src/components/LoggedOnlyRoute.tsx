@@ -2,14 +2,14 @@ import { ReactNode } from 'react';
 import { Navigate } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 
-type ProviderProps = {
+type RouteProps = {
   children: ReactNode
 }
 
-const LoggedOnlyRoute = ({ children }: ProviderProps) => {
+const LoggedOnlyRoute = ({ children }: RouteProps) => {
   const { user } = useAuth()
   if (!user) {
-    return <Navigate to="/login" />
+    return <Navigate to="/login" />;
   }
   return children;
 };

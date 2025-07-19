@@ -6,19 +6,21 @@ const tools = [
   {
     imageSource: "https://upload.wikimedia.org/wikipedia/commons/e/ec/Cariniana_Strelensis-_jequitiba_branco.jpg",
     name: "Catálogo de Plantas",
-    description: "No catálogo, você encontra dezenas de plantas que podem ser úteis para o seu sistema agroflorestal."
+    description: "No catálogo, você encontra dezenas de plantas que podem ser úteis para o seu sistema agroflorestal.",
+    path: "plants",
   },
   {
     imageSource: "https://images.squarespace-cdn.com/content/v1/64d91702b4c77e2b69ddc49e/3a2dab88-20dd-4448-aa08-fcce23798264/urbanfarm2.jpg",
     name: "Projeto Agroflorestal",
-    description: "O projeto te ajuda a planejar o sistema agroflorestal perfeito para o seu local."
+    description: "O projeto te ajuda a planejar o sistema agroflorestal perfeito para o seu local.",
+    path: "/",
   }
 ]
 
 export default function Home() {
 
   const cards = tools.map((tool) => (
-    <Link to="/" className={classes.card} style={{ textDecoration: 'none' }}>
+    <Link to={tool.path} className={classes.card} style={{ textDecoration: 'none' }}>
       <Card
         shadow="sm"
         padding="xl"
