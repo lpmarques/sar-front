@@ -1,6 +1,5 @@
 import axios, { AxiosError } from 'axios';
 import { showError } from '../components/common/notifications';
-import { Interface } from 'readline';
 
 export function defaultRequestRetry(failureCount: number, error: Error) {
   

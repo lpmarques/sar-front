@@ -41,13 +41,4 @@ export function QueryLoader({ queryKey, queryFn, children }: QueryLoaderProps) {
   }
 
   return children;
-
-  // const QueryContext = createContext<any>(data);
-  // return (
-  //   <QueryContext.Provider value={data}>
-  //     {children}
-  //   </QueryContext.Provider>
-  // )
-
-  // return React.cloneElement(children as React.ReactElement<any>, { data: data });
 }

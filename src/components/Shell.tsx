@@ -20,7 +20,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           </Group>
 
           <Group h="100%" gap={0} visibleFrom="sm">
-            <Link to="plants" className={classes.link}>
+            <Link to="/plants" className={classes.link}>
               Catálogo
             </Link>
             <Link to="/" className={classes.link}>

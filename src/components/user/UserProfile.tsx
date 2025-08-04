@@ -12,19 +12,19 @@ import { QueryLoader } from '../common/QueryLoader';
 export default function UserProfile() {
   let { userId } = useParams();
 
-  let queryKey = [];
+  let queryKey = ['user'];
   if (userId !== undefined)
     queryKey.push(userId);
 
-  const userQueryParams = {
+  const userQueryOptions = {
     queryKey,
     queryFn: getUser
   }
   
-  const { data } = useQuery(userQueryParams);
+  const { data } = useQuery(userQueryOptions);
 
   return (
-    <QueryLoader {...userQueryParams}>
+    <QueryLoader {...userQueryOptions}>
       <Container size={300}>
         <UserDataCard data={data} />
         {userId === undefined && <UserOptions />}

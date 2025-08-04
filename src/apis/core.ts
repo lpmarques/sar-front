@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { QueryFnInput } from './common';
+import { QueryFnInput, snakeToCamelCase } from './common';
 
 // MUTATIONS
 
@@ -66,17 +66,19 @@ interface UserTokenRequestData {
 }
 
 export interface UserTokenResponseData {
-  user: {
-    email: string,
-    first_name: string,
-    last_name: string,
-  },
+  token: string,
+  user: UserReadData,
   msg: string,
 }
 
-export async function createUserToken(data: UserTokenRequestData) {
+export async function createUserToken(data: UserTokenRequestData): Promise<UserTokenResponseData> {
+  let res = await axios.post("/core/user/token", data);
 
-  return await axios.post("/core/user/token", data);
+  return {
+    token: res.data.token,
+    user: snakeToCamelCase(res.data.user),
+    msg: res.data.msg
+  }
 }
 
 export async function deleteUserToken() {
@@ -87,22 +89,23 @@ export async function deleteUserToken() {
 // QUERIES
 
 export interface UserReadData {
+  id: number,
   firstName: string,
   lastName: string,
   email: string,
-  occupation: string,
+  occupation?: string,
   company?: string,
   country?: string,
   state?: string,
   municipality?: string,
 };
 
-export async function getUser({ queryKey: [userId] }: QueryFnInput): Promise<UserReadData> {
+export async function getUser({ queryKey: [queryName, userId] }: QueryFnInput): Promise<UserReadData> {
   const endpoint = userId ? `/core/users/${userId}` : "/core/user";
 
   let res = await axios.get(endpoint);
   
-  res.data = {
+  let data = {
     firstName: res.data.first_name,
     lastName: res.data.last_name,
     email: res.data.email,
@@ -114,5 +117,5 @@ export async function getUser({ queryKey: [userId] }: QueryFnInput): Promise<Use
     municipality: res.data.municipality,
   }
 
-  return res.data;
+  return data;
 }

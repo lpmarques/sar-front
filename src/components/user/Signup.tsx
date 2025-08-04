@@ -19,12 +19,8 @@ export default function Signup() {
     mutationFn: createUserToken,
     onSuccess: (data) => {
       auth({
-        user: {
-          email: data.data.user.email,
-          firstName: data.data.user.email,
-          lastName: data.data.user.last_name
-        },
-        token: data.data.token
+        user: data.user,
+        token: data.token
       });
       navigate("/user");
     },
@@ -92,17 +88,17 @@ export default function Signup() {
   });
 
   const countries = useQuery({
-    queryKey: [],
+    queryKey: ['countries'],
     queryFn: getCountryList
   });
 
   const states = useQuery({
-    queryKey: [form.getValues().countryId?.toString() ?? '0'],
+    queryKey: ['states', form.getValues().countryId?.toString() ?? '0'],
     queryFn: getStateList
   });
 
   const municipalities = useQuery({
-    queryKey: [form.getValues().stateId?.toString() ?? '0'],
+    queryKey: ['municipalities', form.getValues().stateId?.toString() ?? '0'],
     queryFn: getMunicipalityList
   });
 

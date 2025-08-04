@@ -10,7 +10,7 @@ export async function getCountryList(): Promise<CountryData[]> {
   return (await axios.get('/geography/countries')).data;
 }
 
-export async function getCountry({ queryKey: [countryId] }: QueryFnInput): Promise<CountryData> {
+export async function getCountry({ queryKey: [queryName, countryId] }: QueryFnInput): Promise<CountryData> {
   return (await axios.get(`/geography/countries/${countryId}`)).data;
 }
 
@@ -21,11 +21,11 @@ export interface StateData {
   country: CountryData
 }
 
-export async function getStateList({ queryKey: [countryId] }: QueryFnInput): Promise<StateData[]> {
+export async function getStateList({ queryKey: [queryName, countryId] }: QueryFnInput): Promise<StateData[]> {
   return (await axios.get(`/geography/countries/${countryId}/states`)).data;
 }
 
-export async function getState({ queryKey: [stateId] }: QueryFnInput): Promise<StateData> {
+export async function getState({ queryKey: [queryName, stateId] }: QueryFnInput): Promise<StateData> {
   return (await axios.get(`/geography/states/${stateId}`)).data;
 }
 
@@ -35,10 +35,10 @@ export interface MunicipalityData {
   state: StateData
 }
 
-export async function getMunicipalityList({ queryKey: [stateId] }: QueryFnInput): Promise<MunicipalityData[]> {
+export async function getMunicipalityList({ queryKey: [queryName, stateId] }: QueryFnInput): Promise<MunicipalityData[]> {
   return (await axios.get(`/geography/states/${stateId}/municipalities`)).data;
 }
 
-export async function getMunicipality({ queryKey: [municipalityId] }: QueryFnInput): Promise<MunicipalityData> {
+export async function getMunicipality({ queryKey: [queryName, municipalityId] }: QueryFnInput): Promise<MunicipalityData> {
   return (await axios.get(`/geography/municipalities/${municipalityId}`)).data;
 }

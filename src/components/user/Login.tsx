@@ -27,14 +27,10 @@ export default function Login() {
     mutationFn: createUserToken,
     onSuccess: (data) => {
       auth({
-        user: {
-          email: data.data.user.email,
-          firstName: data.data.user.first_name,
-          lastName: data.data.user.last_name
-        },
-        token: data.data.token
+        user: data.user,
+        token: data.token
       });
-      showSuccess(JSON.stringify(data.data.msg));
+      showSuccess(JSON.stringify(data.msg));
       navigate("/user");
     },
     onError: (error) => {

@@ -5,22 +5,26 @@ import { IconSearch } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { isArrayOfType } from "../../apis/common";
-import { getPlantList, PlantListItemData } from "../../apis/catalog";
+import { getPlantList, PlantReadData, TraitValueReadData } from "../../apis/catalog";
 import { QueryLoader } from '../common/QueryLoader';
-import classes from './PlantList.module.css';
+import { StickyHeaderTable, TraitValue } from '.';
 
 export default function PlantList() {
-  const plantListQueryParams = {
-    queryKey: [],
+  const plantListQueryOptions = {
+    queryKey: [
+      'with_scientific_names=true',
+      'with_popular_names=true',
+      'with_trait_values=true',
+      'scientific_names_toxonomic_status=synonym',
+      'trait_values_trait_keys=family_name,life_cycle,life_forms'
+    ],
     queryFn: getPlantList
   };
-  const { data } = useQuery(plantListQueryParams);
+  const { data } = useQuery(plantListQueryOptions);
   
   return (
-    <QueryLoader {...plantListQueryParams}>
-      {data ? 
-      <PlantsTable data={data}/> :
-      <></>}
+    <QueryLoader {...plantListQueryOptions}>
+      <PlantsTable data={data!}/>
     </QueryLoader>
   );
 }
@@ -34,30 +38,29 @@ interface TaxonomicData {
 
 interface RowData extends TaxonomicData {
   plantId: string,
-  lifeCycle: string,
-  lifeForms: string[],
+  lifeCycle: TraitValueReadData | undefined,
+  lifeForms: TraitValueReadData | undefined,
 }
 
-function plantToRowData(data: PlantListItemData): RowData {
-  let familyName = data.traitValues.filter((trait) => trait.traitKey == 'family_name');
-  let lifeCycle = data.traitValues.filter((trait) => trait.traitKey == 'life_cycle');
-  let lifeForms = data.traitValues.filter((trait) => trait.traitKey == 'life_forms');
+function plantToRowData(data: PlantReadData): RowData {
+  let familyName = data.traitValues!.find((trait) => trait.traitKey == 'family_name');
+  let lifeCycle = data.traitValues!.find((trait) => trait.traitKey == 'life_cycle');
+  let lifeForms = data.traitValues!.find((trait) => trait.traitKey == 'life_forms');
   return {
     plantId: data.id.toString(),
     scientificName: data.acceptedScientificName,
-    synonymScientificNames: data.synonymScientificNames.join(", "),
-    popularNames: data.popularNames.join(", "),
-    familyName: familyName.length > 0 && typeof familyName[0].value === 'string' ? familyName[0].value : "",
-    lifeCycle: lifeCycle.length > 0 && typeof lifeCycle[0].value === 'string' ? lifeCycle[0].value : "",
-    lifeForms: lifeForms.length > 0 && isArrayOfType(lifeForms[0].value, 'string') ? lifeForms[0].value as string[] : [],
+    synonymScientificNames: data.scientificNames!.join(", "),
+    popularNames: data.popularNames!.join(", "),
+    familyName: familyName && typeof familyName.value === 'string' ? familyName.value : "",
+    lifeCycle: lifeCycle,
+    lifeForms: lifeForms,
   };
 }
 
-function PlantsTable({ data }: { data: PlantListItemData[] }) {
-
-  const defaultRowsData: RowData[] = data.map((item: PlantListItemData) => plantToRowData(item)).sort((a, b) => {
-    return a.scientificName.localeCompare(b.scientificName);
-  });
+function PlantsTable({ data }: { data: PlantReadData[] }) {
+  const defaultRowsData: RowData[] = data.map((item: PlantReadData) => plantToRowData(item)).sort((a, b) =>
+    a.scientificName.localeCompare(b.scientificName)
+  );
 
   const [rowsData, setRowsData] = useState(defaultRowsData);
   const [scrolled, setScrolled] = useState(false);
@@ -96,20 +99,16 @@ function PlantsTable({ data }: { data: PlantListItemData[] }) {
       <Table.Th>Formas de vida</Table.Th>
       <Table.Th>Ciclo de vida</Table.Th>
     </Table.Tr>
-  )
+  );
 
   const rows = rowsData.map((row: RowData) => {
-    // const lifeForms = row.lifeForms.map((form) => (
-    //   <Badge color="green" size="sm" variant="light">{form}</Badge>
-    // ))
-
     return (
       <Table.Tr key={row.scientificName} style={{cursor: 'pointer'}} onClick={() => handleRowClick(row)}>
-        <Table.Td w={250}>{row.scientificName}</Table.Td>
-        <Table.Td>{row.familyName}</Table.Td>
-        <Table.Td>{row.popularNames}</Table.Td>
-        <Table.Td w={150}>{row.lifeForms}</Table.Td>
-        <Table.Td w={110}>{row.lifeCycle}</Table.Td>
+        <Table.Td w={230}>{row.scientificName}</Table.Td>
+        <Table.Td w={100}>{row.familyName}</Table.Td>
+        <Table.Td w={500}>{row.popularNames}</Table.Td>
+        <Table.Td w={150}>{row.lifeForms && <TraitValue data={row.lifeForms} />}</Table.Td>
+        <Table.Td w={110}>{row.lifeCycle && <TraitValue data={row.lifeCycle} />}</Table.Td>
       </Table.Tr>
     )
   });
@@ -124,23 +123,7 @@ function PlantsTable({ data }: { data: PlantListItemData[] }) {
         onChange={handleSearchChange}
       />
       <Paper withBorder>
-        <ScrollArea h={550} onScrollPositionChange={({ y }) => setScrolled(y !== 0)}>
-          <Table highlightOnHover striped highlightOnHoverColor="#c5fac3" stripedColor="#f0f2f2" withRowBorders={false}>
-            <Table.Thead className={clsx(classes.header, { [classes.scrolled]: scrolled })}>
-              {header}
-            </Table.Thead>
-            <Table.Tbody>
-              {rows}
-              <Table.Tr>
-                <Table.Td colSpan={Object.keys(data[0]).length}>
-                  <Text c="dimmed" fw={500} ta="center">
-                    {rows.length} resultado(s) encontrado(s)
-                  </Text>
-                </Table.Td>
-              </Table.Tr>
-            </Table.Tbody>
-          </Table>
-        </ScrollArea>
+        <StickyHeaderTable header={header} rows={rows} scrollWidth={800} scrollHeight={550} tableProps={{highlightOnHover: true, highlightOnHoverColor: "#c5fac3"}} />
       </Paper>
     </Container>
   )
