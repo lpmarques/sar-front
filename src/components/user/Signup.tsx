@@ -1,15 +1,15 @@
+import { useNavigate } from "react-router";
 import { Anchor, Button, Container, Loader, Paper, PasswordInput, Select, Text, TextInput, Title } from '@mantine/core';
 import { isNotEmpty, useForm } from '@mantine/form';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from "react-router";
 import classes from './Login.module.css';
 import InputTip from '../common/InputTip';
-import { createUserToken, createUser, UserCreateData } from "../../apis/core";
-import { showMutationError } from "../../apis/common";
-import { getCountryList, getStateList, getMunicipalityList } from "../../apis/geography";
 import { showSuccess } from '../common/notifications';
+import { showMutationError } from "../../apis/common";
+import { createUserToken, createUser, UserWriteData } from "../../apis/core";
+import { getCountryList, getStateList, getMunicipalityList } from "../../apis/geography";
 import { useAuth } from "../../hooks/useAuth";
-import { useNavigate } from "react-router";
 
 export default function Signup() {
   const { auth } = useAuth();
@@ -36,7 +36,7 @@ export default function Signup() {
     onError: showMutationError
   });
 
-  interface SignupForm extends UserCreateData {
+  interface SignupForm extends UserWriteData {
     confirmPassword: string
   }
 

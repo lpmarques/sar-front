@@ -2,7 +2,7 @@ import axios, { AxiosResponse } from 'axios';
 import { useNavigate, useParams } from "react-router";
 import { Avatar, Button, Center, Container, Group, Paper, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
-import { IconAt, IconBuildings, IconWorldPin } from '@tabler/icons-react';
+import { IconMail, IconBuildings, IconMapPin } from '@tabler/icons-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from "../../hooks/useAuth";
 import { deleteUser, deleteUserToken, getUser, UserReadData } from "../../apis/core";
@@ -41,7 +41,9 @@ function UserDataCard({ data }: any) {
         size={150}
         radius={120}
         mx="auto"
-        mb={15} />
+        mb={15}
+        name={`${data.firstName} ${data.lastName}`}
+        color="initials" />
       <Text ta="center" fz="lg" fw={500} mb={10} className={classes.name}>
         {data.firstName} {data.lastName}
       </Text>
@@ -59,14 +61,14 @@ function UserDataCard({ data }: any) {
         }
         {data.country &&
         <Group wrap="nowrap" gap={10} mt={10}>
-          <IconWorldPin stroke={1.5} size={16} className={classes.icon} />
+          <IconMapPin stroke={1.5} size={20} className={classes.icon} />
           <Text ta="center" fz="xs" c="dimmed">
             {data.municipality && <>{data.municipality}, </>}{data.state && <>{data.state} - </>}{data.country}
           </Text>
         </Group>
         }
         <Group wrap="nowrap" gap={10} mt={10}>
-          <IconAt stroke={1.5} size={16} className={classes.icon} />
+          <IconMail stroke={1.5} size={15} className={classes.icon} />
           <Text ta="center" fz="xs" c="dimmed">
             {data.email}
           </Text>
@@ -117,14 +119,12 @@ function UserOptions() {
   });
 
   return (
-    <>
-      <Center>
-        <Group gap="md" mb={30}>
-          <Button onClick={() => userTokenDeletion.mutate()}>Sair</Button>
-          {/* <Button onClick={() => navigate("/user/edit")}>Editar</Button> */}
-          <Button onClick={openDeleteConfirmModal} color='red'>Excluir</Button>
-        </Group>
-      </Center>
-    </>
+    <Center>
+      <Group gap="md" mb={30}>
+        <Button onClick={() => userTokenDeletion.mutate()}>Sair</Button>
+        {/* <Button onClick={() => navigate("/user/edit")}>Editar</Button> */}
+        <Button onClick={openDeleteConfirmModal} color='red'>Excluir</Button>
+      </Group>
+    </Center>
   )
 }

@@ -36,7 +36,7 @@ function BooleanTraitValue({ value }: { value: boolean }) {
   const color = value ? "green" : "red";
   
   return (
-    <Text size="sm" tt="uppercase" fw={600} m={5} c={color}>{text}</Text>
+    <Text size="md" tt="uppercase" fw={600} m={5} c={color}>{text}</Text>
   )
 }
 
@@ -58,20 +58,18 @@ function RangeTraitValue({ value, boundaries }: { value: RangeValue, boundaries:
   }
 
   return (
-    <>
-      <RangeSlider
-        disabled
-        size="sm"
-        defaultValue={[value.minimum, value.maximum]}
-        domain={[boundaries.minimum, boundaries.maximum]}
-        marks={[
-          { value: value.minimum, label: round(value.minimum) },
-          { value: value.maximum, label: round(value.maximum) },
-        ]}
-        label={(value: number) => value}
-        p={20}
-      />
-      <Space h={20}/>
-    </>
+    <RangeSlider
+      disabled
+      size="sm"
+      defaultValue={[value.minimum, value.maximum]}
+      domain={[boundaries.minimum, boundaries.maximum]}
+      marks={[
+        { value: value.minimum, label: round(value.minimum) },
+        { value: value.maximum, label: round(value.maximum) },
+      ]}
+      label={(value: number) => value}
+      p={20}
+      mb={20}
+    />
   )
 }

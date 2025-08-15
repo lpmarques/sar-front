@@ -1,29 +1,29 @@
-import { useParams, useNavigate, Link } from 'react-router';
+import { useParams, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Container, Grid, List, Paper, Space, Table, Text } from '@mantine/core';
-import { IconInfoCircle } from '@tabler/icons-react';
-import { modals } from '@mantine/modals';
+import { Alert, Container, Grid, List, Paper, Space, Table, Text, Tooltip, UnstyledButton } from '@mantine/core';
+import { IconCircleDashedPlus, IconInfoCircle } from '@tabler/icons-react';
 import { QueryLoader } from '../common/QueryLoader';
 import {
   getPlant,
   getPlantTraitValueList,
-  Source,
-  sourceTypeToText,
   TraitValueReadData,
 } from '../../apis/catalog';
-import { UserReadData } from '../../apis/core';
+import { SourceReadData } from '../../apis/core';
 import { useLanguage } from '../../hooks/useLanguage';
-import { StickyHeaderTable, TraitValue } from '.';
+import { UserName } from '../user/';
+import { EndorsementCounter, SourceContent, SourceRef, StickyHeaderTable, TraitValue } from '.';
+import classes from '../common/Clickable.module.css';
 
 export default function TraitDetails() {
   const { plantId, traitKey } = useParams();
+  const navigate = useNavigate();
 
   const plantQueryOptions = {
     queryKey: ['plant', plantId!],
     queryFn: getPlant
   };
   const traitValuesQueryOptions = {
-    queryKey: ['traitValues', plantId!, `trait_keys=${traitKey}`],
+    queryKey: ['plantTraitValueList', plantId!, `trait_keys=${traitKey}`],
     queryFn: getPlantTraitValueList
   };
 
@@ -52,59 +52,32 @@ export default function TraitDetails() {
           </List>
         </Alert> */}
         {/* <Space h={20} /> */}
-        <Text fs="italic" fz="h3" pb={15}>{plant.data.acceptedScientificName}</Text>
+        <UnstyledButton onClick={() => navigate(`/plants/${plantId}`)}>
+          <Text fs="italic" fz="h3" pb={15}>{plant.data.acceptedScientificName}</Text>
+        </UnstyledButton>
         <Text fz="h3" pb={15}><Text span inherit fw={600}>{acceptedValue.traitName}</Text> ({acceptedValue.sectionName})</Text>
         <Grid columns={10} justify="space-between" mb={15}>
           <Grid.Col span={{base: 10, sm: 4}}>
             <AcceptedValue data={acceptedValue} />
             <Space h={15} />
-            <AcceptedValueEndorsements data={acceptedValue} />
+            <AcceptedValueEndorsements data={acceptedValue} dataQueryKey={traitValuesQueryOptions.queryKey} />
           </Grid.Col>
           <Grid.Col span={{base: 10, sm: 6}}>
             <AcceptedValueSource data={acceptedValue.source!} />
           </Grid.Col>
         </Grid>
-        <ValueHistory data={everAcceptedValues} />
+        <ValueHistory data={everAcceptedValues} dataQueryKey={traitValuesQueryOptions.queryKey} />
         <Space h={15} />
-        <ValueChangeProposals data={proposedValues} />
+        <ValueChangeProposals data={proposedValues} dataQueryKey={traitValuesQueryOptions.queryKey} />
       </Container>}
     </QueryLoader>
-  )
-}
-
-function SourceContent({ data }: { data: Source }) {
-  return (
-    <>
-      <Text pb={10}><Text span c="dimmed">Tipo:</Text> <span>{sourceTypeToText[data.type]}</span></Text>
-      <Text pb={10}><Text span c="dimmed">Título:</Text> <span>{data.publicationTitle}</span></Text>
-      <Text pb={10}><Text span c="dimmed">Ano:</Text> <span>{data.year}</span></Text>
-      {data.publicationAuthors && <Text pb={10}><Text span c="dimmed">Autores:</Text> <span>{data.publicationAuthors.join("; ")}</span></Text>}
-      <Text pb={10}><Text span c="dimmed">Publicado por:</Text> <span>{data.publisher}</span></Text>
-    </>
-  )
-}
-
-function SourceRef({ source }: { source: Source }) {
-  const openSourceContentModal = () => modals.open({
-    title: `Fonte [${source.id}]`,
-    children: <SourceContent data={source}/>
-  })
-
-  return (
-    <Link to="." onClick={openSourceContentModal}>[{source.id}]</Link>
-  )
-}
-
-function UserName({ user }: { user: UserReadData }) {
-  return (
-    <Link to={`/users/${user.id}`} target="_blank">{user.firstName} {user.lastName}</Link>
   )
 }
 
 function AcceptedValue({ data }: { data: TraitValueReadData }) {
   return (
     <>
-    <Paper withBorder ta="center" p={15}>
+    <Paper withBorder style={{ backgroundColor: "#bef7ce" }} ta="center" p={15}>
       <Text fz="h5" fw={600} pb={10}>Versão aceita</Text>
       <TraitValue data={data}/>
     </Paper>
@@ -112,7 +85,7 @@ function AcceptedValue({ data }: { data: TraitValueReadData }) {
   )
 }
 
-function AcceptedValueSource({ data }: { data: Source }) {
+function AcceptedValueSource({ data }: { data: SourceReadData }) {
   return (
     <Paper withBorder p={15}>
       <Text fz="h5" ta="center" fw={600} pb={10}>Fonte</Text>
@@ -121,16 +94,23 @@ function AcceptedValueSource({ data }: { data: Source }) {
   )
 }
 
-function AcceptedValueEndorsements({ data }: { data: TraitValueReadData }) {
+function AcceptedValueEndorsements({ data, dataQueryKey }: { data: TraitValueReadData, dataQueryKey: string[] }) {
   return (
-    <Paper withBorder ta="center" p={15}>
-      <Text fz="h5" fw={600} pb={10}>Confirmações</Text>
-      <Text fz="h2">{data.endorsements}</Text>
-    </Paper>
+    <Tooltip withArrow label="Se concorda com essa versão, deixe o seu jóinha." position="bottom">
+      <Paper withBorder ta="center" p={15}>
+        <Text fz="h5" fw={600} pb={10}>Aprovações</Text>
+        <EndorsementCounter
+          contentType="plant_value"
+          contentId={data.id}
+          initialCount={{"value": data.endorsements!, "queryKey": dataQueryKey}}
+          countTextProps={{"fz": "h2"}}
+        />
+      </Paper>
+    </Tooltip>
   )
 }
 
-function ValueHistory({ data }: { data: TraitValueReadData[] }) {
+function ValueHistory({ data, dataQueryKey }: { data: TraitValueReadData[], dataQueryKey: string[] }) {
   const { lang } = useLanguage();
 
   const sortedValues = data.sort((a, b) =>
@@ -138,14 +118,14 @@ function ValueHistory({ data }: { data: TraitValueReadData[] }) {
   );
 
   const header = (
-      <Table.Tr>
-        <Table.Th fz="h6" fw={550} w={200}>Versão</Table.Th>
-        <Table.Th fz="h6" fw={550}>Fonte</Table.Th>
-        <Table.Th fz="h6" fw={550}>Proponente</Table.Th>
-        <Table.Th fz="h6" fw={550}>Proposta em</Table.Th>
-        <Table.Th fz="h6" fw={550}>Aceita em</Table.Th>
-        <Table.Th fz="h6" fw={550}>Substituída em</Table.Th>
-      </Table.Tr>
+    <Table.Tr>
+      <Table.Th fz="h6" fw={550} w={200}>Versão</Table.Th>
+      <Table.Th fz="h6" fw={550}>Fonte</Table.Th>
+      <Table.Th fz="h6" fw={550}>Proponente</Table.Th>
+      <Table.Th fz="h6" fw={550}>Proposta em</Table.Th>
+      <Table.Th fz="h6" fw={550}>Aceita em</Table.Th>
+      <Table.Th fz="h6" fw={550}>Substituída em</Table.Th>
+    </Table.Tr>
   );
   
   const rows = sortedValues.map((item: TraitValueReadData) => (
@@ -154,10 +134,10 @@ function ValueHistory({ data }: { data: TraitValueReadData[] }) {
         <TraitValue data={item}/>
       </Table.Td>
       <Table.Td>
-        <SourceRef source={item.source!}/>
+        <SourceRef source={item.source!} fz="sm" />
       </Table.Td>
       <Table.Td>
-        <UserName user={item.contentAuthor!} />
+        <UserName user={item.contentAuthor!} fz="sm" />
       </Table.Td>
       <Table.Td>{new Date(item.createdAt!).toLocaleDateString(lang)}</Table.Td>
       <Table.Td>{new Date(item.acceptedAt!).toLocaleDateString(lang)}</Table.Td>
@@ -173,21 +153,22 @@ function ValueHistory({ data }: { data: TraitValueReadData[] }) {
   )
 }
 
-function ValueChangeProposals({ data }: { data: TraitValueReadData[] }) {
+function ValueChangeProposals({ data, dataQueryKey }: { data: TraitValueReadData[], dataQueryKey: string[] }) {
   const { lang } = useLanguage();
+  const navigate = useNavigate();
 
   const sortedValues = data.sort((a, b) =>
     b.acceptedAt!.localeCompare(a.createdAt!)
   );
 
   const header = (
-      <Table.Tr>
-        <Table.Th fz="h6" fw={550} w={200}>Proposta</Table.Th>
-        <Table.Th fz="h6" fw={550}>Fonte</Table.Th>
-        <Table.Th fz="h6" fw={550}>Confirmações</Table.Th>
-        <Table.Th fz="h6" fw={550}>Proponente</Table.Th>
-        <Table.Th fz="h6" fw={550}>Proposta em</Table.Th>
-      </Table.Tr>
+    <Table.Tr>
+      <Table.Th fz="h6" fw={550} w={200}>Proposta</Table.Th>
+      <Table.Th fz="h6" fw={550}>Fonte</Table.Th>
+      <Table.Th fz="h6" fw={550}>Proponente</Table.Th>
+      <Table.Th fz="h6" fw={550}>Proposta em</Table.Th>
+      <Table.Th fz="h6" fw={550}>Aprovações</Table.Th>
+    </Table.Tr>
   );
   
   const rows = sortedValues.map((item: TraitValueReadData) => (
@@ -196,15 +177,29 @@ function ValueChangeProposals({ data }: { data: TraitValueReadData[] }) {
         <TraitValue data={item}/>
       </Table.Td>
       <Table.Td>
-        <SourceRef source={item.source!}/>
+        <SourceRef source={item.source!} fz="sm" />
       </Table.Td>
-      <Table.Td>{item.endorsements}</Table.Td>
       <Table.Td>
-        <UserName user={item.contentAuthor!} />
+        <UserName user={item.contentAuthor!} fz="sm" />
       </Table.Td>
       <Table.Td>{new Date(item.createdAt!).toLocaleDateString(lang)}</Table.Td>
+      <Table.Td>
+        <EndorsementCounter
+          contentType="plant_value"
+          contentId={item.id}
+          initialCount={{"value": item.endorsements!, "queryKey": dataQueryKey}}
+        />
+      </Table.Td>
     </Table.Tr>
   ));
+
+  rows.push(
+    <Table.Tr key={0}>
+      <Table.Td colSpan={5} align="center" onClick={() => navigate('edit')} className={classes.row}>
+        <IconCircleDashedPlus className={classes.icon} size={35}/>
+      </Table.Td>
+    </Table.Tr>
+  )
 
   return (
     <Paper withBorder p={15} mb={25}>

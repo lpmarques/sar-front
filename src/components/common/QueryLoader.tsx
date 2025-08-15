@@ -2,14 +2,14 @@ import axios from 'axios';
 import React from 'react';
 import { Navigate } from 'react-router';
 import { Center, Loader } from '@mantine/core';
-import { useQuery, QueryFunction } from '@tanstack/react-query';
+import { useQuery, QueryFunction, UndefinedInitialDataOptions } from '@tanstack/react-query';
 import { HttpError } from './HttpError';
 import { useAuth } from '../../hooks/useAuth';
 
 type QueryLoaderProps = {
   queryKey: string[],
   queryFn: QueryFunction<unknown, string[]>,
-  children: React.ReactNode
+  children?: React.ReactNode
 }
 
 export function QueryLoader({ queryKey, queryFn, children }: QueryLoaderProps) {

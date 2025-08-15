@@ -20,4 +20,4 @@ export default function InputTip(props: TipProps) {
     </Text>
   </Tooltip>
   )
-} 
+}

@@ -1,12 +1,15 @@
-import { AppShell, Group, rem } from '@mantine/core';
+import { AppShell, Avatar, Group, rem, UnstyledButton } from '@mantine/core';
 import { useHeadroom } from '@mantine/hooks';
-import { Link } from 'react-router';
+import { Link, Navigate, useNavigate } from 'react-router';
+import { useAuth } from '../hooks/useAuth';
 import regeneraLogo from '/logo-lg-2.png'
-import userLogo from '/user-circle.svg'
 import classes from './Shell.module.css';
+import { UserIcon } from './user';
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const pinned = useHeadroom({ fixedAt: 120 });
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <AppShell header={{height: 80, collapsed: !pinned, offset: false}}>
@@ -29,9 +32,15 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           </Group>
 
           <Group h="100%">
-            <Link to="/login">
-              <img src={userLogo} className={classes.logo} alt="User logo" />
-            </Link>
+            { user ? 
+            <UserIcon user={user} /> :
+            <UnstyledButton onClick={() => navigate("/login")}>
+                <Avatar
+                  mb={15}
+                  size={60} />
+                {/* <img src={userLogo} className={classes.logo} alt="User logo" /> */}
+            </UnstyledButton>
+            }
           </Group>
         </Group>
       </AppShell.Header>

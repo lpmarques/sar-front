@@ -1,32 +1,23 @@
 import axios from 'axios';
 import { QueryFnInput, snakeToCamelCase } from './common';
-import { UserReadData } from './core';
+import { SourceReadData, UserReadData } from './core';
 
 export interface RangeValue {
   minimum: number,
   maximum: number,
 }
 
-export interface Source {
-  id: number,
-  type: string,
-  year: number,
-  publicationTitle: string,
-  publicationAuthors: string[],
-  publisher: string,
-  url: string,
-  description: string,
+// MUTATIONS
+
+export interface TraitValueWriteData {
+  traitKey: string,
+  value: boolean | string | string[] | number | RangeValue,
+  plantId: number,
+  contentAuthorId: number,
+  sourceId: number,
 }
 
-export const sourceTypeToText: { [key: string]: string } = {
-  "api": "API", 
-  "book": "Livro", 
-  "chapter": "Capítulo de livro", 
-  "monography": "Monografia", 
-  "paper": "Artigo", 
-  "public database": "Banco de dados público",
-  "website": "Website",
-};
+// QUERIES
 
 export interface TraitValueReadData {
   id: number,
@@ -39,7 +30,7 @@ export interface TraitValueReadData {
   sectionName?: string,
   contentStatus?: string,
   contentAuthor?: UserReadData,
-  source?: Source,
+  source?: SourceReadData,
   endorsements?: number,
   createdAt?: string,
   acceptedAt?: string,
@@ -99,7 +90,7 @@ export async function getPlant({ queryKey: [queryName, plantId, ...params] }: Qu
   return data;
 }
 
-export async function getPlantList({ queryKey: [...params] }: QueryFnInput ): Promise<PlantReadData[]> {
+export async function getPlantList({ queryKey: [queryName, ...params] }: QueryFnInput ): Promise<PlantReadData[]> {
   let res = await axios.get('/catalog/plants' + (params && `?${params.join('&')}`));
 
   let data = res.data.map((item: any) => {
@@ -122,7 +113,7 @@ export interface ScientificNameReadData {
   plantId?: number,
   contentAuthor?: UserReadData,
   endorsements?: number,
-  source?: Source,
+  source?: SourceReadData,
   CreatedAt?: string,
   AcceptedAt?: string,
 }
@@ -156,7 +147,7 @@ export interface PopularNameReadData {
   plantIds?: number[],
   contentAuthor?: UserReadData,
   endorsements?: number,
-  source?: Source,
+  source?: SourceReadData,
   CreatedAt?: string,
   AcceptedAt?: string,
 }
@@ -191,7 +182,7 @@ export interface NaturalOccurrenceRegionReadData {
   plantIds?: number[],
   contentStatus?: string,
   contentAuthor?: UserReadData,
-  source?: Source,
+  source?: SourceReadData,
   createdAt?: string,
 }
 

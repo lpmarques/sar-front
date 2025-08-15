@@ -26,19 +26,19 @@ export default function Plant() {
     queryFn: getPlant
   };
   const synonymsQueryOptions = {
-    queryKey: ['synonyms', plantId!, 'status=accepted', 'taxonomic_status=synonym'],
+    queryKey: ['plantScientificNameList', plantId!, 'status=accepted', 'taxonomic_status=synonym'],
     queryFn: getPlantScientificNameList
   };
   const popularNamesQueryOptions = {
-    queryKey: ['popularNames', plantId!, 'status=accepted'],
+    queryKey: ['plantPopularNames', plantId!, 'status=accepted'],
     queryFn: getPlantPopularNameList 
   };
   const traitValuesQueryOptions = { 
-    queryKey: ['traitValues', plantId!, 'status=accepted'],
+    queryKey: ['plantTraitValueList', plantId!, 'status=accepted'],
     queryFn: getPlantTraitValueList
   };
   const naturalOccurrenceRegionsQueryOptions = {
-    queryKey: ['naturalOccurrenceRegions', plantId!, 'status=proposed'], // TODO: change to accepted
+    queryKey: ['plantNaturalOccurrenceRegions', plantId!, 'status=proposed'], // TODO: change to accepted
     queryFn: getPlantNaturalOccurrenceRegionList
   }
  
@@ -59,7 +59,7 @@ export default function Plant() {
   return (
     <QueryLoader {...plantQueryOptions}>
       <Container size={1000}>
-        <Text fz="h2" fw={600} pb={15}>{plant.data?.acceptedScientificName}</Text>
+        <Text fz="h2" fs="italic" fw={600} pb={15}>{plant.data?.acceptedScientificName}</Text>
         <QueryLoader {...popularNamesQueryOptions}>
           <PopularNamesSection data={popularNames.data!}/>
         </QueryLoader>
@@ -118,7 +118,7 @@ function TraitSection({ sectionName, traitValues }: { sectionName: string, trait
   const navigate = useNavigate();
 
   const traits = traitValues.map(item => (
-    <Paper withBorder ta="center" radius="md" style={{cursor: 'pointer'}} onClick={() => navigate(`trait/${item.traitKey}`)}>
+    <Paper key={item.traitKey} withBorder ta="center" radius="md" style={{cursor: 'pointer'}} onClick={() => navigate(`trait/${item.traitKey}`)}>
       <Text fz="h6" fw={550} p={5}>{item.traitName}</Text>
       <TraitValue data={item} />
     </Paper>
@@ -164,7 +164,7 @@ function NaturalOccurrenceSection({ data }: { data: NaturalOccurrenceRegionReadD
 
   return (
     <Section title="Regiões de ocorrência natural (onde é nativa)" style={{cursor: 'pointer'}}>
-      <StickyHeaderTable header={header} rows={rows} scrollWidth={600} scrollHeight={300} />
+      <StickyHeaderTable header={header} rows={rows} scrollWidth={600} scrollHeight={300} striped stripedColor="#f0f2f2" />
     </Section>
   )
 }

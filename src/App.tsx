@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Routes, Route } from "react-router";
+import { BrowserRouter, Routes, Route } from "react-router";
 import { MantineProvider } from "@mantine/core";
 import { ModalsProvider } from '@mantine/modals';
 import { Notifications } from '@mantine/notifications';
@@ -8,7 +8,7 @@ import '@mantine/notifications/styles.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { defaultRequestRetry } from './apis/common';
 import { Home, LoggedOnlyRoute, Shell, UnloggedOnlyRoute } from './components';
-import { Plant, PlantList, TraitDetails } from './components/catalog';
+import { Plant, PlantList, TraitDetails, TraitEdit } from './components/catalog';
 import { HttpError } from './components/common/HttpError';
 import { Login, UserProfile, Signup } from './components/user';
 import { LanguageProvider } from './hooks/useLanguage';
@@ -26,7 +26,7 @@ export default function App() {
         staleTime: 1000 * 60 * 60 * 24,
         refetchOnWindowFocus: false,
         refetchOnReconnect: false,
-        refetchOnMount: false,
+        refetchOnMount: true,
         retry: defaultRequestRetry
       },
       mutations: {
@@ -36,7 +36,7 @@ export default function App() {
   })
 
   return (
-    <>
+    <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <MantineProvider theme={theme}>
           <LanguageProvider>
@@ -52,6 +52,7 @@ export default function App() {
                   <Route path="plants" element={<PlantList />} />
                   <Route path="plants/:plantId" element={<Plant />} />
                   <Route path="plants/:plantId/trait/:traitKey" element={<TraitDetails />} />
+                  <Route path="plants/:plantId/trait/:traitKey/edit" element={<TraitEdit />} />
                   <Route path='*' element={<HttpError status={404} statusText="Página inexistente"/>} />
                 </Routes>
               </Shell>
@@ -59,6 +60,6 @@ export default function App() {
           </LanguageProvider>
         </MantineProvider>
       </QueryClientProvider>
-    </>
+    </BrowserRouter>
   )
 }

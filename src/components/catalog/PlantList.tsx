@@ -12,6 +12,7 @@ import { StickyHeaderTable, TraitValue } from '.';
 export default function PlantList() {
   const plantListQueryOptions = {
     queryKey: [
+      'plantList',
       'with_scientific_names=true',
       'with_popular_names=true',
       'with_trait_values=true',
@@ -101,17 +102,25 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
     </Table.Tr>
   );
 
-  const rows = rowsData.map((row: RowData) => {
-    return (
-      <Table.Tr key={row.scientificName} style={{cursor: 'pointer'}} onClick={() => handleRowClick(row)}>
-        <Table.Td w={230}>{row.scientificName}</Table.Td>
-        <Table.Td w={100}>{row.familyName}</Table.Td>
-        <Table.Td w={500}>{row.popularNames}</Table.Td>
-        <Table.Td w={150}>{row.lifeForms && <TraitValue data={row.lifeForms} />}</Table.Td>
-        <Table.Td w={110}>{row.lifeCycle && <TraitValue data={row.lifeCycle} />}</Table.Td>
-      </Table.Tr>
-    )
-  });
+  const rows = rowsData.map((row: RowData) => (
+    <Table.Tr key={row.scientificName} style={{cursor: 'pointer'}} onClick={() => handleRowClick(row)}>
+      <Table.Td w={230}>{row.scientificName}</Table.Td>
+      <Table.Td w={100}>{row.familyName}</Table.Td>
+      <Table.Td w={500}>{row.popularNames}</Table.Td>
+      <Table.Td w={150}>{row.lifeForms && <TraitValue data={row.lifeForms} />}</Table.Td>
+      <Table.Td w={110}>{row.lifeCycle && <TraitValue data={row.lifeCycle} />}</Table.Td>
+    </Table.Tr>
+  ));
+
+  rows.push(
+    <Table.Tr key={0}>
+      <Table.Td colSpan={Object.keys(data[0]).length}>
+        <Text c="dimmed" fw={500} ta="center">
+          {rows.length} resultado(s) encontrado(s)
+        </Text>
+      </Table.Td>
+    </Table.Tr>
+  )
 
   return (
     <Container size={1200}>
@@ -123,7 +132,17 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
         onChange={handleSearchChange}
       />
       <Paper withBorder>
-        <StickyHeaderTable header={header} rows={rows} scrollWidth={800} scrollHeight={550} tableProps={{highlightOnHover: true, highlightOnHoverColor: "#c5fac3"}} />
+        <StickyHeaderTable
+          header={header}
+          rows={rows}
+          scrollWidth={800}
+          scrollHeight={550}
+          striped
+          stripedColor="#f0f2f2"
+          highlightOnHover
+          highlightOnHoverColor="#bef7ce"
+          withRowBorders={false}
+        />
       </Paper>
     </Container>
   )
