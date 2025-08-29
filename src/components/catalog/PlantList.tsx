@@ -1,13 +1,11 @@
-import clsx from 'clsx';
 import React, { useState } from 'react';
-import { Badge, Container, Paper, ScrollArea, Table, Text, TextInput } from '@mantine/core';
+import { Container, Paper, Table, Text, TextInput } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
-import { isArrayOfType } from "../../apis/common";
 import { getPlantList, PlantReadData, TraitValueReadData } from "../../apis/catalog";
 import { QueryLoader } from '../common/QueryLoader';
-import { StickyHeaderTable, TraitValue } from '.';
+import { StickyHeaderTable, TraitValueDisplay } from '.';
 
 export default function PlantList() {
   const plantListQueryOptions = {
@@ -17,7 +15,7 @@ export default function PlantList() {
       'with_popular_names=true',
       'with_trait_values=true',
       'scientific_names_toxonomic_status=synonym',
-      'trait_values_trait_keys=family_name,life_cycle,life_forms'
+      'trait_values_trait_slugs=family_name,life_cycle,life_forms'
     ],
     queryFn: getPlantList
   };
@@ -44,9 +42,9 @@ interface RowData extends TaxonomicData {
 }
 
 function plantToRowData(data: PlantReadData): RowData {
-  let familyName = data.traitValues!.find((trait) => trait.traitKey == 'family_name');
-  let lifeCycle = data.traitValues!.find((trait) => trait.traitKey == 'life_cycle');
-  let lifeForms = data.traitValues!.find((trait) => trait.traitKey == 'life_forms');
+  let familyName = data.traitValues!.find((trait) => trait.traitSlug == 'family_name');
+  let lifeCycle = data.traitValues!.find((trait) => trait.traitSlug == 'life_cycle');
+  let lifeForms = data.traitValues!.find((trait) => trait.traitSlug == 'life_forms');
   return {
     plantId: data.id.toString(),
     scientificName: data.acceptedScientificName,
@@ -107,8 +105,8 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
       <Table.Td w={230}>{row.scientificName}</Table.Td>
       <Table.Td w={100}>{row.familyName}</Table.Td>
       <Table.Td w={500}>{row.popularNames}</Table.Td>
-      <Table.Td w={150}>{row.lifeForms && <TraitValue data={row.lifeForms} />}</Table.Td>
-      <Table.Td w={110}>{row.lifeCycle && <TraitValue data={row.lifeCycle} />}</Table.Td>
+      <Table.Td w={150}>{row.lifeForms && <TraitValueDisplay data={row.lifeForms} />}</Table.Td>
+      <Table.Td w={110}>{row.lifeCycle && <TraitValueDisplay data={row.lifeCycle} />}</Table.Td>
     </Table.Tr>
   ));
 

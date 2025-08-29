@@ -10,3 +10,11 @@ button:hover {
   cursor: pointer;
   background-color: #bef7ce;
 }
+
+.text {
+  cursor: pointer;
+}
+
+.text:hover {
+  text-decoration: underline;
+}

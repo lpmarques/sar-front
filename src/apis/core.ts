@@ -1,6 +1,5 @@
 import axios from 'axios';
-import { camelToSnakeCase, GenericResponse, QueryFnInput, snakeToCamelCase } from './common';
-import { build } from 'vite';
+import { GenericResponse, QueryFnInput, snakeToCamelCase } from './common';
 
 // MUTATIONS
 
@@ -88,7 +87,6 @@ export async function deleteUserToken() {
 }
 
 export interface EndorsementWriteRequestData {
-  endorserId: number,
   contentType: string,
   contentId: number,
 }
@@ -105,13 +103,12 @@ const contentTypeToIdField: { [key: string]: string } = {
 
 const buildEndorsementWriteBody = (data: EndorsementWriteRequestData) => {
   let body: { [key: string]: any } = {
-    endorser_id: data.endorserId,
     content_type: data.contentType,
   };
   body[contentTypeToIdField[data.contentType]] = data.contentId;
 
   return body;
-} 
+}
 
 export async function createEndorsement(data: EndorsementWriteRequestData): Promise<EndorsementWriteResponseData> {  
   const body = buildEndorsementWriteBody(data);
@@ -126,6 +123,36 @@ export async function deleteEndorsement(endorsementId: number): Promise<GenericR
   return res.data;
 }
 
+export interface SourceWriteRequestData {
+  type: string,
+  year: number,
+  title: string,
+  authors?: string[],
+  publisher?: string,
+  url?: string,
+  description?: string,
+}
+
+export interface SourceWriteResponseData extends GenericResponse {
+  sourceId: number,
+}
+
+export async function createSource(data: SourceWriteRequestData): Promise<SourceWriteResponseData> {  
+  // const body = camelToSnakeCase(data);
+  const body = {
+    type: data.type,
+    year: data.year,
+    publication_title: data.title,
+    publication_authors: data.authors,
+    publisher: data.publisher,
+    url: data.url,
+    description: data.description,
+  };
+  let res = await axios.post('/core/source', body);
+
+  return snakeToCamelCase(res.data);
+}
+
 
 // QUERIES
 
@@ -138,6 +165,7 @@ export interface SourceReadData {
   publisher: string,
   url: string,
   description: string,
+  contentAuthorId: number,
 }
 
 export const sourceTypeToText: { [key: string]: string } = {
@@ -149,6 +177,12 @@ export const sourceTypeToText: { [key: string]: string } = {
   "public database": "Banco de dados público",
   "website": "Website",
 };
+
+export async function getSourceList({ queryKey: [queryName] }: QueryFnInput): Promise<SourceReadData[]> {
+  const res = await axios.get("/core/sources");
+
+  return snakeToCamelCase(res.data);
+}
 
 export interface UserReadData {
   id: number,

@@ -14,7 +14,13 @@ export default function StickyHeaderTable ({ header, rows, scrollWidth, scrollHe
   const [scrolled, setScrolled] = useState(false);
 
   return (
-    <Table.ScrollContainer minWidth={scrollWidth} maxHeight={scrollHeight} onScrollCapture={() => setScrolled(true)} onScrollEndCapture={() => setScrolled(false)}>
+    <Table.ScrollContainer 
+      minWidth={scrollWidth} 
+      maxHeight={scrollHeight} 
+      scrollAreaProps={{ 'type': 'always' }}
+      onScrollCapture={() => setScrolled(true)} 
+      onScrollEndCapture={() => setScrolled(false)}
+    >
       <Table withRowBorders {...tableProps}>
         <Table.Thead className={clsx(classes.header, { [classes.scrolled]: scrolled })}>
           {header}

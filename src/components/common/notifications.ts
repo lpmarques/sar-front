@@ -1,7 +1,7 @@
 import { notifications } from '@mantine/notifications';
 import classes from './notifications.module.css';
 
-export function showError(message: string, title='Erro') {
+export function showError(message: string, title: string | null = null) {
   notifications.show({
     title: title,
     message: message,
@@ -11,7 +11,7 @@ export function showError(message: string, title='Erro') {
   });
 }
 
-export function showSuccess(message: string, title='Sucesso') {
+export function showSuccess(message: string, title: string | null = null) {
   notifications.show({
     title: title,
     message: message,

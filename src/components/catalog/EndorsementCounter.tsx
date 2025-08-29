@@ -1,75 +1,52 @@
 import { useEffect, useState } from 'react';
-import { Group, Text, TextProps, UnstyledButton } from '@mantine/core';
+import { Group, GroupProps, Text, TextProps, UnstyledButton } from '@mantine/core';
 import { modals } from '@mantine/modals';
-import { IconThumbUp, IconThumbUpFilled } from '@tabler/icons-react';
+import { IconProps, IconThumbUp, IconThumbUpFilled } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { showSuccess } from '../common/notifications';
+import { showError, showSuccess } from '../common/notifications';
 import { showMutationError } from "../../apis/common";
 import {
   createEndorsement,
   deleteEndorsement,
-  getEndorsements,
-  getUserEndorsements
+  getUserEndorsements,
+  UserReadData
 } from '../../apis/core';
 import { useAuth } from "../../hooks/useAuth";
-import { EndorsementList } from '../user';
 import { QueryLoader } from '../common/QueryLoader';
+import { EndorsementList } from '.';
 
-type EndorsementCounterProps = {
+interface EndorsementCounterProps extends GroupProps {
   contentType: string,
   contentId: number,
-  initialCount?: {
+  contentAuthor: UserReadData,
+  initialCount: {
     value: number,
     queryKey: string[]
   },
-  countTextProps?: TextProps
+  textProps?: TextProps,
+  iconProps?: IconProps,
 };
 
-export default function EndorsementCounter({ contentType, contentId, initialCount, countTextProps }: EndorsementCounterProps) {
+export default function EndorsementCounter({ contentType, contentId, contentAuthor, initialCount, textProps, iconProps, ...groupProps }: EndorsementCounterProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [count, setCount] = useState(initialCount?.value || 0);
-  const [userEndorsementId, setUserEndorsementId] = useState(0);
-  const [endorsed, setEndorsed] = useState(false);
-  const ThumbIcon = endorsed ? IconThumbUpFilled : IconThumbUp;
-  console.log('render') // TODO: fix excessive rendering repetition
-
-  const endorsementsQueryOptions = {
-    queryKey: ['endorsements', contentType, contentId.toString()],
-    queryFn: getEndorsements,
-  };
+  const [count, setCount] = useState(initialCount.value);
 
   const userEndorsementsQueryOptions = {
     queryKey: ['userEndorsements', contentType, contentId.toString()],
     queryFn: getUserEndorsements,
     refetchOnMount: true,
   };
-  
-  // useEffect foi necessário para atualizar infos sem repetir requests ao backend
-  if (initialCount === undefined) {
-    const endorsements = useQuery(endorsementsQueryOptions);
-    useEffect(() => {
-      if (endorsements.data) {
-        setCount(endorsements.data.length);
-      }
-    }, [endorsements.data]);
-  }
 
   const userEndorsements = useQuery(userEndorsementsQueryOptions);
-  useEffect(() => {
-    if (userEndorsements.data && userEndorsements.data.length > 0) {
-      setEndorsed(true);
-      setUserEndorsementId(userEndorsements.data[0].id);
-    }
-  }, [userEndorsements.data]);
+  const userEndorsementId = userEndorsements.data && userEndorsements.data.length > 0 ? userEndorsements.data[0].id : undefined;
+  const ThumbIcon = userEndorsementId ? IconThumbUpFilled : IconThumbUp;
   
   const endorsementCreation = useMutation({
     mutationFn: createEndorsement,
     onSuccess: (data) => {
       setCount(count+1);
-      setEndorsed(true);
-      setUserEndorsementId(data.endorsementId);
-      showSuccess(JSON.stringify(data.msg));
+      showSuccess(data.msg);
       invalidateQueries();
     },
     onError: showMutationError
@@ -79,32 +56,30 @@ export default function EndorsementCounter({ contentType, contentId, initialCoun
     mutationFn: deleteEndorsement,
     onSuccess: (data) => {
       setCount(count-1);
-      setEndorsed(false);
-      setUserEndorsementId(0);
-      showSuccess(JSON.stringify(data.msg));
+      showSuccess(data.msg);
       invalidateQueries();
     },
     onError: showMutationError
   });
 
   const invalidateQueries = () => {
-    queryClient.invalidateQueries({ queryKey: endorsementsQueryOptions.queryKey });
     queryClient.invalidateQueries({ queryKey: userEndorsementsQueryOptions.queryKey });
-    if (initialCount !== undefined)
-      queryClient.invalidateQueries({ queryKey: initialCount.queryKey });
+    queryClient.invalidateQueries({ queryKey: initialCount.queryKey });
   }
 
   const handleThumbClick = () => {
     if (!user) {
       window.open('/user/login', '_blank');
-      return;
+      throw showError("É preciso estar logado para executar essa ação.", null);
     }
 
-    if (endorsed)
+    if (user.id == contentAuthor.id)
+      throw showError("Somente outro usuário pode aprovar conteúdo criado por você.", null);
+
+    if (userEndorsementId)
       endorsementDeletion.mutate(userEndorsementId)
     else {
       endorsementCreation.mutate({
-        endorserId: user.id,
         contentType: contentType,
         contentId: contentId,
       })
@@ -118,12 +93,12 @@ export default function EndorsementCounter({ contentType, contentId, initialCoun
 
   return (
     <QueryLoader {...userEndorsementsQueryOptions}>
-      <Group justify="center" gap={25}>
+      <Group justify="center" gap={25} {...groupProps}>
         <UnstyledButton onClick={() => openEndorsementListModal(contentType, contentId)}>
-          <Text {...countTextProps}>{count}</Text>
+          <Text fz="h2" {...textProps}>{count}</Text>
         </UnstyledButton>
         <UnstyledButton mt={5} onClick={handleThumbClick}>
-          <ThumbIcon />
+          <ThumbIcon size={25} {...iconProps} />
         </UnstyledButton>
       </Group>
     </QueryLoader>

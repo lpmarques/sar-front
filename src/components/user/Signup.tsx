@@ -5,7 +5,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from "react-router";
 import classes from './Login.module.css';
 import InputTip from '../common/InputTip';
-import { showSuccess } from '../common/notifications';
+import { showError, showSuccess } from '../common/notifications';
 import { showMutationError } from "../../apis/common";
 import { createUserToken, createUser, UserWriteData } from "../../apis/core";
 import { getCountryList, getStateList, getMunicipalityList } from "../../apis/geography";
@@ -31,7 +31,7 @@ export default function Signup() {
     mutationFn: createUser,
     onSuccess: (data) => {
       userTokenCreation.mutate(form.values);
-      showSuccess(JSON.stringify(data.data.msg));
+      showSuccess(data.data.msg);
     },
     onError: showMutationError
   });
@@ -88,47 +88,49 @@ export default function Signup() {
   });
 
   const countries = useQuery({
-    queryKey: ['countries'],
+    queryKey: ['countryList'],
     queryFn: getCountryList
   });
 
   const states = useQuery({
-    queryKey: ['states', form.getValues().countryId?.toString() ?? '0'],
-    queryFn: getStateList
+    queryKey: ['stateList', form.getValues().countryId?.toString() ?? '0'],
+    queryFn: getStateList,
+    enabled: form.getDirty().countryId,
   });
 
   const municipalities = useQuery({
-    queryKey: ['municipalities', form.getValues().stateId?.toString() ?? '0'],
-    queryFn: getMunicipalityList
+    queryKey: ['municipalityList', form.getValues().stateId?.toString() ?? '0'],
+    queryFn: getMunicipalityList,
+    enabled: form.getDirty().stateId,
   });
 
-  let countryOptions = countries.data?.map(
+  const countryOptions = countries.data ? countries.data.map(
     country => ({
       value: country.id.toString(),
       label: country.name
     })
-  ).sort((a, b) => a.label.localeCompare(b.label));
+  ).sort((a, b) => a.label.localeCompare(b.label)) : [];
 
-  let stateOptions = states.data?.map(
+  const stateOptions = states.data ? states.data.map(
     state => ({
       value: state.id.toString(),
       label: state.name
     })
-  ).sort((a, b) => a.label.localeCompare(b.label));
+  ).sort((a, b) => a.label.localeCompare(b.label)) : [];
 
-  let municipalityOptions = municipalities.data?.map(
+  const municipalityOptions = municipalities.data ? municipalities.data.map(
     municipality => ({
       value: municipality.id.toString(),
       label: municipality.name
     })
-  ).sort((a, b) => a.label.localeCompare(b.label));
+  ).sort((a, b) => a.label.localeCompare(b.label)) : [];
 
   const handleSignup = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.preventDefault();
 
     const validation = form.validate();
     if (validation.hasErrors)
-      throw new Error("Há campos inválidos no formulário.");
+      throw showError("Há campos inválidos no formulário.", "Erro");
     
     userCreation.mutate(form.values);
   }
@@ -194,7 +196,7 @@ export default function Signup() {
         {...form.getInputProps('countryId')}
       />
       {states.isLoading ? <Loader size={25} mt={20}/> :
-      stateOptions && stateOptions.length > 0 &&
+      stateOptions.length > 0 &&
       <Select
         key={form.key('stateId')}
         label="Estado"
@@ -206,7 +208,7 @@ export default function Signup() {
       />
       }
       {municipalities.isLoading ? <Loader size={25} mt={20}/> :
-      municipalityOptions && municipalityOptions.length > 0 &&
+      municipalityOptions.length > 0 &&
       <Select
         key={form.key('municipalityId')}
         label="Município"
@@ -230,7 +232,6 @@ export default function Signup() {
         <Button loading={userCreation.isPending} fullWidth mt="xl" radius="md" type="submit" onClick={handleSignup}>
           Criar conta
         </Button>
-        {/* {userCreation.isPending ? <Loader size={25} mt={20}/> : <></>} */}
       </Paper>
       
       <Text className={classes.footer}>

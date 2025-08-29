@@ -2,7 +2,7 @@ import axios from 'axios';
 import React from 'react';
 import { Navigate } from 'react-router';
 import { Center, Loader } from '@mantine/core';
-import { useQuery, QueryFunction, UndefinedInitialDataOptions } from '@tanstack/react-query';
+import { useQuery, QueryFunction } from '@tanstack/react-query';
 import { HttpError } from './HttpError';
 import { useAuth } from '../../hooks/useAuth';
 

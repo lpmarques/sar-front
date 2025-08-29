@@ -30,7 +30,7 @@ export default function Login() {
         user: data.user,
         token: data.token
       });
-      showSuccess(JSON.stringify(data.msg));
+      showSuccess(data.msg);
       navigate("/user");
     },
     onError: (error) => {

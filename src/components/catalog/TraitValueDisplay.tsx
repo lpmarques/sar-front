@@ -1,21 +1,21 @@
 import { Badge, RangeSlider, Space, Text } from '@mantine/core';
 import {
-  RangeValue,
+  Range,
   TraitValueReadData,
 } from "../../apis/catalog";
 
-export default function TraitValue({ data }: { data: TraitValueReadData }) {
+export default function TraitValueDisplay({ data }: { data: TraitValueReadData }) {
   switch (data.type) {
     case "string":
-      return <StringTraitValue key={data.traitKey} value={data.value as string} />
+      return <StringTraitValue key={data.traitSlug} value={data.value as string} />
     case "number":
-      return <NumberTraitValue key={data.traitKey} value={data.value as number} />
+      return <NumberTraitValue key={data.traitSlug} value={data.value as number} />
     case "boolean":
-      return <BooleanTraitValue key={data.traitKey} value={data.value as boolean} />
+      return <BooleanTraitValue key={data.traitSlug} value={data.value as boolean} />
     case "string[]":
-      return <StringArrayTraitValue key={data.traitKey} value={data.value as string[]} />
+      return <StringArrayTraitValue key={data.traitSlug} value={data.value as string[]} />
     case "range":
-      return <RangeTraitValue key={data.traitKey} value={data.value as RangeValue} boundaries={data.boundaries as RangeValue} />
+      return <RangeTraitValue key={data.traitSlug} value={data.value as Range} boundaries={data.boundaries as Range} />
   }
 }
 
@@ -52,7 +52,7 @@ function StringArrayTraitValue({ value }: { value: string[] }) {
   )
 }
 
-function RangeTraitValue({ value, boundaries }: { value: RangeValue, boundaries: RangeValue }) {
+function RangeTraitValue({ value, boundaries }: { value: Range, boundaries: Range }) {
   function round(num: number) {
     return Math.round(num * 10) / 10
   }

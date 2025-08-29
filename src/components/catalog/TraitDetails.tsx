@@ -1,21 +1,27 @@
 import { useParams, useNavigate } from 'react-router';
-import { useQuery } from '@tanstack/react-query';
-import { Alert, Container, Grid, List, Paper, Space, Table, Text, Tooltip, UnstyledButton } from '@mantine/core';
-import { IconCircleDashedPlus, IconInfoCircle } from '@tabler/icons-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Alert, Button, Container, Grid, Group, List, Paper, Space, Table, Text, Tooltip, UnstyledButton } from '@mantine/core';
+import { modals } from '@mantine/modals';
+import { IconCircleDashedPlus, IconInfoCircle, IconX } from '@tabler/icons-react';
 import { QueryLoader } from '../common/QueryLoader';
 import {
+  deleteTraitValue,
   getPlant,
   getPlantTraitValueList,
+  PlantReadData,
   TraitValueReadData,
 } from '../../apis/catalog';
 import { SourceReadData } from '../../apis/core';
 import { useLanguage } from '../../hooks/useLanguage';
 import { UserName } from '../user/';
-import { EndorsementCounter, SourceContent, SourceRef, StickyHeaderTable, TraitValue } from '.';
+import { EndorsementCounter, SourceContent, SourceRef, StickyHeaderTable, TraitValueDisplay } from '.';
 import classes from '../common/Clickable.module.css';
+import { useAuth } from '../../hooks/useAuth';
+import { showSuccess } from '../common/notifications';
+import { showMutationError } from '../../apis/common';
 
 export default function TraitDetails() {
-  const { plantId, traitKey } = useParams();
+  const { plantId, traitSlug } = useParams();
   const navigate = useNavigate();
 
   const plantQueryOptions = {
@@ -23,7 +29,7 @@ export default function TraitDetails() {
     queryFn: getPlant
   };
   const traitValuesQueryOptions = {
-    queryKey: ['plantTraitValueList', plantId!, `trait_keys=${traitKey}`],
+    queryKey: ['plantTraitValueList', plantId!, `trait_slugs=${traitSlug}`],
     queryFn: getPlantTraitValueList
   };
 
@@ -55,20 +61,22 @@ export default function TraitDetails() {
         <UnstyledButton onClick={() => navigate(`/plants/${plantId}`)}>
           <Text fs="italic" fz="h3" pb={15}>{plant.data.acceptedScientificName}</Text>
         </UnstyledButton>
-        <Text fz="h3" pb={15}><Text span inherit fw={600}>{acceptedValue.traitName}</Text> ({acceptedValue.sectionName})</Text>
+        <Text fz="h3" pb={15}>
+          [{acceptedValue.sectionName}] <Text span inherit fw={600}>{acceptedValue.traitName}</Text>
+        </Text>
         <Grid columns={10} justify="space-between" mb={15}>
-          <Grid.Col span={{base: 10, sm: 4}}>
+          <Grid.Col span={{base: 10, sm: 5}}>
             <AcceptedValue data={acceptedValue} />
             <Space h={15} />
             <AcceptedValueEndorsements data={acceptedValue} dataQueryKey={traitValuesQueryOptions.queryKey} />
           </Grid.Col>
-          <Grid.Col span={{base: 10, sm: 6}}>
+          <Grid.Col span={{base: 10, sm: 5}}>
             <AcceptedValueSource data={acceptedValue.source!} />
           </Grid.Col>
         </Grid>
-        <ValueHistory data={everAcceptedValues} dataQueryKey={traitValuesQueryOptions.queryKey} />
+        <ValueHistory data={everAcceptedValues} />
         <Space h={15} />
-        <ValueChangeProposals data={proposedValues} dataQueryKey={traitValuesQueryOptions.queryKey} />
+        <ValueChangeProposals plant={plant.data} proposals={proposedValues} proposalsQueryKey={traitValuesQueryOptions.queryKey} />
       </Container>}
     </QueryLoader>
   )
@@ -79,7 +87,7 @@ function AcceptedValue({ data }: { data: TraitValueReadData }) {
     <>
     <Paper withBorder style={{ backgroundColor: "#bef7ce" }} ta="center" p={15}>
       <Text fz="h5" fw={600} pb={10}>Versão aceita</Text>
-      <TraitValue data={data}/>
+      <TraitValueDisplay data={data}/>
     </Paper>
     </>
   )
@@ -102,15 +110,15 @@ function AcceptedValueEndorsements({ data, dataQueryKey }: { data: TraitValueRea
         <EndorsementCounter
           contentType="plant_value"
           contentId={data.id}
+          contentAuthor={data.contentAuthor!}
           initialCount={{"value": data.endorsements!, "queryKey": dataQueryKey}}
-          countTextProps={{"fz": "h2"}}
         />
       </Paper>
     </Tooltip>
   )
 }
 
-function ValueHistory({ data, dataQueryKey }: { data: TraitValueReadData[], dataQueryKey: string[] }) {
+function ValueHistory({ data }: { data: TraitValueReadData[] }) {
   const { lang } = useLanguage();
 
   const sortedValues = data.sort((a, b) =>
@@ -131,7 +139,7 @@ function ValueHistory({ data, dataQueryKey }: { data: TraitValueReadData[], data
   const rows = sortedValues.map((item: TraitValueReadData) => (
     <Table.Tr key={item.id}>
       <Table.Td>
-        <TraitValue data={item}/>
+        <TraitValueDisplay data={item}/>
       </Table.Td>
       <Table.Td>
         <SourceRef source={item.source!} fz="sm" />
@@ -153,13 +161,43 @@ function ValueHistory({ data, dataQueryKey }: { data: TraitValueReadData[], data
   )
 }
 
-function ValueChangeProposals({ data, dataQueryKey }: { data: TraitValueReadData[], dataQueryKey: string[] }) {
+function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: PlantReadData, proposals: TraitValueReadData[], proposalsQueryKey: string[] }) {
+  const { user } = useAuth();
   const { lang } = useLanguage();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const sortedValues = data.sort((a, b) =>
-    b.acceptedAt!.localeCompare(a.createdAt!)
+  const sortedValues = proposals.sort((a, b) =>
+    b.createdAt!.localeCompare(a.createdAt!)
   );
+
+  const proposalDeletion = useMutation({
+    mutationFn: deleteTraitValue,
+    onSuccess: (data) => {
+      showSuccess(data.msg);
+      queryClient.invalidateQueries({ queryKey: proposalsQueryKey });
+    },
+    onError: showMutationError
+  });
+
+  const openProposalDeleteConfirmModal = (proposal: TraitValueReadData) => modals.openConfirmModal({
+    title: 'Deseja mesmo excluir essa proposta?',
+    children: (
+      <>
+      <Text size="sm" mb={20}>
+          Ao confirmar, você <strong>removerá</strong> a seguinte proposta para 
+          o traço <Text span fw={600}>{proposal.traitName}</Text>
+          &nbsp;da planta <Text span fs="italic" fw={600}>{plant.acceptedScientificName}:</Text>
+      </Text>
+      <Container ta="center" px={0} mb={40}>
+        <TraitValueDisplay data={proposal}/>
+      </Container>
+      </>
+    ),
+    labels: { confirm: 'Excluir', cancel: 'Cancelar exclusão' },
+    confirmProps: { color: 'red' },
+    onConfirm: () => proposalDeletion.mutate(proposal.id),
+  })
 
   const header = (
     <Table.Tr>
@@ -167,14 +205,15 @@ function ValueChangeProposals({ data, dataQueryKey }: { data: TraitValueReadData
       <Table.Th fz="h6" fw={550}>Fonte</Table.Th>
       <Table.Th fz="h6" fw={550}>Proponente</Table.Th>
       <Table.Th fz="h6" fw={550}>Proposta em</Table.Th>
-      <Table.Th fz="h6" fw={550}>Aprovações</Table.Th>
+      <Table.Th fz="h6" fw={550} w={170}>Aprovações</Table.Th>
+      <Table.Th w={80}></Table.Th>
     </Table.Tr>
   );
   
   const rows = sortedValues.map((item: TraitValueReadData) => (
     <Table.Tr key={item.id}>
       <Table.Td>
-        <TraitValue data={item}/>
+        <TraitValueDisplay data={item}/>
       </Table.Td>
       <Table.Td>
         <SourceRef source={item.source!} fz="sm" />
@@ -187,15 +226,25 @@ function ValueChangeProposals({ data, dataQueryKey }: { data: TraitValueReadData
         <EndorsementCounter
           contentType="plant_value"
           contentId={item.id}
-          initialCount={{"value": item.endorsements!, "queryKey": dataQueryKey}}
+          contentAuthor={item.contentAuthor!}
+          initialCount={{"value": item.endorsements!, "queryKey": proposalsQueryKey}}
+          justify="left"
+          textProps={{"fz": "xl"}}
+          iconProps={{"size": 22}}
         />
+      </Table.Td>
+      <Table.Td>
+        { user?.id === item.contentAuthor?.id &&
+        <Button size="compact-xs" color="red" onClick={() => openProposalDeleteConfirmModal(item)}>
+          <IconX size={15} />
+        </Button>}
       </Table.Td>
     </Table.Tr>
   ));
 
   rows.push(
     <Table.Tr key={0}>
-      <Table.Td colSpan={5} align="center" onClick={() => navigate('edit')} className={classes.row}>
+      <Table.Td colSpan={6} align="center" onClick={() => navigate('edit')} className={classes.row}>
         <IconCircleDashedPlus className={classes.icon} size={35}/>
       </Table.Td>
     </Table.Tr>

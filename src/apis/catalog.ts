@@ -1,32 +1,53 @@
 import axios from 'axios';
-import { QueryFnInput, snakeToCamelCase } from './common';
+import { camelToSnakeCase, GenericResponse, QueryFnInput, snakeToCamelCase } from './common';
 import { SourceReadData, UserReadData } from './core';
 
-export interface RangeValue {
+export interface Range {
   minimum: number,
   maximum: number,
 }
 
+export type TraitType = "string" | "number" | "boolean" | "string[]" | "range";
+
+export type TraitValue = boolean | string | string[] | number | Range;
+
 // MUTATIONS
 
-export interface TraitValueWriteData {
-  traitKey: string,
-  value: boolean | string | string[] | number | RangeValue,
+export interface TraitValueWriteRequestData {
   plantId: number,
-  contentAuthorId: number,
+  traitId: number,
+  value: TraitValue,
   sourceId: number,
+  contentAuthorComment: string,
+}
+
+export interface TraitValueWriteResponseData extends GenericResponse {
+  traitValueId: number,
+}
+
+export async function createTraitValue(data: TraitValueWriteRequestData): Promise<TraitValueWriteResponseData> {
+  const body = camelToSnakeCase(data);
+  const res = await axios.post("/catalog/trait-value", body);
+  
+  return snakeToCamelCase(res.data);
+}
+
+export async function deleteTraitValue(traitValueId: number): Promise<GenericResponse> {
+  const res = await axios.delete(`/catalog/trait-value/${traitValueId}`);
+  
+  return res.data;
 }
 
 // QUERIES
 
 export interface TraitValueReadData {
   id: number,
-  traitKey: string,
+  traitSlug: string,
   traitName: string,
-  type: string,
-  value: boolean | string | string[] | number | RangeValue,
-  boundaries?: boolean[] | string[] | RangeValue,
-  sectionKey?: string,
+  type: TraitType,
+  value: TraitValue,
+  boundaries?: boolean[] | string[] | Range,
+  sectionSlug?: string,
   sectionName?: string,
   contentStatus?: string,
   contentAuthor?: UserReadData,
@@ -46,11 +67,12 @@ export async function getPlantTraitValueList({ queryKey: [queryName, plantId, ..
 }
 
 export interface TraitReadData {
-  key: string,
+  id: number,
+  slug: string,
   name: string,
-  sectionKey: string,
+  sectionSlug: string,
   sectionName: string,
-  type: string,
+  type: TraitType,
   isNullable: boolean,
   numericValueMin: number,
   numericValueMax: number,
@@ -114,7 +136,7 @@ export interface ScientificNameReadData {
   contentAuthor?: UserReadData,
   endorsements?: number,
   source?: SourceReadData,
-  CreatedAt?: string,
+  createdAt?: string,
   AcceptedAt?: string,
 }
 

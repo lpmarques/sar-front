@@ -51,8 +51,8 @@ export default function App() {
                   <Route path="users/:userId" element={<LoggedOnlyRoute> <UserProfile /> </LoggedOnlyRoute>}/>
                   <Route path="plants" element={<PlantList />} />
                   <Route path="plants/:plantId" element={<Plant />} />
-                  <Route path="plants/:plantId/trait/:traitKey" element={<TraitDetails />} />
-                  <Route path="plants/:plantId/trait/:traitKey/edit" element={<TraitEdit />} />
+                  <Route path="plants/:plantId/trait/:traitSlug" element={<TraitDetails />} />
+                  <Route path="plants/:plantId/trait/:traitSlug/edit" element={<TraitEdit />} />
                   <Route path='*' element={<HttpError status={404} statusText="Página inexistente"/>} />
                 </Routes>
               </Shell>

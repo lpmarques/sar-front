@@ -1,4 +1,3 @@
-import clsx from 'clsx';
 import React, { useState } from 'react';
 import { useParams, useNavigate } from "react-router";
 import { Container, Paper, ScrollArea, SimpleGrid, Space, Table, Text } from '@mantine/core';
@@ -16,7 +15,7 @@ import {
 } from "../../apis/catalog";
 import { sortValueFirst } from '../../utils/common';
 import { QueryLoader } from '../common/QueryLoader';
-import { StickyHeaderTable, TraitValue } from '.';
+import { StickyHeaderTable, TraitValueDisplay } from '.';
 
 export default function Plant() {
   const { plantId } = useParams();
@@ -50,7 +49,7 @@ export default function Plant() {
 
   let traitSections: React.ReactNode[] = [];
   if (traitValues.data) {
-    const sections = Object.fromEntries(traitValues.data.filter(item => item.sectionKey !== "taxonomy").map(item => [item.sectionKey!, item.sectionName!]));
+    const sections = Object.fromEntries(traitValues.data.filter(item => item.sectionSlug !== "taxonomy").map(item => [item.sectionSlug!, item.sectionName!]));
     traitSections = Object.entries(sections).map(([key, value]) => (
       <TraitSection key={key} sectionName={value} traitValues={traitValues.data.filter(item => item.sectionName === value)}/>
     ));
@@ -101,8 +100,8 @@ function PopularNamesSection({ data }: { data: PopularNameReadData[] }) {
   )
 }
 
-function TaxonomySection({ synonyms, traitValues }: { synonyms: ScientificNameReadData[], traitValues: TraitValueReadData[] }) {
-  let familyName = traitValues.filter(item => item.traitKey === 'family_name')[0].value as string;
+function TaxonomySection({ synonyms, traitValues }: { synonyms: ScientificNameReadData[], traitValues: TraitValueReadData[] }) {  
+  let familyName = traitValues.filter(item => item.traitSlug === 'family_name')[0].value as string;
   let synonymNames = synonyms.map(item => item.name).join(", ");
 
   return (
@@ -118,9 +117,9 @@ function TraitSection({ sectionName, traitValues }: { sectionName: string, trait
   const navigate = useNavigate();
 
   const traits = traitValues.map(item => (
-    <Paper key={item.traitKey} withBorder ta="center" radius="md" style={{cursor: 'pointer'}} onClick={() => navigate(`trait/${item.traitKey}`)}>
+    <Paper key={item.traitSlug} withBorder ta="center" radius="md" style={{cursor: 'pointer'}} onClick={() => navigate(`trait/${item.traitSlug}`)}>
       <Text fz="h6" fw={550} p={5}>{item.traitName}</Text>
-      <TraitValue data={item} />
+      <TraitValueDisplay data={item} />
     </Paper>
   ));
   
