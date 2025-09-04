@@ -1,7 +1,11 @@
 import axios from 'axios';
-import { GenericResponse, QueryFnInput, snakeToCamelCase } from './common';
+import { camelToSnakeCase, GenericResponse, QueryFnInput, snakeToCamelCase } from './common';
 
 // MUTATIONS
+
+export interface ContentWriteResponseData extends GenericResponse {
+  contentId: number,
+}
 
 export interface UserWriteData {
   firstName: string,
@@ -87,7 +91,6 @@ export async function deleteUserToken() {
 }
 
 export interface EndorsementWriteRequestData {
-  contentType: string,
   contentId: number,
 }
 
@@ -95,23 +98,8 @@ export interface EndorsementWriteResponseData extends GenericResponse {
   endorsementId: number,
 }
 
-const contentTypeToIdField: { [key: string]: string } = {
-  "plant_value": "plant_value_id",
-  "plant_popularName": "plant_popular_name_id",
-  "plant_scientific_name": "plant_scientific_name_id",
-};
-
-const buildEndorsementWriteBody = (data: EndorsementWriteRequestData) => {
-  let body: { [key: string]: any } = {
-    content_type: data.contentType,
-  };
-  body[contentTypeToIdField[data.contentType]] = data.contentId;
-
-  return body;
-}
-
 export async function createEndorsement(data: EndorsementWriteRequestData): Promise<EndorsementWriteResponseData> {  
-  const body = buildEndorsementWriteBody(data);
+  const body = { content_id: data.contentId };
   let res = await axios.post('/core/endorsement', body);
 
   return snakeToCamelCase(res.data);
@@ -138,16 +126,7 @@ export interface SourceWriteResponseData extends GenericResponse {
 }
 
 export async function createSource(data: SourceWriteRequestData): Promise<SourceWriteResponseData> {  
-  // const body = camelToSnakeCase(data);
-  const body = {
-    type: data.type,
-    year: data.year,
-    publication_title: data.title,
-    publication_authors: data.authors,
-    publisher: data.publisher,
-    url: data.url,
-    description: data.description,
-  };
+  const body = camelToSnakeCase(data);
   let res = await axios.post('/core/source', body);
 
   return snakeToCamelCase(res.data);
@@ -160,8 +139,8 @@ export interface SourceReadData {
   id: number,
   type: string,
   year: number,
-  publicationTitle: string,
-  publicationAuthors: string[],
+  title: string,
+  authors: string[],
   publisher: string,
   url: string,
   description: string,
@@ -220,14 +199,12 @@ export async function getUser({ queryKey: [queryName, userId] }: QueryFnInput): 
 export interface EndorsementReadData {
   id: number,
   endorser?: UserReadData,
-  contentType: string,
   contentId: number,
   createdAt: string
 }
 
-export async function getEndorsements({ queryKey: [queryName, contentType, contentId] }: QueryFnInput): Promise<EndorsementReadData[]> {
-  const contentIdField = contentTypeToIdField[contentType];
-  const endpoint = `/core/endorsements?content_type=${contentType}&${contentIdField}=${contentId}`;
+export async function getEndorsements({ queryKey: [queryName, contentId] }: QueryFnInput): Promise<EndorsementReadData[]> {
+  const endpoint = `/core/endorsements?content_id=${contentId}`;
 
   let res = await axios.get(endpoint);
   
@@ -235,8 +212,7 @@ export async function getEndorsements({ queryKey: [queryName, contentType, conte
     {
       id: item.id,
       endorser: snakeToCamelCase(item.endorser),
-      contentType: item.content_type,
-      contentId: item[contentTypeToIdField[item.content_type]],
+      contentId: item.content_id,
       createdAt: item.created_at,
     }
   ))
@@ -244,17 +220,15 @@ export async function getEndorsements({ queryKey: [queryName, contentType, conte
   return data;
 }
 
-export async function getUserEndorsements({ queryKey: [queryName, contentType, contentId] }: QueryFnInput): Promise<EndorsementReadData[]> {
-  const contentIdField = contentTypeToIdField[contentType];
-  const endpoint = `/core/user/endorsements?content_type=${contentType}&${contentIdField}=${contentId}`;
+export async function getUserEndorsements({ queryKey: [queryName, contentId] }: QueryFnInput): Promise<EndorsementReadData[]> {
+  const endpoint = `/core/user/endorsements?content_id=${contentId}`;
 
   let res = await axios.get(endpoint);
   
   let data = res.data.map((item: any) => (
     {
       id: item.id,
-      contentType: item.content_type,
-      contentId: item[contentTypeToIdField[item.content_type]],
+      contentId: item.content_id,
       createdAt: item.created_at,
     }
   ))

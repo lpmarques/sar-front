@@ -10,9 +10,9 @@ export default function SourceContent({ data }: { data: SourceReadData }) {
   
   return (
     <>
-      <Text pb={10}><Text span c="dimmed">Título:</Text> <span {...titleProps}>{data.publicationTitle}</span></Text>
+      <Text pb={10}><Text span c="dimmed">Título:</Text> <span {...titleProps}>{data.title}</span></Text>
       <Text pb={10}><Text span c="dimmed">Tipo:</Text> <span>{sourceTypeToText[data.type]}</span></Text>
-      {data.publicationAuthors && <Text pb={10}><Text span c="dimmed">Autoria:</Text> <span>{data.publicationAuthors.join("; ")}</span></Text>}
+      {data.authors && <Text pb={10}><Text span c="dimmed">Autoria:</Text> <span>{data.authors.join("; ")}</span></Text>}
       <Text pb={10}><Text span c="dimmed">Ano:</Text> <span>{data.year}</span></Text>
       {data.publisher && <Text pb={10}><Text span c="dimmed">Publicado por:</Text> <span>{data.publisher}</span></Text>}
     </>

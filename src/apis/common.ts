@@ -1,6 +1,5 @@
 import axios, { AxiosError } from 'axios';
 import { showError } from '../components/common/notifications';
-import {createCheckers} from "ts-interface-checker";
 
 export interface GenericResponse {
   msg: string

@@ -6,14 +6,13 @@ import { QueryLoader } from '../common/QueryLoader';
 import { useLanguage } from '../../hooks/useLanguage';
 import { UserName } from '../user';
 
-type ContentKey = {
-  contentType: string,
-  contentId: number
+type EndorsementListProps = {
+  contentId: number,
 }
 
-export default function EndorsementList({ contentType, contentId }: ContentKey) {
+export default function EndorsementList({ contentId }: EndorsementListProps) {
   const endorsementsQueryOptions = {
-    queryKey: ['endorsements', contentType, contentId.toString()],
+    queryKey: ['endorsements', contentId.toString()],
     queryFn: getEndorsements,
   };
   const { data } = useQuery(endorsementsQueryOptions);

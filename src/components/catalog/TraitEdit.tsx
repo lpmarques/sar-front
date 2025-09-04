@@ -52,7 +52,7 @@ export default function TraitEdit() {
       {plant.data && trait && acceptedValue && proposedValues &&
       <Container size={1000}>
         <UnstyledButton onClick={() => navigate(`/plants/${plantId}`)}>
-          <Text fs="italic" fz="h3" pb={15}>{plant.data.acceptedScientificName}</Text>
+          <Text fs="italic" fz="h3" pb={15}>{plant.data.acceptedTaxonName}</Text>
         </UnstyledButton>
         <Text fz="h3" pb={15}>
           [{acceptedValue.sectionName}]&nbsp;
@@ -82,7 +82,7 @@ function ValueProposalForm({plant, trait, acceptedValue, proposedValues, propose
 
   const sourceOptions = sources.data ? sources.data.map((source: SourceReadData) => ({
     value: source.id.toString(),
-    label: `[${source.id}] "${source.publicationTitle}" (${source.year})`
+    label: `[${source.id}] "${source.title}" (${source.year})`
   })) : [];
 
   const setSelectedSourceById = async (id: number) => {
@@ -151,12 +151,12 @@ function ValueProposalForm({plant, trait, acceptedValue, proposedValues, propose
   });
 
   const commentMaxChars = 300;
-  const commentField = useField<string>({
+  const commentField = useField<string | undefined>({
     mode: 'controlled',
-    initialValue: '',
+    initialValue: undefined,
     validateOnChange: true,
     validate: (value) => {
-      if (value.length > commentMaxChars) return 'Comentário ultrapassa o limite máximo de caracteres';
+      if (value && value.length > commentMaxChars) return 'Comentário ultrapassa o limite máximo de caracteres';
       return null;
     }
   });
@@ -187,12 +187,14 @@ function ValueProposalForm({plant, trait, acceptedValue, proposedValues, propose
         traitId: trait.id,
         value: traitValueFieldToTraitValue(trait.type, valueField.getValue()),
         sourceId: Number(sourceField.getValue()),
-        contentAuthorComment: commentField.getValue(),
+        contentProposerComment: commentField.getValue(),
       });
     }
   }
   
   const divider = <Divider mt={25} mb={15} />;
+  const comment = commentField.getValue();
+  const commentLength = comment ? comment.length : 0;
 
   return (
     <>
@@ -224,8 +226,8 @@ function ValueProposalForm({plant, trait, acceptedValue, proposedValues, propose
           placeholder="Se achar pertinente, fale mais aqui sobre sua proposta."
           {...commentField.getInputProps()}
         />
-        <Text size="xs" c={commentField.getValue().length > commentMaxChars ? "red" : "dimmed"} pt={5} aria-label="Comentário opcional">
-          {commentField.getValue().length}/{commentMaxChars}
+        <Text size="xs" c={commentLength > commentMaxChars ? "red" : "dimmed"} pt={5} aria-label="Comentário opcional">
+          {commentLength}/{commentMaxChars}
         </Text>
       </Container>
       {divider}

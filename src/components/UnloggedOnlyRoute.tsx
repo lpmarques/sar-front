@@ -9,7 +9,7 @@ type RouteProps = {
 const UnloggedOnlyRoute = ({ children }: RouteProps) => {
   const { user } = useAuth()
   if (user) {
-    return <Navigate to="/user" />;
+    return <Navigate to="/user" replace />;
   }
   return children;
 };

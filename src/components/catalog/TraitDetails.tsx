@@ -11,7 +11,7 @@ import {
   PlantReadData,
   TraitValueReadData,
 } from '../../apis/catalog';
-import { SourceReadData } from '../../apis/core';
+import { SourceReadData, UserReadData } from '../../apis/core';
 import { useLanguage } from '../../hooks/useLanguage';
 import { UserName } from '../user/';
 import { EndorsementCounter, SourceContent, SourceRef, StickyHeaderTable, TraitValueDisplay } from '.';
@@ -59,7 +59,7 @@ export default function TraitDetails() {
         </Alert> */}
         {/* <Space h={20} /> */}
         <UnstyledButton onClick={() => navigate(`/plants/${plantId}`)}>
-          <Text fs="italic" fz="h3" pb={15}>{plant.data.acceptedScientificName}</Text>
+          <Text fs="italic" fz="h3" pb={15}>{plant.data.acceptedTaxonName}</Text>
         </UnstyledButton>
         <Text fz="h3" pb={15}>
           [{acceptedValue.sectionName}] <Text span inherit fw={600}>{acceptedValue.traitName}</Text>
@@ -108,9 +108,8 @@ function AcceptedValueEndorsements({ data, dataQueryKey }: { data: TraitValueRea
       <Paper withBorder ta="center" p={15}>
         <Text fz="h5" fw={600} pb={10}>Aprovações</Text>
         <EndorsementCounter
-          contentType="plant_value"
-          contentId={data.id}
-          contentAuthor={data.contentAuthor!}
+          contentId={data.contentId}
+          contentProposer={data.contentProposer!}
           initialCount={{"value": data.endorsements!, "queryKey": dataQueryKey}}
         />
       </Paper>
@@ -137,7 +136,7 @@ function ValueHistory({ data }: { data: TraitValueReadData[] }) {
   );
   
   const rows = sortedValues.map((item: TraitValueReadData) => (
-    <Table.Tr key={item.id}>
+    <Table.Tr key={item.contentId}>
       <Table.Td>
         <TraitValueDisplay data={item}/>
       </Table.Td>
@@ -145,11 +144,11 @@ function ValueHistory({ data }: { data: TraitValueReadData[] }) {
         <SourceRef source={item.source!} fz="sm" />
       </Table.Td>
       <Table.Td>
-        <UserName user={item.contentAuthor!} fz="sm" />
+        <UserName user={item.contentProposer!} fz="sm" />
       </Table.Td>
-      <Table.Td>{new Date(item.createdAt!).toLocaleDateString(lang)}</Table.Td>
-      <Table.Td>{new Date(item.acceptedAt!).toLocaleDateString(lang)}</Table.Td>
-      <Table.Td>{item.rejectedAt && new Date(item.rejectedAt).toLocaleDateString(lang)}</Table.Td>
+      <Table.Td>{new Date(item.proposedAt!).toLocaleString(lang)}</Table.Td>
+      <Table.Td>{new Date(item.acceptedAt!).toLocaleString(lang)}</Table.Td>
+      <Table.Td>{item.rejectedAt && new Date(item.rejectedAt).toLocaleString(lang)}</Table.Td>
     </Table.Tr>
   ));
 
@@ -168,7 +167,7 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: 
   const queryClient = useQueryClient();
 
   const sortedValues = proposals.sort((a, b) =>
-    b.createdAt!.localeCompare(a.createdAt!)
+    b.proposedAt!.localeCompare(a.proposedAt!)
   );
 
   const proposalDeletion = useMutation({
@@ -187,7 +186,7 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: 
       <Text size="sm" mb={20}>
           Ao confirmar, você <strong>removerá</strong> a seguinte proposta para 
           o traço <Text span fw={600}>{proposal.traitName}</Text>
-          &nbsp;da planta <Text span fs="italic" fw={600}>{plant.acceptedScientificName}:</Text>
+          &nbsp;da planta <Text span fs="italic" fw={600}>{plant.acceptedTaxonName}:</Text>
       </Text>
       <Container ta="center" px={0} mb={40}>
         <TraitValueDisplay data={proposal}/>
@@ -196,7 +195,7 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: 
     ),
     labels: { confirm: 'Excluir', cancel: 'Cancelar exclusão' },
     confirmProps: { color: 'red' },
-    onConfirm: () => proposalDeletion.mutate(proposal.id),
+    onConfirm: () => proposalDeletion.mutate(proposal.contentId),
   })
 
   const header = (
@@ -211,7 +210,7 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: 
   );
   
   const rows = sortedValues.map((item: TraitValueReadData) => (
-    <Table.Tr key={item.id}>
+    <Table.Tr key={item.contentId}>
       <Table.Td>
         <TraitValueDisplay data={item}/>
       </Table.Td>
@@ -219,14 +218,13 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: 
         <SourceRef source={item.source!} fz="sm" />
       </Table.Td>
       <Table.Td>
-        <UserName user={item.contentAuthor!} fz="sm" />
+        <UserName user={item.contentProposer!} fz="sm" />
       </Table.Td>
-      <Table.Td>{new Date(item.createdAt!).toLocaleDateString(lang)}</Table.Td>
+      <Table.Td>{new Date(item.proposedAt!).toLocaleString(lang)}</Table.Td>
       <Table.Td>
         <EndorsementCounter
-          contentType="plant_value"
-          contentId={item.id}
-          contentAuthor={item.contentAuthor!}
+          contentId={item.contentId}
+          contentProposer={item.contentProposer!}
           initialCount={{"value": item.endorsements!, "queryKey": proposalsQueryKey}}
           justify="left"
           textProps={{"fz": "xl"}}
@@ -234,7 +232,7 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: 
         />
       </Table.Td>
       <Table.Td>
-        { user?.id === item.contentAuthor?.id &&
+        { user?.id === item.contentProposer?.id &&
         <Button size="compact-xs" color="red" onClick={() => openProposalDeleteConfirmModal(item)}>
           <IconX size={15} />
         </Button>}

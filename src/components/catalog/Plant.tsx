@@ -6,11 +6,12 @@ import {
   getPlant,
   getPlantNaturalOccurrenceRegionList,
   getPlantPopularNameList,
-  getPlantScientificNameList,
+  getPlantTaxonList,
   getPlantTraitValueList,
+  getTaxonName,
   NaturalOccurrenceRegionReadData,
   PopularNameReadData,
-  ScientificNameReadData,
+  TaxonReadData,
   TraitValueReadData,
 } from "../../apis/catalog";
 import { sortValueFirst } from '../../utils/common';
@@ -24,9 +25,9 @@ export default function Plant() {
     queryKey: ['plant', plantId!],
     queryFn: getPlant
   };
-  const synonymsQueryOptions = {
-    queryKey: ['plantScientificNameList', plantId!, 'status=accepted', 'taxonomic_status=synonym'],
-    queryFn: getPlantScientificNameList
+  const taxaQueryOptions = {
+    queryKey: ['plantTaxonList', plantId!, 'status=accepted'],
+    queryFn: getPlantTaxonList
   };
   const popularNamesQueryOptions = {
     queryKey: ['plantPopularNames', plantId!, 'status=accepted'],
@@ -37,34 +38,31 @@ export default function Plant() {
     queryFn: getPlantTraitValueList
   };
   const naturalOccurrenceRegionsQueryOptions = {
-    queryKey: ['plantNaturalOccurrenceRegions', plantId!, 'status=proposed'], // TODO: change to accepted
+    queryKey: ['plantNaturalOccurrenceRegions', plantId!, 'status=accepted'],
     queryFn: getPlantNaturalOccurrenceRegionList
   }
  
   const plant = useQuery(plantQueryOptions);
-  const synonyms = useQuery(synonymsQueryOptions);
+  const taxa = useQuery(taxaQueryOptions);
   const popularNames = useQuery(popularNamesQueryOptions);
   const traitValues = useQuery(traitValuesQueryOptions);
   const naturalOccurrenceRegions = useQuery(naturalOccurrenceRegionsQueryOptions);
 
-  let traitSections: React.ReactNode[] = [];
-  if (traitValues.data) {
-    const sections = Object.fromEntries(traitValues.data.filter(item => item.sectionSlug !== "taxonomy").map(item => [item.sectionSlug!, item.sectionName!]));
-    traitSections = Object.entries(sections).map(([key, value]) => (
-      <TraitSection key={key} sectionName={value} traitValues={traitValues.data.filter(item => item.sectionName === value)}/>
-    ));
-  }
+  const sections = traitValues.data ? Object.fromEntries(traitValues.data.map(item => [item.sectionSlug!, item.sectionName!])): {};
+  const traitSections = Object.entries(sections).map(([key, value]) => (
+    <TraitSection key={key} sectionName={value} traitValues={traitValues.data!.filter(item => item.sectionName === value)}/>
+  ));
 
   return (
     <QueryLoader {...plantQueryOptions}>
       <Container size={1000}>
-        <Text fz="h2" fs="italic" fw={600} pb={15}>{plant.data?.acceptedScientificName}</Text>
+        <Text fz="h2" fs="italic" fw={600} pb={15}>{plant.data?.acceptedTaxonName}</Text>
         <QueryLoader {...popularNamesQueryOptions}>
           <PopularNamesSection data={popularNames.data!}/>
         </QueryLoader>
-        <QueryLoader {...synonymsQueryOptions}>
-          {traitValues.data &&
-          <TaxonomySection synonyms={synonyms.data!} traitValues={traitValues.data}/>}
+        <QueryLoader {...taxaQueryOptions}>
+          {taxa.data &&
+          <TaxonomySection taxa={taxa.data}/>}
         </QueryLoader>
         <QueryLoader {...traitValuesQueryOptions}>
           {traitSections}
@@ -100,16 +98,25 @@ function PopularNamesSection({ data }: { data: PopularNameReadData[] }) {
   )
 }
 
-function TaxonomySection({ synonyms, traitValues }: { synonyms: ScientificNameReadData[], traitValues: TraitValueReadData[] }) {  
-  let familyName = traitValues.filter(item => item.traitSlug === 'family_name')[0].value as string;
-  let synonymNames = synonyms.map(item => item.name).join(", ");
+function TaxonomySection({ taxa }: { taxa: TaxonReadData[] }) {
+  const accepted = taxa.find(item => item.taxonomicStatus === 'accepted');
+  const synonyms = taxa.filter(item => item.taxonomicStatus === 'synonym');
+  const synonymNames = synonyms ? synonyms.map(item => getTaxonName(item)).join(", ") : "";
 
   return (
+    <>
+    {accepted &&
     <Section title="Taxonomia" style={{cursor: 'pointer'}}>
-      <Text size="md">Família: {familyName}</Text>
+      <Text size="md">Família: {accepted ? accepted.family : ""}</Text>
+      <Text size="md">Espécie: {accepted ? accepted.species : ""}</Text>
+      {accepted?.subspecies &&
+      <Text size="md">Subespécie: {accepted.subspecies}</Text>}
+      {accepted?.variety &&
+      <Text size="md">Variedade: {accepted.variety}</Text>}
       {synonymNames &&
       <Text size="md">Sinônimo(s): {synonymNames}</Text>}
-    </Section>
+    </Section>}
+    </>
   )
 }
 
@@ -119,7 +126,7 @@ function TraitSection({ sectionName, traitValues }: { sectionName: string, trait
   const traits = traitValues.map(item => (
     <Paper key={item.traitSlug} withBorder ta="center" radius="md" style={{cursor: 'pointer'}} onClick={() => navigate(`trait/${item.traitSlug}`)}>
       <Text fz="h6" fw={550} p={5}>{item.traitName}</Text>
-      <TraitValueDisplay data={item} />
+      <TraitValueDisplay data={item} style={item.type=="string[]" ? {cursor: 'pointer'} : undefined} />
     </Paper>
   ));
   
@@ -153,7 +160,7 @@ function NaturalOccurrenceSection({ data }: { data: NaturalOccurrenceRegionReadD
   );
   
   const rows = sortedRegions.map((region: NaturalOccurrenceRegionReadData) => (
-    <Table.Tr key={`${region.country}-${region.state}-${region.biome}-${region.vegetationType}`}>
+    <Table.Tr key={`${region.contentId}`}>
       <Table.Td fz="sm">{region.country}</Table.Td>
       <Table.Td fz="sm">{region.state}</Table.Td>
       <Table.Td fz="sm">{region.biome}</Table.Td>

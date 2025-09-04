@@ -3,7 +3,7 @@ import { Container, Paper, Table, Text, TextInput } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
-import { getPlantList, PlantReadData, TraitValueReadData } from "../../apis/catalog";
+import { getPlantList, getTaxonName, PlantReadData, TraitValueReadData } from "../../apis/catalog";
 import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable, TraitValueDisplay } from '.';
 
@@ -11,11 +11,11 @@ export default function PlantList() {
   const plantListQueryOptions = {
     queryKey: [
       'plantList',
-      'with_scientific_names=true',
+      'with_taxa=true',
       'with_popular_names=true',
       'with_trait_values=true',
-      'scientific_names_toxonomic_status=synonym',
-      'trait_values_trait_slugs=family_name,life_cycle,life_forms'
+      'taxa_toxonomic_status=synonym',
+      'trait_values_trait_slugs=life_cycle,life_forms',
     ],
     queryFn: getPlantList
   };
@@ -29,8 +29,8 @@ export default function PlantList() {
 }
 
 interface TaxonomicData {
-  scientificName: string,
-  synonymScientificNames: string,
+  acceptedName: string,
+  synonymNames: string,
   popularNames: string,
   familyName: string,
 }
@@ -42,15 +42,16 @@ interface RowData extends TaxonomicData {
 }
 
 function plantToRowData(data: PlantReadData): RowData {
-  let familyName = data.traitValues!.find((trait) => trait.traitSlug == 'family_name');
-  let lifeCycle = data.traitValues!.find((trait) => trait.traitSlug == 'life_cycle');
-  let lifeForms = data.traitValues!.find((trait) => trait.traitSlug == 'life_forms');
+  const synonymNames = data.taxa!.map(item => getTaxonName(item));
+  const lifeCycle = data.traitValues!.find((trait) => trait.traitSlug == 'life_cycle');
+  const lifeForms = data.traitValues!.find((trait) => trait.traitSlug == 'life_forms');
+
   return {
     plantId: data.id.toString(),
-    scientificName: data.acceptedScientificName,
-    synonymScientificNames: data.scientificNames!.join(", "),
+    familyName: data.acceptedFamilyName,
+    acceptedName: data.acceptedTaxonName,
+    synonymNames: synonymNames.join(", "),
     popularNames: data.popularNames!.join(", "),
-    familyName: familyName && typeof familyName.value === 'string' ? familyName.value : "",
     lifeCycle: lifeCycle,
     lifeForms: lifeForms,
   };
@@ -58,17 +59,16 @@ function plantToRowData(data: PlantReadData): RowData {
 
 function PlantsTable({ data }: { data: PlantReadData[] }) {
   const defaultRowsData: RowData[] = data.map((item: PlantReadData) => plantToRowData(item)).sort((a, b) =>
-    a.scientificName.localeCompare(b.scientificName)
+    a.acceptedName.localeCompare(b.acceptedName)
   );
 
   const [rowsData, setRowsData] = useState(defaultRowsData);
-  const [scrolled, setScrolled] = useState(false);
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
   
   const nameKeys = [
-    'scientificName',
-    'synonymScientificNames',
+    'acceptedName',
+    'synonymNames',
     'popularNames',
     'familyName',
   ] as (keyof TaxonomicData)[];
@@ -101,8 +101,8 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
   );
 
   const rows = rowsData.map((row: RowData) => (
-    <Table.Tr key={row.scientificName} style={{cursor: 'pointer'}} onClick={() => handleRowClick(row)}>
-      <Table.Td w={230}>{row.scientificName}</Table.Td>
+    <Table.Tr key={row.acceptedName} style={{cursor: 'pointer'}} onClick={() => handleRowClick(row)}>
+      <Table.Td w={230}>{row.acceptedName}</Table.Td>
       <Table.Td w={100}>{row.familyName}</Table.Td>
       <Table.Td w={500}>{row.popularNames}</Table.Td>
       <Table.Td w={150}>{row.lifeForms && <TraitValueDisplay data={row.lifeForms} />}</Table.Td>

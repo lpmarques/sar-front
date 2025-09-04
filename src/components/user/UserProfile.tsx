@@ -5,9 +5,10 @@ import { modals } from '@mantine/modals';
 import { IconMail, IconBuildings, IconMapPin } from '@tabler/icons-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from "../../hooks/useAuth";
-import { deleteUser, deleteUserToken, getUser, UserReadData } from "../../apis/core";
+import { deleteUser, deleteUserToken, getUser } from "../../apis/core";
 import classes from './UserProfile.module.css';
 import { QueryLoader } from '../common/QueryLoader';
+import { showMutationError } from '../../apis/common';
 
 export default function UserProfile() {
   let { userId } = useParams();
@@ -88,9 +89,7 @@ function UserOptions() {
       unauth();
       navigate("/");
     },
-    onError: (error) => {
-      if (axios.isAxiosError(error)) alert(JSON.stringify(error.response?.data.msg));
-    }
+    onError: showMutationError
   });
 
   const userDeletion = useMutation({
@@ -99,9 +98,7 @@ function UserOptions() {
       unauth();
       navigate("/");
     },
-    onError: (error) => {
-      if (axios.isAxiosError(error)) alert(JSON.stringify(error.response?.data.msg));
-    }
+    onError: showMutationError
   });
 
   const openDeleteConfirmModal = () => modals.openConfirmModal({

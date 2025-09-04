@@ -1,48 +1,53 @@
-import { Badge, RangeSlider, Space, Text } from '@mantine/core';
+import { Badge, MantineStyleProp, RangeSlider, Space, Text } from '@mantine/core';
 import {
   Range,
   TraitValueReadData,
 } from "../../apis/catalog";
 
-export default function TraitValueDisplay({ data }: { data: TraitValueReadData }) {
+interface TraitValueDisplayProps {
+  data: TraitValueReadData,
+  style?: MantineStyleProp
+}
+
+export default function TraitValueDisplay({ data, style }: TraitValueDisplayProps) {
   switch (data.type) {
     case "string":
-      return <StringTraitValue key={data.traitSlug} value={data.value as string} />
+      return <StringTraitValue key={data.traitSlug} value={data.value as string} style={style} />
     case "number":
-      return <NumberTraitValue key={data.traitSlug} value={data.value as number} />
+      return <NumberTraitValue key={data.traitSlug} value={data.value as number} style={style} />
     case "boolean":
-      return <BooleanTraitValue key={data.traitSlug} value={data.value as boolean} />
+      return <BooleanTraitValue key={data.traitSlug} value={data.value as boolean} style={style} />
     case "string[]":
-      return <StringArrayTraitValue key={data.traitSlug} value={data.value as string[]} />
+      return <StringArrayTraitValue key={data.traitSlug} value={data.value as string[]} style={style} />
     case "range":
-      return <RangeTraitValue key={data.traitSlug} value={data.value as Range} boundaries={data.boundaries as Range} />
+      return <RangeTraitValue key={data.traitSlug} value={data.value as Range} boundaries={data.boundaries as Range} style={style} />
   }
 }
 
-function StringTraitValue({ value }: { value: string }) {
+function StringTraitValue({ value, style }: { value: string, style?: MantineStyleProp }) {
   return (
-    <Text size="sm" tt="uppercase" fw={600} m={5}>{value}</Text>
+    <Text size="sm" tt="uppercase" fw={600} m={5} style={style}>{value}</Text>
   )
 }
 
-function NumberTraitValue({ value }: { value: number }) {
+function NumberTraitValue({ value, style }: { value: number, style?: MantineStyleProp }) {
   return (
-    <Text size="sm" tt="uppercase" fw={600} m={5}>{value}</Text>
+    <Text size="md" tt="uppercase" fw={600} m={5} style={style}>{value}</Text>
   )
 }
 
-function BooleanTraitValue({ value }: { value: boolean }) {
+function BooleanTraitValue({ value, style }: { value: boolean, style?: MantineStyleProp }) {
   const text = value ? "sim" : "não";
   const color = value ? "green" : "red";
   
   return (
-    <Text size="md" tt="uppercase" fw={600} m={5} c={color}>{text}</Text>
+    <Text size="md" tt="uppercase" fw={600} m={5} c={color} style={style}>{text}</Text>
   )
 }
 
-function StringArrayTraitValue({ value }: { value: string[] }) {
+function StringArrayTraitValue({ value, style }: { value: string[], style?: MantineStyleProp }) {
   const valueItems = value.map(item => (
-    <Badge key={item} fw={600} color="dimmed" size="lg" variant="light" m={5}>{item}</Badge>
+    <Badge key={item} fw={600} color="dimmed" size="lg" variant="light" m={5} style={style}>{item}</Badge>
   ))
 
   return (
@@ -52,7 +57,7 @@ function StringArrayTraitValue({ value }: { value: string[] }) {
   )
 }
 
-function RangeTraitValue({ value, boundaries }: { value: Range, boundaries: Range }) {
+function RangeTraitValue({ value, boundaries, style }: { value: Range, boundaries: Range, style?: MantineStyleProp }) {
   function round(num: number) {
     return Math.round(num * 10) / 10
   }
@@ -70,6 +75,7 @@ function RangeTraitValue({ value, boundaries }: { value: Range, boundaries: Rang
       label={(value: number) => value}
       p={20}
       mb={20}
+      style={style}
     />
   )
 }

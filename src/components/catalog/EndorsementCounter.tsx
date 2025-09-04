@@ -16,9 +16,8 @@ import { QueryLoader } from '../common/QueryLoader';
 import { EndorsementList } from '.';
 
 interface EndorsementCounterProps extends GroupProps {
-  contentType: string,
   contentId: number,
-  contentAuthor: UserReadData,
+  contentProposer: UserReadData,
   initialCount: {
     value: number,
     queryKey: string[]
@@ -27,13 +26,13 @@ interface EndorsementCounterProps extends GroupProps {
   iconProps?: IconProps,
 };
 
-export default function EndorsementCounter({ contentType, contentId, contentAuthor, initialCount, textProps, iconProps, ...groupProps }: EndorsementCounterProps) {
+export default function EndorsementCounter({ contentId, contentProposer, initialCount, textProps, iconProps, ...groupProps }: EndorsementCounterProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [count, setCount] = useState(initialCount.value);
 
   const userEndorsementsQueryOptions = {
-    queryKey: ['userEndorsements', contentType, contentId.toString()],
+    queryKey: ['userEndorsements', contentId.toString()],
     queryFn: getUserEndorsements,
     refetchOnMount: true,
   };
@@ -69,32 +68,31 @@ export default function EndorsementCounter({ contentType, contentId, contentAuth
 
   const handleThumbClick = () => {
     if (!user) {
-      window.open('/user/login', '_blank');
+      window.open('/login', '_blank');
       throw showError("É preciso estar logado para executar essa ação.", null);
     }
 
-    if (user.id == contentAuthor.id)
+    if (user.id == contentProposer.id)
       throw showError("Somente outro usuário pode aprovar conteúdo criado por você.", null);
 
     if (userEndorsementId)
       endorsementDeletion.mutate(userEndorsementId)
     else {
       endorsementCreation.mutate({
-        contentType: contentType,
         contentId: contentId,
       })
     }
   }
 
-  const openEndorsementListModal = (contentType: string, contentId: number) => modals.open({
+  const openEndorsementListModal = (contentId: number) => modals.open({
     title: "Usuários que aprovaram a versão",
-    children: <EndorsementList contentType={contentType} contentId={contentId} />
+    children: <EndorsementList contentId={contentId} />
   });
 
   return (
     <QueryLoader {...userEndorsementsQueryOptions}>
       <Group justify="center" gap={25} {...groupProps}>
-        <UnstyledButton onClick={() => openEndorsementListModal(contentType, contentId)}>
+        <UnstyledButton onClick={() => openEndorsementListModal(contentId)}>
           <Text fz="h2" {...textProps}>{count}</Text>
         </UnstyledButton>
         <UnstyledButton mt={5} onClick={handleThumbClick}>

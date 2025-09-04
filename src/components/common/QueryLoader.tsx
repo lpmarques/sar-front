@@ -31,7 +31,7 @@ export function QueryLoader({ queryKey, queryFn, children }: QueryLoaderProps) {
     if (error.response) {
       if (error.response.status == 401) {
         unauth();
-        return <Navigate to="/login" />;
+        return <Navigate to="/login" replace />;
       }
       
       return <HttpError status={error.response.status} statusText={error.response.statusText} queryKey={queryKey} />;
