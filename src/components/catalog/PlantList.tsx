@@ -58,7 +58,7 @@ function plantToRowData(data: PlantReadData): RowData {
 }
 
 function PlantsTable({ data }: { data: PlantReadData[] }) {
-  const defaultRowsData: RowData[] = data.map((item: PlantReadData) => plantToRowData(item)).sort((a, b) =>
+  const defaultRowsData = data.map((item) => plantToRowData(item)).sort((a, b) =>
     a.acceptedName.localeCompare(b.acceptedName)
   );
 
@@ -112,7 +112,7 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
 
   rows.push(
     <Table.Tr key={0}>
-      <Table.Td colSpan={Object.keys(data[0]).length}>
+      <Table.Td colSpan={5}>
         <Text c="dimmed" fw={500} ta="center">
           {rows.length} resultado(s) encontrado(s)
         </Text>

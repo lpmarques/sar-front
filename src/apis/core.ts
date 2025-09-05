@@ -7,19 +7,19 @@ export interface ContentWriteResponseData extends GenericResponse {
   contentId: number,
 }
 
-export interface UserWriteData {
+export interface UserWriteRequestData {
   firstName: string,
   lastName: string,
   email: string,
   password: string,
   occupation: string,
   company?: string,
-  countryId?: number,
-  stateId?: number,
-  municipalityId?: number,
+  country?: string,
+  state?: string,
+  municipality?: string,
 };
 
-export async function createUser(data: UserWriteData) {
+export async function createUser(data: UserWriteRequestData): Promise<GenericResponse> {
   const requestBody = {
     first_name: data.firstName,
     last_name: data.lastName,
@@ -27,9 +27,9 @@ export async function createUser(data: UserWriteData) {
     password: data.password,
     occupation: data.occupation,
     company: data.company,
-    country_id: data.countryId,
-    state_id: data.stateId,
-    municipality_id: data.municipalityId,
+    country: data.country,
+    state: data.state,
+    municipality: data.municipality,
   };
 
   return await axios.post("/core/user", requestBody);
@@ -40,26 +40,26 @@ export interface UserEditData {
   lastName?: string,
   occupation?: string,
   company?: string,
-  countryId?: number,
-  stateId?: number,
-  municipalityId?: number,
+  country?: string,
+  state?: string,
+  municipality?: string,
 };
 
-export async function editUser(data: UserEditData) {
+export async function editUser(data: UserEditData): Promise<GenericResponse> {
   const requestBody = {
     first_name: data.firstName,
     last_name: data.lastName,
     occupation: data.occupation,
     company: data.company,
-    country_id: data.countryId,
-    state_id: data.stateId,
-    municipality_id: data.municipalityId,
+    country: data.country,
+    state: data.state,
+    municipality: data.municipality,
   };
 
   return await axios.patch("/core/user", requestBody);
 }
 
-export async function deleteUser() {
+export async function deleteUser(): Promise<GenericResponse> {
 
   return await axios.delete("/core/user");
 }
@@ -76,7 +76,12 @@ export interface UserTokenResponseData {
 }
 
 export async function createUserToken(data: UserTokenRequestData): Promise<UserTokenResponseData> {
-  let res = await axios.post("/core/user/token", data);
+  const requestBody = {
+    email: data.email,
+    password: data.password,
+  };
+
+  let res = await axios.post("/core/user/token", requestBody);
 
   return {
     token: res.data.token,
@@ -85,7 +90,7 @@ export async function createUserToken(data: UserTokenRequestData): Promise<UserT
   }
 }
 
-export async function deleteUserToken() {
+export async function deleteUserToken(): Promise<GenericResponse> {
 
   return await axios.delete("/core/user/token");
 }
