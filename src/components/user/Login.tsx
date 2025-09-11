@@ -19,6 +19,7 @@ import { createUserToken } from "../../apis/core";
 import { showError, showSuccess } from '../common/notifications';
 import { useAuth } from "../../hooks/useAuth";
 import classes from './Login.module.css';
+import { showMutationError } from "../../apis/common";
 
 export default function Login() {
   const { auth } = useAuth();
@@ -33,9 +34,7 @@ export default function Login() {
       showSuccess(data.msg);
       navigate("/user");
     },
-    onError: (error) => {
-      if (axios.isAxiosError(error)) showError(JSON.stringify(error.response?.data.msg));
-    }
+    onError: showMutationError,
   });
 
   const form = useForm({

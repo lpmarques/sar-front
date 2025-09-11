@@ -5,12 +5,39 @@ export interface GenericResponse {
   msg: string
 }
 
-export function defaultRequestRetry(failureCount: number, error: Error) {
-  console.log(error)
-  if (error instanceof AxiosError && error.status && error.status < 500 || failureCount > 1)
-    return false
+export interface JsonSchemaBoolean {
+  type: "boolean"
+}
 
-  return true
+export interface JsonSchemaNumber {
+  type: "integer" | "number"
+  minimum?: number
+  maximum?: number
+  exclusiveMinimum?: number
+  exclusiveMaximum?: number
+}
+
+export interface JsonSchemaString {
+  type: "string"
+  format?: "date" | "time" | "date-time" | "uri" | "email"
+  minLength?: number
+  maxLength?: number
+  pattern?: string
+}
+
+export interface JsonSchemaArray {
+  type: "array"
+  items: JsonSchema
+  uniqueItems?: boolean
+}
+
+export type JsonSchema = JsonSchemaBoolean | JsonSchemaNumber | JsonSchemaString | JsonSchemaArray;
+
+export function defaultRequestRetry(failureCount: number, error: Error) {
+  if (error instanceof AxiosError && error.status && error.status < 500 || failureCount > 1)
+    return false;
+
+  return true;
 }
 
 export interface MutationFnInput {
@@ -36,7 +63,7 @@ export async function showMutationError(error: Error){
 
   if (axios.isAxiosError(error)) {
     if (error.response) {
-      const keys = Object.keys(error.response.data)
+      const keys = Object.keys(error.response.data);
       if (keys.length === 1 && keys[0] === "msg")
         errorMsg = error.response.data.msg;
       else
@@ -45,7 +72,7 @@ export async function showMutationError(error: Error){
       errorMsg = "Serviço indisponível. Tente novamente em instantes.";
     }
 
-    showError(errorMsg, "Erro")
+    showError(errorMsg, "Erro");
   }
 }
 

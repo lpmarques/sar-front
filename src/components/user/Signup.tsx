@@ -7,7 +7,7 @@ import classes from './Login.module.css';
 import InputTip from '../common/InputTip';
 import { showError, showSuccess } from '../common/notifications';
 import { showMutationError } from "../../apis/common";
-import { createUserToken, createUser, UserWriteData } from "../../apis/core";
+import { createUserToken, createUser, UserWriteRequestData } from "../../apis/core";
 import { getCountryList, getStateList, getMunicipalityList } from "../../apis/geography";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -31,13 +31,16 @@ export default function Signup() {
     mutationFn: createUser,
     onSuccess: (data) => {
       userTokenCreation.mutate(form.values);
-      showSuccess(data.data.msg);
+      showSuccess(data.msg);
     },
     onError: showMutationError
   });
 
-  interface SignupForm extends UserWriteData {
-    confirmPassword: string
+  interface SignupForm extends UserWriteRequestData {
+    confirmPassword: string,
+    countryId?: number,
+    stateId?: number,
+    municipalityId?: number,
   }
 
   const form = useForm<SignupForm>({
@@ -132,6 +135,10 @@ export default function Signup() {
     if (validation.hasErrors)
       throw showError("Há campos inválidos no formulário.", "Erro");
     
+    form.values['country'] = form.values.countryId ? countries.data!.find(item => item.id == form.values.countryId)?.name : undefined;
+    form.values['state'] = form.values.stateId ? states.data!.find(item => item.id == form.values.stateId)?.name : undefined;
+    form.values['municipality'] = form.values.municipalityId ? municipalities.data!.find(item => item.id == form.values.municipalityId)?.name : undefined;
+
     userCreation.mutate(form.values);
   }
 

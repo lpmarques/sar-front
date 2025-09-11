@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
 import { useParams, useNavigate } from "react-router";
-import { Container, Paper, ScrollArea, SimpleGrid, Space, Table, Text } from '@mantine/core';
+import { Container, Paper, SimpleGrid, Space, Table, Text } from '@mantine/core';
 import { useQuery } from "@tanstack/react-query";
 import {
   getPlant,
@@ -16,7 +15,8 @@ import {
 } from "../../apis/catalog";
 import { sortValueFirst } from '../../utils/common';
 import { QueryLoader } from '../common/QueryLoader';
-import { StickyHeaderTable, TraitValueDisplay } from '.';
+import { StickyHeaderTable } from '../common/StickyHeaderTable';
+import { TraitValueDisplay } from '.';
 
 export default function Plant() {
   const { plantId } = useParams();

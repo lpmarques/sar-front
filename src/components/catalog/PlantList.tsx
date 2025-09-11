@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Container, Paper, Table, Text, TextInput } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { getPlantList, getTaxonName, PlantReadData, TraitValueReadData } from "../../apis/catalog";
 import { QueryLoader } from '../common/QueryLoader';
-import { StickyHeaderTable, TraitValueDisplay } from '.';
+import { StickyHeaderTable } from '../common/StickyHeaderTable';
+import { TraitValueDisplay } from '.';
 
 export default function PlantList() {
   const plantListQueryOptions = {
@@ -58,7 +59,7 @@ function plantToRowData(data: PlantReadData): RowData {
 }
 
 function PlantsTable({ data }: { data: PlantReadData[] }) {
-  const defaultRowsData: RowData[] = data.map((item: PlantReadData) => plantToRowData(item)).sort((a, b) =>
+  const defaultRowsData = data.map((item) => plantToRowData(item)).sort((a, b) =>
     a.acceptedName.localeCompare(b.acceptedName)
   );
 
@@ -112,7 +113,7 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
 
   rows.push(
     <Table.Tr key={0}>
-      <Table.Td colSpan={Object.keys(data[0]).length}>
+      <Table.Td colSpan={5}>
         <Text c="dimmed" fw={500} ta="center">
           {rows.length} resultado(s) encontrado(s)
         </Text>

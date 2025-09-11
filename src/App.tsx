@@ -1,9 +1,13 @@
 import axios from "axios";
+import dayjs from "dayjs";
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+import LocalizedFormat from 'dayjs/plugin/localizedFormat';
 import { BrowserRouter, Routes, Route } from "react-router";
 import { MantineProvider } from "@mantine/core";
 import { ModalsProvider } from '@mantine/modals';
 import { Notifications } from '@mantine/notifications';
 import "@mantine/core/styles.css";
+import '@mantine/dates/styles.css';
 import '@mantine/notifications/styles.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { defaultRequestRetry } from './apis/common';
@@ -34,6 +38,9 @@ export default function App() {
       }
     }
   })
+
+  dayjs.extend(customParseFormat);
+  dayjs.extend(LocalizedFormat);
 
   return (
     <BrowserRouter>

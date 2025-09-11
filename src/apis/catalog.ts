@@ -2,10 +2,7 @@ import axios from 'axios';
 import { camelToSnakeCase, GenericResponse, QueryFnInput, snakeToCamelCase } from './common';
 import { ContentWriteResponseData, SourceReadData, UserReadData } from './core';
 
-export interface Range {
-  minimum: number,
-  maximum: number,
-}
+export type Range = [number, number];
 
 export type TraitType = "string" | "number" | "boolean" | "string[]" | "range";
 
@@ -37,7 +34,7 @@ export async function deleteTraitValue(contentId: number): Promise<GenericRespon
 // QUERIES
 
 export interface TraitValueReadData {
-  contentId: bigint,
+  contentId: number,
   traitSlug: string,
   traitName: string,
   type: TraitType,
@@ -103,6 +100,7 @@ export async function getPlant({ queryKey: [queryName, plantId, ...params] }: Qu
     contentId: res.data.content_id,
     contentStatus: res.data.content_status,
     acceptedTaxonName: res.data.accepted_taxon_name,
+    acceptedFamilyName: res.data.accepted_family_name,
     ...(res.data.taxa && { taxa: snakeToCamelCase(res.data.taxa) }),
     ...(res.data.popular_names && { popularNames: snakeToCamelCase(res.data.popular_names) }),
     ...(res.data.trait_values && { traitValues: snakeToCamelCase(res.data.trait_values) }),
@@ -119,6 +117,7 @@ export async function getPlantList({ queryKey: [queryName, ...params] }: QueryFn
       id: item.id,
       contentId: item.content_id,
       acceptedTaxonName: item.accepted_taxon_name,
+      acceptedFamilyName: item.accepted_family_name,
       ...(item.taxa && { taxa: snakeToCamelCase(item.taxa) }),
       ...(item.popular_names && { popularNames: snakeToCamelCase(item.popular_names) }),
       ...(item.trait_values && { traitValues: snakeToCamelCase(item.trait_values) }),

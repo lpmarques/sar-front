@@ -1,9 +1,8 @@
 import { useParams, useNavigate } from 'react-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Container, Grid, Group, List, Paper, Space, Table, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { IconCircleDashedPlus, IconInfoCircle, IconX } from '@tabler/icons-react';
-import { QueryLoader } from '../common/QueryLoader';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   deleteTraitValue,
   getPlant,
@@ -11,14 +10,16 @@ import {
   PlantReadData,
   TraitValueReadData,
 } from '../../apis/catalog';
-import { SourceReadData, UserReadData } from '../../apis/core';
+import { showMutationError } from '../../apis/common';
+import { SourceReadData } from '../../apis/core';
+import classes from '../common/Clickable.module.css';
+import { showError, showSuccess } from '../common/notifications';
+import { QueryLoader } from '../common/QueryLoader';
+import { StickyHeaderTable } from '../common/StickyHeaderTable';
+import { useAuth } from '../../hooks/useAuth';
 import { useLanguage } from '../../hooks/useLanguage';
 import { UserName } from '../user/';
-import { EndorsementCounter, SourceContent, SourceRef, StickyHeaderTable, TraitValueDisplay } from '.';
-import classes from '../common/Clickable.module.css';
-import { useAuth } from '../../hooks/useAuth';
-import { showSuccess } from '../common/notifications';
-import { showMutationError } from '../../apis/common';
+import { EndorsementCounter, SourceContent, SourceRef, TraitValueDisplay } from '.';
 
 export default function TraitDetails() {
   const { plantId, traitSlug } = useParams();
@@ -66,7 +67,7 @@ export default function TraitDetails() {
         </Text>
         <Grid columns={10} justify="space-between" mb={15}>
           <Grid.Col span={{base: 10, sm: 5}}>
-            <AcceptedValue data={acceptedValue} />
+            <AcceptedTraitValueDisplay data={acceptedValue} />
             <Space h={15} />
             <AcceptedValueEndorsements data={acceptedValue} dataQueryKey={traitValuesQueryOptions.queryKey} />
           </Grid.Col>
@@ -82,7 +83,7 @@ export default function TraitDetails() {
   )
 }
 
-function AcceptedValue({ data }: { data: TraitValueReadData }) {
+export function AcceptedTraitValueDisplay({ data }: { data: TraitValueReadData }) {
   return (
     <>
     <Paper withBorder style={{ backgroundColor: "#bef7ce" }} ta="center" p={15}>
@@ -198,6 +199,15 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: 
     onConfirm: () => proposalDeletion.mutate(proposal.contentId),
   })
 
+  const handleAddBarClick = () => {
+    if (!user) {
+      window.open('/login', '_blank');
+      throw showError("É preciso estar logado para executar essa ação.", null);
+    }
+
+    navigate('edit');
+  }
+
   const header = (
     <Table.Tr>
       <Table.Th fz="h6" fw={550} w={200}>Proposta</Table.Th>
@@ -242,7 +252,7 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: 
 
   rows.push(
     <Table.Tr key={0}>
-      <Table.Td colSpan={6} align="center" onClick={() => navigate('edit')} className={classes.row}>
+      <Table.Td colSpan={6} align="center" onClick={() => handleAddBarClick()} className={classes.row}>
         <IconCircleDashedPlus className={classes.icon} size={35}/>
       </Table.Td>
     </Table.Tr>
