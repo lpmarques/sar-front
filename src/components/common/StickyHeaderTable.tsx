@@ -10,7 +10,7 @@ interface StickyHeaderTableProps extends TableProps {
   scrollHeight: number,
 }
 
-export default function StickyHeaderTable ({ header, rows, scrollWidth, scrollHeight, ...tableProps }: StickyHeaderTableProps) {
+export function StickyHeaderTable ({ header, rows, scrollWidth, scrollHeight, ...tableProps }: StickyHeaderTableProps) {
   const [scrolled, setScrolled] = useState(false);
 
   return (

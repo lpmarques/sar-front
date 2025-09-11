@@ -1,20 +1,154 @@
-import unidecode from 'unidecode-plus';
-import { Button, NumberInput, Paper, Select, TagsInput, TextInput } from "@mantine/core";
-import { isNotEmpty, useForm } from "@mantine/form";
+import Ajv from "ajv";
+import AjvFormats from "ajv-formats";
+import { Button, Fieldset, Select, TextInput, Text } from "@mantine/core";
+import { isNotEmpty, useField, UseFieldReturnType } from "@mantine/form";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { isValidHttpUrl, showMutationError } from "../../apis/common";
-import { createSource, getSourceList, SourceWriteRequestData } from "../../apis/core";
+import { isValidHttpUrl, JsonSchemaString, showMutationError } from "../../apis/common";
+import { createSource, getSourceTypeList, SourceField, SourceValue, SourceFieldValueWriteData, getSourceSubtypeList, SourceTypeReadData } from "../../apis/core";
 import { showError, showSuccess } from '../common/notifications';
+import { SourceFieldValueInput } from ".";
+import { QueryLoader } from "../common/QueryLoader";
 
 export default function SourceForm({ onSubmit }: { onSubmit: Function }) {
-  const sourcesQuery = useQuery({
-    queryKey: ['sourceList'],
-    queryFn: getSourceList
-  })
+  const typeForm: { [key: string]: UseFieldReturnType<string | undefined> } = {};
 
-  const sourceTypes = sourcesQuery.data ? [...new Set(sourcesQuery.data.map(source => source.type))] : [];
-  const staticSourceTypes = ["book", "chapter", "monography", "paper"]; // TODO: create source_types table with is_static and name_text_id fields
-  const currentYear = new Date().getFullYear();
+  const sourceTypes = useQuery({
+    queryKey: ['sourceTypeList'],
+    queryFn: getSourceTypeList,
+  });
+
+  const sourceTypeOptions = sourceTypes.data ? sourceTypes.data.map(source => ({
+    value: source.id.toString(),
+    label: source.name
+  })) : [];
+
+  typeForm['type'] = useField<string | undefined>({
+    initialValue: undefined,
+    validateOnChange: true,
+    onValueChange: () => {
+      typeForm['subtype'].reset();
+    },
+    validate: isNotEmpty('Campo obrigatório'),
+    resolveValidationError: () => {
+      throw showError("Há campos inválidos no formulário.", "Erro");
+    },
+  });
+
+  const sourceSubtypesQueryOptions = {
+    queryKey: ['sourceSubtypeList', typeForm['type'].getValue() as string ?? '0'],
+    queryFn: getSourceSubtypeList,
+    enabled: typeForm['type'].isDirty()
+  };
+  const sourceSubtypes = useQuery(sourceSubtypesQueryOptions);
+
+  const sourceSubtypeOptions = sourceSubtypes.data ? sourceSubtypes.data.map(source => ({
+    value: source.id.toString(),
+    label: source.name
+  })) : [];
+
+  typeForm['subtype'] = useField<string | undefined>({
+    mode: 'controlled',
+    initialValue: undefined,
+    validateOnChange: true,
+    validate: isNotEmpty('Campo obrigatório'),
+    resolveValidationError: () => {
+      throw showError("Há campos inválidos no formulário.", "Erro");
+    },
+  });
+
+  const selectedType = sourceTypes.data && typeForm['type'].isDirty() ? (
+    sourceTypes.data.find(type => type.id === Number(typeForm['type'].getValue()))
+  ) : undefined;
+
+  const selectedSubtype = sourceSubtypes.data && sourceSubtypeOptions.length > 0 && typeForm['subtype'].isDirty() ? (
+    sourceSubtypes.data.find(subtype => subtype.id === Number(typeForm['subtype'].getValue()))
+  ) : undefined;
+
+  const typeInputs = (
+    <>
+    <Select
+      key="type"
+      label="Tipo de fonte"
+      data={sourceTypeOptions}
+      required
+      {...typeForm['type'].getInputProps()}
+    />
+    <QueryLoader {...sourceSubtypesQueryOptions}>
+      {sourceSubtypes.data && sourceSubtypeOptions.length > 0 &&
+        <Select
+        key="subtype"
+        label="Subtipo"
+        data={sourceSubtypeOptions}
+        required
+        {...typeForm['subtype'].getInputProps()}
+      />}
+    </QueryLoader>
+    </>
+  )
+
+  return (
+    <>
+      {typeInputs}
+      <QueryLoader {...sourceSubtypesQueryOptions}>
+      {selectedType && (selectedSubtype || sourceSubtypeOptions.length === 0) &&
+        <SourceDataForm type={selectedType} subtype={selectedSubtype} onSubmit={onSubmit} />}
+      </QueryLoader>
+    </>
+  )
+}
+
+function SourceDataForm({ type, subtype, onSubmit }: { type: SourceTypeReadData, subtype?: SourceTypeReadData, onSubmit: Function }) {
+  const ajv = AjvFormats(new Ajv());
+
+  const unsortedFields = subtype ? type.fields.concat(subtype.fields) : type.fields;
+  const fields = unsortedFields.sort((a, b) => a.position - b.position);
+
+  const valuesForm = Object.fromEntries(fields.map(field => [
+    field.id,
+    useField<SourceValue | undefined>({
+      initialValue: undefined,
+      validate: (value) => validateFieldValue(field, value),
+    })
+  ]))
+
+  const notesMaxChars = 300;
+  const notesField = useField<string>({
+    initialValue: '',
+    validateOnChange: true,
+    validate: (value) => {
+      if (value.length > notesMaxChars) return 'Observações ultrapassam o limite máximo de caracteres';
+    }
+  });
+  
+  const validateFieldValue = (field: SourceField, value: SourceValue | undefined) => {
+    if (value === undefined || 
+      field.schema.type === "string" && (value as string).trim().length === 0 ||
+      field.schema.type === "array" && (value as any[]).length === 0) {
+      return field.isNullable ? null : 'Campo obrigatório';
+    }
+
+    if (field.schema.type === "string") {
+      const schema = field.schema as JsonSchemaString;
+      const str = value as string;
+      if (schema.format === "uri" && !isValidHttpUrl(str.trim()))
+        return 'URL inválida';
+      if (schema.format === "date" && new Date(str) > new Date())
+        return 'Data inválida';
+    }
+    
+    const validate = ajv.compile(field.schema);
+    if (!validate(value))
+      return ajv.errorsText(validate.errors);
+  }
+
+  const transformFieldValue = (field: SourceField, value: SourceValue | undefined) => {
+    if (value && field.schema.type === "string") {
+      const trimmed = (value as string).trim();
+      return trimmed.length > 0 ? trimmed : undefined;
+    }
+
+    return value;
+  }
 
   const sourceCreation = useMutation({
     mutationFn: createSource,
@@ -25,106 +159,67 @@ export default function SourceForm({ onSubmit }: { onSubmit: Function }) {
     onError: showMutationError
   });
 
-  const form = useForm<SourceWriteRequestData>({
-    mode: 'controlled',
-    initialValues: {
-      type: '',
-      title: '',
-      year: currentYear,
-      authors: undefined,
-      publisher: undefined,
-      url: undefined,
-      description: undefined,
-    },
-    validate: {
-      type: isNotEmpty('Campo obrigatório'),
-      title: isNotEmpty('Campo obrigatório'),
-      year: isNotEmpty('Campo obrigatório'),
-      authors: (value) => {
-        if (value && value.some(author => !/^(([A-Z][a-z]+ ?(d[eao][sl]? )?){2,})|((d[eao][sl]? )?[A-Z][a-z]+,? ([A-Z]\. ?)+)$/.test(unidecode(author.trim()))))
-          return 'Formatos aceitos: "Nome Sobrenome" ou "Sobrenome N."';
-        return null;
-      },
-      url: (value) => {
-        if (value && !isValidHttpUrl(value.trim()))
-          return 'URL inválida';
-        return null;
-      }
-    }
-    // TODO: use transform to trim values before posting
-  });
-
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.preventDefault();
 
-    const validation = form.validate();
-    if (validation.hasErrors)
+    const valueErrors: React.ReactNode[] = [];
+    for (const field of Object.values(valuesForm)) {
+      const error = await field.validate();
+      if (error) valueErrors.push(error);
+    }
+    const noteError = await notesField.validate();
+
+    if (valueErrors.length > 0 || noteError)
       throw showError("Há campos inválidos no formulário.", "Erro");
-    
-    sourceCreation.mutate(form.values);
+
+    const typeId = subtype?.id ?? type.id;
+    const fieldValues = fields.reduce((result: SourceFieldValueWriteData[], field) => {
+      let value = transformFieldValue(field, valuesForm[field.id].getValue());
+      if (value) {
+        result.push({
+          fieldId: field.id,
+          value: value,
+        })
+      }
+      return result;
+    }, []);
+    const notes = notesField.getValue().trim();
+
+    sourceCreation.mutate({
+      typeId: typeId,
+      fieldValues: fieldValues,
+      creatorNotes: notes.length > 0 ? notes : undefined,
+    });
   }
 
-  const inputs = (
+  const valueInputs = fields.map(field => (
+    <SourceFieldValueInput key={field.id} sourceField={field} formField={valuesForm[field.id]} />
+  ))
+
+  const notes = notesField.getValue();
+  const notesLength = notes ? notes.length : 0;
+  const notesInput = (
     <>
-      <Select
-        key={form.key('type')}
-        label="Tipo de fonte"
-        data={sourceTypes}
-        required
-        {...form.getInputProps('type')}
-      />
-      {form.getValues().type && 
-      <>
       <TextInput
-        key={form.key('title')}
-        label="Título"
-        required
-        {...form.getInputProps('title')}
-      />
-      <NumberInput
-        key={form.key('year')}
-        label={staticSourceTypes.includes(form.getValues().type) ? "Ano de publicação" : "Ano de consulta"}
-        min={0}
-        max={currentYear}
-        required
-        {...form.getInputProps('year')}
-      />
-      <TagsInput
-        key={form.key('authors')}
-        label="Autores(as)"
-        placeholder="Nome + Enter, para adicionar"
-        {...form.getInputProps('authors')}
-      />
-      <TextInput
-        key={form.key('publisher')}
-        label="Publicado por:"
-        placeholder="Nome da editora, revista científica ou responsável, etc."
-        title="Nome da editora, revista científica ou responsável, etc."
-        {...form.getInputProps('publisher')}
-      />
-      <TextInput
-        key={form.key('url')}
-        label="URL"
-        placeholder="https://www.exemplo.com.br"
-        {...form.getInputProps('url')}
-      />
-      <TextInput
-        key={form.key('description')}
-        label="Descrição"
-        placeholder="Explique sobre o que a fonte trata."
-        title="Explique sobre o que a fonte trata."
-        {...form.getInputProps('description')}
-      />
-      </>}
+        mt={5}
+        key={notesField.key}
+        label="Observações (opcional)"
+        placeholder="Suas observações sobre essa fonte"
+        {...notesField.getInputProps()}
+        />
+      <Text size="xs" c={notesLength > notesMaxChars ? "red" : "dimmed"} pt={5}>
+        {notesLength}/{notesMaxChars}
+      </Text>
     </>
-  );
-  
+  )
+
   return (
     <>
-    {/* <Paper withBorder shadow="sm" p={22} mt={30} mb={30} radius="md"> */}
-      {inputs}
-      <Button loading={sourceCreation.isPending} mt={20} type="submit" onClick={handleSubmit}>Cadastrar fonte</Button>
-    {/* </Paper> */}
+      <Fieldset legend="Dados da fonte" mt={10}>
+        {valueInputs}
+      </Fieldset>
+      {notesInput}
+      <Button loading={sourceCreation.isPending} mt={10} type="submit" onClick={handleSubmit}>Cadastrar fonte</Button>
     </>
   )
 }

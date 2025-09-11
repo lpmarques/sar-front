@@ -1,5 +1,4 @@
 import axios from 'axios';
-import React from 'react';
 import { Navigate } from 'react-router';
 import { Center, Loader } from '@mantine/core';
 import { useQuery, QueryFunction } from '@tanstack/react-query';
@@ -9,15 +8,13 @@ import { useAuth } from '../../hooks/useAuth';
 type QueryLoaderProps = {
   queryKey: string[],
   queryFn: QueryFunction<unknown, string[]>,
-  children?: React.ReactNode
+  enabled?: boolean,
+  children?: React.ReactNode,
 }
 
-export function QueryLoader({ queryKey, queryFn, children }: QueryLoaderProps) {
+export function QueryLoader({ children, ...queryOptions }: QueryLoaderProps) {
   const { unauth } = useAuth();
-  const { isLoading, error } = useQuery({
-    queryKey,
-    queryFn
-  });
+  const { isLoading, error } = useQuery(queryOptions);
 
   if (isLoading) {
     return (

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { camelToSnakeCase, GenericResponse, QueryFnInput, snakeToCamelCase } from './common';
+import { camelToSnakeCase, GenericResponse, JsonSchema, QueryFnInput, snakeToCamelCase } from './common';
 
 // MUTATIONS
 
@@ -20,19 +20,11 @@ export interface UserWriteRequestData {
 };
 
 export async function createUser(data: UserWriteRequestData): Promise<GenericResponse> {
-  const requestBody = {
-    first_name: data.firstName,
-    last_name: data.lastName,
-    email: data.email,
-    password: data.password,
-    occupation: data.occupation,
-    company: data.company,
-    country: data.country,
-    state: data.state,
-    municipality: data.municipality,
-  };
+  const requestBody = camelToSnakeCase(data);
 
-  return await axios.post("/core/user", requestBody);
+  const res = await axios.post("/core/user", requestBody);
+
+  return res.data;
 }
 
 export interface UserEditData {
@@ -69,10 +61,9 @@ interface UserTokenRequestData {
   password: string,
 }
 
-export interface UserTokenResponseData {
+export interface UserTokenResponseData extends GenericResponse {
   token: string,
   user: UserReadData,
-  msg: string,
 }
 
 export async function createUserToken(data: UserTokenRequestData): Promise<UserTokenResponseData> {
@@ -116,14 +107,17 @@ export async function deleteEndorsement(endorsementId: number): Promise<GenericR
   return res.data;
 }
 
+export type SourceValue = number | string | string[];
+
+export interface SourceFieldValueWriteData {
+  fieldId: number,
+  value: SourceValue,
+}
+
 export interface SourceWriteRequestData {
-  type: string,
-  year: number,
-  title: string,
-  authors?: string[],
-  publisher?: string,
-  url?: string,
-  description?: string,
+  typeId: number,
+  fieldValues: SourceFieldValueWriteData[],
+  creatorNotes?: string,
 }
 
 export interface SourceWriteResponseData extends GenericResponse {
@@ -140,30 +134,61 @@ export async function createSource(data: SourceWriteRequestData): Promise<Source
 
 // QUERIES
 
+interface SourceFieldValueReadData {
+  field: string,
+  value: SourceValue,
+  schema: JsonSchema,
+  position: number,
+}
+
 export interface SourceReadData {
   id: number,
   type: string,
-  year: number,
-  title: string,
-  authors: string[],
-  publisher: string,
-  url: string,
-  description: string,
-  contentAuthorId: number,
+  isStatic: boolean,
+  fieldValues: SourceFieldValueReadData[]
+  creatorId: number,
+  createdAt: string,
+  deletedAt: string,
 }
 
-export const sourceTypeToText: { [key: string]: string } = {
-  "api": "API",
-  "book": "Livro",
-  "chapter": "Capítulo de livro",
-  "monography": "Monografia",
-  "paper": "Artigo",
-  "public database": "Banco de dados público",
-  "website": "Website",
-};
+export async function getSource({ queryKey: [queryName, sourceId] }: QueryFnInput): Promise<SourceReadData> {
+  const res = await axios.get(`/core/sources/${sourceId}`);
+
+  return snakeToCamelCase(res.data);
+}
 
 export async function getSourceList({ queryKey: [queryName] }: QueryFnInput): Promise<SourceReadData[]> {
   const res = await axios.get("/core/sources");
+
+  return snakeToCamelCase(res.data);
+}
+
+export interface SourceField {
+  id: number,
+  name: string,
+  description: string,
+  schema: JsonSchema,
+  isNullable: boolean,
+  position: number,
+}
+
+export interface SourceTypeReadData {
+  id: number,
+  name: string,
+  level: "type" | "subtype",
+  parentId: null | number,
+  isStatic: boolean,
+  fields: SourceField[],
+}
+
+export async function getSourceTypeList({ queryKey: [queryName] }: QueryFnInput): Promise<SourceTypeReadData[]> {
+  const res = await axios.get("/core/source-types");
+
+  return snakeToCamelCase(res.data);
+}
+
+export async function getSourceSubtypeList({ queryKey: [queryName, typeId] }: QueryFnInput): Promise<SourceTypeReadData[]> {
+  const res = await axios.get(`/core/source-types/${typeId}/subtypes`);
 
   return snakeToCamelCase(res.data);
 }
@@ -184,21 +209,8 @@ export async function getUser({ queryKey: [queryName, userId] }: QueryFnInput): 
   const endpoint = userId ? `/core/users/${userId}` : "/core/user";
 
   let res = await axios.get(endpoint);
-  
-  let data = {
-    id: res.data.id,
-    firstName: res.data.first_name,
-    lastName: res.data.last_name,
-    email: res.data.email,
-    password: res.data.password,
-    occupation: res.data.occupation,
-    company: res.data.company,
-    country: res.data.country,
-    state: res.data.state,
-    municipality: res.data.municipality,
-  }
 
-  return data;
+  return snakeToCamelCase(res.data);
 }
 
 export interface EndorsementReadData {

@@ -1,4 +1,4 @@
-import { Badge, MantineStyleProp, RangeSlider, Space, Text } from '@mantine/core';
+import { Badge, MantineStyleProp, RangeSlider, Text } from '@mantine/core';
 import {
   Range,
   TraitValueReadData,
@@ -66,11 +66,11 @@ function RangeTraitValue({ value, boundaries, style }: { value: Range, boundarie
     <RangeSlider
       disabled
       size="sm"
-      defaultValue={[value.minimum, value.maximum]}
-      domain={[boundaries.minimum, boundaries.maximum]}
+      defaultValue={value}
+      domain={boundaries}
       marks={[
-        { value: value.minimum, label: round(value.minimum) },
-        { value: value.maximum, label: round(value.maximum) },
+        { value: value[0], label: round(value[0]) },
+        { value: value[1], label: round(value[1]) },
       ]}
       label={(value: number) => value}
       p={20}

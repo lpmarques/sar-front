@@ -8,14 +8,14 @@ export interface UserNameProps extends UnstyledButtonProps {
 }
 
 export default function UserName({ source, ...buttonProps }: UserNameProps) {
+  const openSourceContentModal = (source: SourceReadData) => modals.open({
+    title: `Fonte [${source.id}]`,
+    children: <SourceContent data={source} />
+  });
+
   return (
     <UnstyledButton onClick={() => openSourceContentModal(source)} {...buttonProps}>
       [{source.id}]
     </UnstyledButton>
   )
 }
-
-const openSourceContentModal = (source: SourceReadData) => modals.open({
-  title: `Fonte [${source.id}]`,
-  children: <SourceContent data={source} />
-});

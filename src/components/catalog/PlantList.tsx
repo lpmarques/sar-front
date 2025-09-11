@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Container, Paper, Table, Text, TextInput } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { getPlantList, getTaxonName, PlantReadData, TraitValueReadData } from "../../apis/catalog";
 import { QueryLoader } from '../common/QueryLoader';
-import { StickyHeaderTable, TraitValueDisplay } from '.';
+import { StickyHeaderTable } from '../common/StickyHeaderTable';
+import { TraitValueDisplay } from '.';
 
 export default function PlantList() {
   const plantListQueryOptions = {

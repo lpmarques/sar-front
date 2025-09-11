@@ -1,43 +1,14 @@
-import { Center, Container, InputProps, MultiSelect, NumberInput, RangeSlider, Select, SelectProps, Space, Switch, Text } from '@mantine/core';
+import { Center, Container, MultiSelect, NumberInput, RangeSlider, Select, Switch, Text } from '@mantine/core';
 import { UseFieldReturnType } from '@mantine/form';
 import {
   Range,
   TraitReadData,
-  TraitType,
   TraitValue,
 } from "../../apis/catalog";
 
-export type TraitValueField = (0 | 1) | string | string[] | number | [ number, number ];
-
-export const traitValueToTraitValueField = (type: TraitType, value: TraitValue): TraitValueField => {
-  switch (type) {
-    case "range":
-      return [(value as Range).minimum, (value as Range).maximum] as [ number, number ];
-    case "boolean":
-      return Number(value) as (0 | 1);
-    default:
-      return value as string | string[] | number;
-  }
-};
-
-export const traitValueFieldToTraitValue = (type: TraitType, value: TraitValueField): TraitValue => {
-  switch (type) {
-    case "range":
-      let range = value as [number, number];
-      return {
-        minimum: range[0],
-        maximum: range[1],
-      };
-    case "boolean":
-      return Boolean(value as (0 | 1));
-    default:
-      return value as string | string[] | number;
-  }
-};
-
 interface TraitValueInputProps {
   trait: TraitReadData,
-  field: UseFieldReturnType<TraitValueField>,
+  field: UseFieldReturnType<TraitValue>,
 }
 
 const containerSize = 300;
@@ -49,11 +20,11 @@ export default function TraitValueInput({ trait, field, ...extraProps }: TraitVa
     case "number":
       return <NumberTraitInput key={trait.slug}  trait={trait} field={field as UseFieldReturnType<number>} {...extraProps} />
     case "boolean":
-      return <BooleanTraitSwitch key={trait.slug} field={field as UseFieldReturnType<0 | 1>} {...extraProps} />
+      return <BooleanTraitSwitch key={trait.slug} field={field as UseFieldReturnType<boolean>} {...extraProps} />
     case "string[]":
       return <StringArrayTraitSelect key={trait.slug}  trait={trait} field={field as UseFieldReturnType<string[]>} {...extraProps} />
     case "range":
-      return <RangeTraitSlider key={trait.slug} trait={trait} field={field as UseFieldReturnType<[number, number]>} {...extraProps} />
+      return <RangeTraitSlider key={trait.slug} trait={trait} field={field as UseFieldReturnType<Range>} {...extraProps} />
   }
 }
 
@@ -90,8 +61,14 @@ function NumberTraitInput({ trait, field, ...extraInputProps }: { trait: TraitRe
   )
 }
 
-function BooleanTraitSwitch({ field, ...extraSwitchProps }: { field: UseFieldReturnType<0 | 1> }) {
+function BooleanTraitSwitch({ field, ...extraSwitchProps }: { field: UseFieldReturnType<boolean> }) {
+  const initialValue = field.getValue();
+  const switchValue = () => {
+    field.setValue(!field.getValue());
+  }
+
   return (
+    <>
     <Center>
       <Switch
         key={field.key}
@@ -99,12 +76,16 @@ function BooleanTraitSwitch({ field, ...extraSwitchProps }: { field: UseFieldRet
         color="gray.3"
         onLabel={<Text c="green" tt="uppercase" fw={600}>sim</Text>}
         offLabel={<Text c="red" tt="uppercase" fw={600}>não</Text>}
-        defaultChecked={ Boolean(field.getValue()) }
+        defaultChecked={initialValue}
         {...field.getInputProps()}
-        { ...extraSwitchProps}
         error={null}
+        value={Number(field.getValue())}
+        onChange={() => switchValue()}
+        {...extraSwitchProps}
         />
     </Center>
+    <Text mt={5} size="xs" c="red">{field.getInputProps().error}</Text>
+    </>
   )
 }
 
@@ -127,13 +108,14 @@ function StringArrayTraitSelect({ trait, field, ...extraSelectProps }: { trait: 
   )
 }
 
-function RangeTraitSlider({ trait, field, ...extraSliderProps }: { trait: TraitReadData, field: UseFieldReturnType<[number, number]> }) {  
+function RangeTraitSlider({ trait, field, ...extraSliderProps }: { trait: TraitReadData, field: UseFieldReturnType<Range> }) {  
   const min = field.getValue()[0];
   const max = field.getValue()[1];
   const step = Number.isInteger(min) ? 1 : 0.1;
   const minRange = 0;
 
   return (
+    <>
     <RangeSlider
       key={field.key}
       size="sm"
@@ -154,5 +136,7 @@ function RangeTraitSlider({ trait, field, ...extraSliderProps }: { trait: TraitR
       p={20}
       mt={30}
     />
+    <Text size="xs" c="red">{field.getInputProps().error}</Text>
+    </>
   )
 }
