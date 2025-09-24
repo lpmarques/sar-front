@@ -1,26 +1,38 @@
 import EndorsementCounter from '../catalog/EndorsementCounter';
 import EndorsementList from '../catalog/EndorsementList';
-import Plant from './Plant';
+import PlantDetails from './PlantDetails';
 import PlantList from './PlantList';
-import SourceContent from './SourceContent';
+import SectionDetails from './SectionDetails';
+import SectionEdit from './SectionEdit';
+import SourceDetails from './SourceDetails';
 import SourceFieldValueInput from './SourceFieldValueInput';
 import SourceForm from './SourceForm';
+import SourceSelect from './SourceSelect';
 import SourceRef from './SourceRef';
+import TaxaProposalForm from './TaxaProposalForm';
 import TraitDetails from './TraitDetails';
 import TraitEdit from './TraitEdit';
 import TraitValueDisplay from './TraitValueDisplay';
 import TraitValueInput from './TraitValueInput';
 import TraitValueProposalForm from './TraitValueProposalForm';
+import CommentInput from './CommentInput';
+import SectionContentsProposalForm from './SectionContentsProposalForm';
 
 export {
+  CommentInput,
   EndorsementCounter,
   EndorsementList,
-  Plant,
+  PlantDetails,
   PlantList,
-  SourceContent,
+  SectionContentsProposalForm,
+  SectionDetails,
+  SectionEdit,
+  SourceDetails,
   SourceFieldValueInput,
   SourceForm,
   SourceRef,
+  SourceSelect,
+  TaxaProposalForm,
   TraitDetails,
   TraitEdit,
   TraitValueDisplay,

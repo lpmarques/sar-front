@@ -1,10 +1,7 @@
-import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import { Container, Text, Paper, Modal, Select, Divider, Button, Group, TextInput } from '@mantine/core';
+import { Text, Paper, Divider, Button } from '@mantine/core';
 import { isNotEmpty, useField } from '@mantine/form';
-import { useDisclosure } from '@mantine/hooks';
-import { IconPlus } from '@tabler/icons-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   createTraitValue,
   PlantReadData,
@@ -14,45 +11,13 @@ import {
   TraitValueReadData,
 } from '../../apis/catalog';
 import { showMutationError } from '../../apis/common';
-import { getSourceList, SourceReadData } from '../../apis/core';
 import { showError, showSuccess } from '../common/notifications';
-import { useAuth } from '../../hooks/useAuth';
-import { SourceContent, SourceForm, TraitValueInput } from '.';
+import { CommentInput, SourceSelect, TraitValueInput } from '.';
 
 export default function TraitValueProposalForm({plant, trait, acceptedValue, proposedValues, proposedValuesQueryKey}: {plant: PlantReadData, trait: TraitReadData, acceptedValue: TraitValueReadData, proposedValues: TraitValueReadData[], proposedValuesQueryKey: string[] }) {
-  const { user } = useAuth();
-  const [opened, {open, close}] = useDisclosure(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const sourcesQueryOptions = {
-    queryKey: ['sourceList'],
-    queryFn: getSourceList,
-  }
-  const sources = useQuery(sourcesQueryOptions);
-
-  const visibleSources = useMemo(() => {
-    // TODO: implement filters on source endpoint, allowing for separate querying of user and non-user static sources, without need for client-side deduplication
-    const staticSources = sources.data ? sources.data.filter((source) => source.isStatic) : [];
-    const userSources = sources.data ? sources.data.filter((source) => source.creatorId == user?.id) : [];
-    return userSources.concat(staticSources).sort(
-      (a, b) => a.id - b.id
-    ).reduce(
-      (unique: SourceReadData[], item) => {
-        if (unique.length === 0 || item !== unique[unique.length-1])
-          unique.push(item);
-        return unique;
-      }, []
-    );
-  }, [sources]);
-
-  const sourceOptions = visibleSources.map((source: SourceReadData) => {
-    const title = source.fieldValues.find(item => item.field === "Título")?.value;
-    return {
-      value: source.id.toString(),
-      label: `[${source.id}] ` + source.type + (title ? `: ${title}` : "")
-    }
-  });
   const traitValueCreation = useMutation({
     mutationFn: createTraitValue,
     onSuccess: (data) => {
@@ -117,17 +82,6 @@ export default function TraitValueProposalForm({plant, trait, acceptedValue, pro
     }
   });
 
-  const handleNewSourceButtonClick = () => {
-    sourceField.reset();
-    open();
-  }
-
-  const handleNewSourceSubmit = (newSourceId: number) => {
-    queryClient.invalidateQueries(sourcesQueryOptions);
-    sourceField.setValue(String(newSourceId));
-    close();
-  }
-
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.preventDefault();
 
@@ -137,7 +91,7 @@ export default function TraitValueProposalForm({plant, trait, acceptedValue, pro
     if (valueError || sourceError || commentError)
       throw showError("Há campos inválidos no formulário.", "Erro");
 
-    const comment = commentField.getValue().trim()
+    const comment = commentField.getValue().trim();
 
     traitValueCreation.mutate({
       plantId: plant.id,
@@ -149,49 +103,21 @@ export default function TraitValueProposalForm({plant, trait, acceptedValue, pro
   }
   
   const divider = <Divider mt={25} mb={15} />;
-  const comment = commentField.getValue();
-  const commentLength = comment ? comment.length : 0;
-
-  const selectedSource = visibleSources.find(source => source.id === Number(sourceField.getValue()));
 
   return (
     <>
-    <Paper withBorder style={{ backgroundColor: "#f0f2f2" }} ta="center" p={15} mb={10}>
+    <Paper withBorder style={{ backgroundColor: "#f0f2f2" }} ta="center" p={15} mb={20}>
       <Text fz="h5" fw={600} pb={10}>Versão proposta</Text>
       <TraitValueInput trait={trait} field={valueField} aria-label="Versão proposta"/>
       {divider}
       <Text fz="h5" fw={600} pb={10}>Fonte</Text>
-      <Group gap={10} align="start" justify="center" mb={20}>
-        <Select
-          key={sourceField.key}
-          data={sourceOptions}
-          searchable
-          aria-label="Fonte"
-          {...sourceField.getInputProps()}
-          />
-        {/* <Button size="xs" color="gray" title="Remover seleção" onClick={unselectSource}><IconX /></Button> */}
-        <Button size="xs" color="teal" title="Cadastrar nova fonte" onClick={handleNewSourceButtonClick}><IconPlus /></Button>
-      </Group>
-      { selectedSource && 
-      <SourceContent data={selectedSource} />}
+      <SourceSelect field={sourceField} />
       {divider}
       <Text fz="h5" fw={600} pb={10}>Comentário <Text span size="sm" c="dimmed">(opcional)</Text></Text>
-      <Container size={700}>
-        <TextInput
-          key={commentField.key}
-          placeholder="Se achar pertinente, fale mais aqui sobre sua proposta."
-          {...commentField.getInputProps()}
-        />
-        <Text size="xs" c={commentLength > commentMaxChars ? "red" : "dimmed"} pt={5}>
-          {commentLength}/{commentMaxChars}
-        </Text>
-      </Container>
+      <CommentInput field={commentField} maxChars={commentMaxChars} />
       {divider}
       <Button type="submit" color="teal" onClick={handleSubmit}>Publicar proposta</Button>
     </Paper>
-    <Modal opened={opened} onClose={close} title="Procurou uma fonte e não achou? Cadastre-a aqui:">
-      <SourceForm onSubmit={handleNewSourceSubmit}/>
-    </Modal>
     </>
   )
 }

@@ -18,7 +18,7 @@ import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { TraitValueDisplay } from '.';
 
-export default function Plant() {
+export default function PlantDetails() {
   const { plantId } = useParams();
   
   const plantQueryOptions = {
@@ -38,7 +38,7 @@ export default function Plant() {
     queryFn: getPlantTraitValueList
   };
   const naturalOccurrenceRegionsQueryOptions = {
-    queryKey: ['plantNaturalOccurrenceRegions', plantId!, 'status=accepted'],
+    queryKey: ['plantNaturalOccurrenceRegionList', plantId!, 'status=accepted'],
     queryFn: getPlantNaturalOccurrenceRegionList
   }
  
@@ -76,10 +76,14 @@ export default function Plant() {
   )
 }
 
-function Section({ title, children, style }: { title: string, children: React.ReactNode, style?: React.CSSProperties }) {
+interface SectionProps extends React.ComponentProps<'section'> {
+  title: string,
+}
+
+function Section({ title, children, ...sectionProps }: SectionProps) {
   return (
     <>
-    <Paper withBorder p={10} component="section" style={style}>
+    <Paper withBorder p={10} component="section" {...sectionProps}>
       <Text fz="h5" fw={600} pb={10}>{title}</Text>
       { children }
     </Paper>
@@ -89,16 +93,18 @@ function Section({ title, children, style }: { title: string, children: React.Re
 }
 
 function PopularNamesSection({ data }: { data: PopularNameReadData[] }) {
-  let popularNames = data.map(item => item.name).join(", ");
+  const navigate = useNavigate();
+  const popularNames = data.map(item => item.name).join(", ");
 
   return (
-    <Section title="Nome(s) popular(es)" style={{cursor: 'pointer'}}>
+    <Section title="Nome(s) popular(es)" style={{cursor: 'pointer'}} onClick={() => navigate(`popular-names`)}>
       <Text size="md">{popularNames}</Text>
     </Section>
   )
 }
 
 function TaxonomySection({ taxa }: { taxa: TaxonReadData[] }) {
+  const navigate = useNavigate();
   const accepted = taxa.find(item => item.taxonomicStatus === 'accepted');
   const synonyms = taxa.filter(item => item.taxonomicStatus === 'synonym');
   const synonymNames = synonyms ? synonyms.map(item => getTaxonName(item)).join(", ") : "";
@@ -106,7 +112,7 @@ function TaxonomySection({ taxa }: { taxa: TaxonReadData[] }) {
   return (
     <>
     {accepted &&
-    <Section title="Taxonomia" style={{cursor: 'pointer'}}>
+    <Section title="Taxonomia" style={{cursor: 'pointer'}} onClick={() => navigate(`taxonomy`)}>
       <Text size="md">Família: {accepted ? accepted.family : ""}</Text>
       <Text size="md">Espécie: {accepted ? accepted.species : ""}</Text>
       {accepted?.subspecies &&
@@ -126,7 +132,7 @@ function TraitSection({ sectionName, traitValues }: { sectionName: string, trait
   const traits = traitValues.map(item => (
     <Paper key={item.traitSlug} withBorder ta="center" radius="md" style={{cursor: 'pointer'}} onClick={() => navigate(`trait/${item.traitSlug}`)}>
       <Text fz="h6" fw={550} p={5}>{item.traitName}</Text>
-      <TraitValueDisplay data={item} style={item.type=="string[]" ? {cursor: 'pointer'} : undefined} />
+      <TraitValueDisplay data={item} style={item.type=="string[]" ? { cursor: 'pointer' } : undefined} />
     </Paper>
   ));
   
@@ -140,14 +146,16 @@ function TraitSection({ sectionName, traitValues }: { sectionName: string, trait
 }
 
 function NaturalOccurrenceSection({ data }: { data: NaturalOccurrenceRegionReadData[] }) {
+  const navigate = useNavigate();
+
   const sortedRegions = data.sort((a, b) => 
-    sortValueFirst(a.country, b.country, "Brasil") ||
-    sortValueFirst(a.country, b.country, "Brazil") ||
-    sortValueFirst(a.biome, b.biome, "Mata Atlântica") ||
-    a.country.localeCompare(b.country) ||
-    a.biome.localeCompare(b.biome) ||
-    a.state.localeCompare(b.state) ||
-    a.vegetationType.localeCompare(b.vegetationType)
+    sortValueFirst(a.country.name, b.country.name, "Brasil") ||
+    sortValueFirst(a.country.name, b.country.name, "Brazil") ||
+    sortValueFirst(a.biome.name, b.biome.name, "Mata Atlântica") ||
+    a.country.name.localeCompare(b.country.name) ||
+    a.biome.name.localeCompare(b.biome.name) ||
+    a.state.code.localeCompare(b.state.code) ||
+    a.vegetationType.name.localeCompare(b.vegetationType.name)
   );
 
   const header = (
@@ -155,21 +163,21 @@ function NaturalOccurrenceSection({ data }: { data: NaturalOccurrenceRegionReadD
         <Table.Th fz="h5" fw={550}>País</Table.Th>
         <Table.Th fz="h5" fw={550}>Estado</Table.Th>
         <Table.Th fz="h5" fw={550}>Bioma</Table.Th>
-        <Table.Th fz="h5" fw={550}>Tipo de vegetação</Table.Th>
+        <Table.Th fz="h5" fw={550}>Tipo de Vegetação</Table.Th>
       </Table.Tr>
   );
   
   const rows = sortedRegions.map((region: NaturalOccurrenceRegionReadData) => (
     <Table.Tr key={`${region.contentId}`}>
-      <Table.Td fz="sm">{region.country}</Table.Td>
-      <Table.Td fz="sm">{region.state}</Table.Td>
-      <Table.Td fz="sm">{region.biome}</Table.Td>
-      <Table.Td fz="sm">{region.vegetationType}</Table.Td>
+      <Table.Td fz="sm">{region.country.name}</Table.Td>
+      <Table.Td fz="sm">{region.state.code}</Table.Td>
+      <Table.Td fz="sm">{region.biome.name}</Table.Td>
+      <Table.Td fz="sm">{region.vegetationType.name}</Table.Td>
     </Table.Tr>
   ));
 
   return (
-    <Section title="Regiões de ocorrência natural (onde é nativa)" style={{cursor: 'pointer'}}>
+    <Section title="Regiões de ocorrência natural (onde é nativa)" style={{cursor: 'pointer'}} onClick={() => navigate(`natural-occurrence-regions`)}>
       <StickyHeaderTable header={header} rows={rows} scrollWidth={600} scrollHeight={300} striped stripedColor="#f0f2f2" />
     </Section>
   )

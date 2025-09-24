@@ -4,7 +4,7 @@ import { Link, Navigate, useNavigate } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
 import regeneraLogo from '/logo-lg-2.png'
 import classes from './Shell.module.css';
-import { UserIcon } from './user';
+import { UserAvatar } from './user';
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const pinned = useHeadroom({ fixedAt: 120 });
@@ -33,7 +33,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
           <Group h="100%">
             { user ? 
-            <UserIcon user={user} /> :
+            <UserAvatar user={user} /> :
             <UnstyledButton onClick={() => navigate("/login")}>
                 <Avatar
                   mb={15}

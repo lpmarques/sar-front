@@ -1,21 +1,21 @@
 import { UnstyledButton, UnstyledButtonProps } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { SourceReadData } from '../../apis/core';
-import { SourceContent } from '.';
+import { SourceDetails } from '.';
 
-export interface UserNameProps extends UnstyledButtonProps {
-  source: SourceReadData
+export interface SourceRefProps extends UnstyledButtonProps {
+  sourceId: number,
 }
 
-export default function UserName({ source, ...buttonProps }: UserNameProps) {
-  const openSourceContentModal = (source: SourceReadData) => modals.open({
-    title: `Fonte [${source.id}]`,
-    children: <SourceContent data={source} />
+export default function SourceRef({ sourceId, ...buttonProps }: SourceRefProps) {
+  const openSourceDetailsModal = (sourceId: number) => modals.open({
+    title: `Fonte [${sourceId}]`,
+    children: <SourceDetails sourceId={sourceId} />
   });
 
   return (
-    <UnstyledButton onClick={() => openSourceContentModal(source)} {...buttonProps}>
-      [{source.id}]
+    <UnstyledButton onClick={() => openSourceDetailsModal(sourceId)} {...buttonProps}>
+      [{sourceId}]
     </UnstyledButton>
   )
 }

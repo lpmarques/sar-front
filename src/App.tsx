@@ -12,7 +12,7 @@ import '@mantine/notifications/styles.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { defaultRequestRetry } from './apis/common';
 import { Home, LoggedOnlyRoute, Shell, UnloggedOnlyRoute } from './components';
-import { Plant, PlantList, TraitDetails, TraitEdit } from './components/catalog';
+import { PlantDetails, PlantList, SectionDetails, SectionEdit, TraitDetails, TraitEdit } from './components/catalog';
 import { HttpError } from './components/common/HttpError';
 import { Login, UserProfile, Signup } from './components/user';
 import { LanguageProvider } from './hooks/useLanguage';
@@ -57,9 +57,11 @@ export default function App() {
                   <Route path="user" element={<LoggedOnlyRoute><UserProfile /></LoggedOnlyRoute>}/>
                   <Route path="users/:userId" element={<LoggedOnlyRoute><UserProfile /></LoggedOnlyRoute>}/>
                   <Route path="plants" element={<PlantList />} />
-                  <Route path="plants/:plantId" element={<Plant />} />
+                  <Route path="plants/:plantId" element={<PlantDetails />} />
                   <Route path="plants/:plantId/trait/:traitSlug" element={<TraitDetails />} />
                   <Route path="plants/:plantId/trait/:traitSlug/edit" element={<LoggedOnlyRoute><TraitEdit /></LoggedOnlyRoute>} />
+                  <Route path="plants/:plantId/:sectionSlug" element={<SectionDetails />} />
+                  <Route path="plants/:plantId/:sectionSlug/edit" element={<LoggedOnlyRoute><SectionEdit /></LoggedOnlyRoute>} />
                   <Route path='*' element={<HttpError status={404} statusText="Página inexistente"/>} />
                 </Routes>
               </Shell>

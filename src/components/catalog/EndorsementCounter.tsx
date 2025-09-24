@@ -8,6 +8,7 @@ import { showMutationError } from "../../apis/common";
 import {
   createEndorsement,
   deleteEndorsement,
+  getEndorsements,
   getUserEndorsements,
   UserReadData
 } from '../../apis/core';
@@ -18,24 +19,28 @@ import { EndorsementList } from '.';
 interface EndorsementCounterProps extends GroupProps {
   contentId: number,
   contentProposer: UserReadData,
-  initialCount: {
-    value: number,
-    queryKey: string[]
-  },
   textProps?: TextProps,
   iconProps?: IconProps,
 };
 
-export default function EndorsementCounter({ contentId, contentProposer, initialCount, textProps, iconProps, ...groupProps }: EndorsementCounterProps) {
+export default function EndorsementCounter({ contentId, contentProposer, textProps, iconProps, ...groupProps }: EndorsementCounterProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [count, setCount] = useState(initialCount.value);
+
+  const endorsementsQueryOptions = {
+    queryKey: ['endorsements', contentId.toString()],
+    queryFn: getEndorsements,
+    refetchOnMount: true,
+  };
 
   const userEndorsementsQueryOptions = {
     queryKey: ['userEndorsements', contentId.toString()],
     queryFn: getUserEndorsements,
     refetchOnMount: true,
   };
+
+  const endorsements = useQuery(endorsementsQueryOptions);
+  const count = endorsements.data ? endorsements.data.length : 0;
 
   const userEndorsements = useQuery(userEndorsementsQueryOptions);
   const userEndorsementId = userEndorsements.data && userEndorsements.data.length > 0 ? userEndorsements.data[0].id : undefined;
@@ -44,7 +49,6 @@ export default function EndorsementCounter({ contentId, contentProposer, initial
   const endorsementCreation = useMutation({
     mutationFn: createEndorsement,
     onSuccess: (data) => {
-      setCount(count+1);
       showSuccess(data.msg);
       invalidateQueries();
     },
@@ -54,7 +58,6 @@ export default function EndorsementCounter({ contentId, contentProposer, initial
   const endorsementDeletion = useMutation({
     mutationFn: deleteEndorsement,
     onSuccess: (data) => {
-      setCount(count-1);
       showSuccess(data.msg);
       invalidateQueries();
     },
@@ -63,7 +66,7 @@ export default function EndorsementCounter({ contentId, contentProposer, initial
 
   const invalidateQueries = () => {
     queryClient.invalidateQueries({ queryKey: userEndorsementsQueryOptions.queryKey });
-    queryClient.invalidateQueries({ queryKey: initialCount.queryKey });
+    queryClient.invalidateQueries({ queryKey: endorsementsQueryOptions.queryKey });
   }
 
   const handleThumbClick = () => {

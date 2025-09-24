@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router';
-import { Container, UnstyledButton, Text, Space } from '@mantine/core';
+import { Container, UnstyledButton, Text, Space, Alert } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import {
   getPlant,
@@ -9,6 +9,7 @@ import {
 import { QueryLoader } from '../common/QueryLoader';
 import { TraitValueProposalForm } from '.';
 import { AcceptedTraitValueDisplay } from './TraitDetails';
+import { IconInfoCircle } from '@tabler/icons-react';
 
 export default function TraitEdit() {
   const { plantId, traitSlug } = useParams();
@@ -48,6 +49,10 @@ export default function TraitEdit() {
             {acceptedValue.traitName}
           </UnstyledButton> - <Text span inherit fw={600}>Proposta de Alteração</Text>
         </Text>
+        <Alert variant="light" color="blue" icon={<IconInfoCircle />}>
+          <Text fz="md" pb={10}>A versão proposta será analisada e, se aprovada, substituirá a versão aceita.</Text>
+        </Alert>
+        <Space h={15} />
         <AcceptedTraitValueDisplay data={acceptedValue} />
         <Space h={15} />
         <TraitValueProposalForm plant={plant.data} trait={trait} acceptedValue={acceptedValue} proposedValues={proposedValues} proposedValuesQueryKey={traitValuesQueryOptions.queryKey} />

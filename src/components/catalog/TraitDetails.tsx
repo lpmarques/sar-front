@@ -18,8 +18,8 @@ import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { useAuth } from '../../hooks/useAuth';
 import { useLanguage } from '../../hooks/useLanguage';
-import { UserName } from '../user/';
-import { EndorsementCounter, SourceContent, SourceRef, TraitValueDisplay } from '.';
+import { UserAvatar } from '../user/';
+import { EndorsementCounter, SourceDetails, SourceRef, TraitValueDisplay } from '.';
 
 export default function TraitDetails() {
   const { plantId, traitSlug } = useParams();
@@ -72,7 +72,7 @@ export default function TraitDetails() {
             <AcceptedValueEndorsements data={acceptedValue} dataQueryKey={traitValuesQueryOptions.queryKey} />
           </Grid.Col>
           <Grid.Col span={{base: 10, sm: 5}}>
-            <AcceptedValueSource data={acceptedValue.source!} />
+            <AcceptedValueSource sourceId={acceptedValue.sourceId!} />
           </Grid.Col>
         </Grid>
         <ValueHistory data={everAcceptedValues} />
@@ -94,11 +94,11 @@ export function AcceptedTraitValueDisplay({ data }: { data: TraitValueReadData }
   )
 }
 
-function AcceptedValueSource({ data }: { data: SourceReadData }) {
+function AcceptedValueSource({ sourceId }: { sourceId: number }) {
   return (
     <Paper withBorder p={15}>
       <Text fz="h5" ta="center" fw={600} pb={10}>Fonte</Text>
-      <SourceContent data={data} />
+      <SourceDetails sourceId={sourceId} />
     </Paper>
   )
 }
@@ -111,7 +111,6 @@ function AcceptedValueEndorsements({ data, dataQueryKey }: { data: TraitValueRea
         <EndorsementCounter
           contentId={data.contentId}
           contentProposer={data.contentProposer!}
-          initialCount={{"value": data.endorsements!, "queryKey": dataQueryKey}}
         />
       </Paper>
     </Tooltip>
@@ -142,10 +141,10 @@ function ValueHistory({ data }: { data: TraitValueReadData[] }) {
         <TraitValueDisplay data={item}/>
       </Table.Td>
       <Table.Td>
-        <SourceRef source={item.source!} fz="sm" />
+        <SourceRef sourceId={item.sourceId!} fz="sm" />
       </Table.Td>
       <Table.Td>
-        <UserName user={item.contentProposer!} fz="sm" />
+        <UserAvatar user={item.contentProposer!} size={40} />
       </Table.Td>
       <Table.Td>{new Date(item.proposedAt!).toLocaleString(lang)}</Table.Td>
       <Table.Td>{new Date(item.acceptedAt!).toLocaleString(lang)}</Table.Td>
@@ -225,17 +224,16 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: 
         <TraitValueDisplay data={item}/>
       </Table.Td>
       <Table.Td>
-        <SourceRef source={item.source!} fz="sm" />
+        <SourceRef sourceId={item.sourceId!} fz="sm" />
       </Table.Td>
       <Table.Td>
-        <UserName user={item.contentProposer!} fz="sm" />
+        <UserAvatar user={item.contentProposer!} fz="sm" size={40} />
       </Table.Td>
       <Table.Td>{new Date(item.proposedAt!).toLocaleString(lang)}</Table.Td>
       <Table.Td>
         <EndorsementCounter
           contentId={item.contentId}
           contentProposer={item.contentProposer!}
-          initialCount={{"value": item.endorsements!, "queryKey": proposalsQueryKey}}
           justify="left"
           textProps={{"fz": "xl"}}
           iconProps={{"size": 22}}
