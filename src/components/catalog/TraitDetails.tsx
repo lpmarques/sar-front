@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router';
 import { Alert, Button, Container, Grid, Group, List, Paper, Space, Table, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { modals } from '@mantine/modals';
-import { IconCircleDashedPlus, IconInfoCircle, IconX } from '@tabler/icons-react';
+import { IconCircleDashedPlus, IconInfoCircle, IconTrash, IconX } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   deleteTraitValue,
@@ -110,7 +110,6 @@ function AcceptedValueEndorsements({ data, dataQueryOptions }: { data: TraitValu
         <Text fz="h5" fw={600} pb={10}>Aprovações</Text>
         <EndorsementCounter<TraitValueReadData>
           content={data}
-          contentQueryOptions={dataQueryOptions}
         />
       </Paper>
     </Tooltip>
@@ -231,18 +230,19 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryOptions }: { pla
       </Table.Td>
       <Table.Td>{new Date(item.proposedAt!).toLocaleString(lang)}</Table.Td>
       <Table.Td>
-        <EndorsementCounter
-          content={item}
-          contentQueryOptions={proposalsQueryOptions}
-          justify="left"
-          textProps={{"fz": "xl"}}
-          iconProps={{"size": 22}}
-        />
+        <Tooltip withArrow label="Se concorda com essa proposta, deixe o seu jóinha." position="bottom-start">
+          <EndorsementCounter
+            content={item}
+            justify="left"
+            textProps={{"fz": "xl"}}
+            iconProps={{"size": 22}}
+          />
+        </Tooltip>
       </Table.Td>
       <Table.Td>
         { user?.id === item.contentProposer?.id &&
-        <Button size="compact-xs" color="red" onClick={() => openProposalDeleteConfirmModal(item)}>
-          <IconX size={15} />
+        <Button variant="outline" size="compact-xs" color="red" onClick={() => openProposalDeleteConfirmModal(item)}>
+          <IconTrash size={15} />
         </Button>}
       </Table.Td>
     </Table.Tr>

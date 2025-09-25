@@ -1,40 +1,72 @@
+import { useState } from 'react';
 import { Group, GroupProps, Text, TextProps, UnstyledButton } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { IconProps, IconThumbUp, IconThumbUpFilled } from '@tabler/icons-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { QueryOptions, showMutationError } from "../../apis/common";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { showError, showSuccess } from '../common/notifications';
+import { showMutationError } from "../../apis/common";
 import {
   ContentReadData,
   createEndorsement,
   deleteEndorsement,
+  getEndorsements,
+  getUserEndorsements,
 } from '../../apis/core';
-import { showError, showSuccess } from '../common/notifications';
 import { useAuth } from "../../hooks/useAuth";
 import { EndorsementList } from '.';
 
 interface EndorsementCounterProps<ReadT extends ContentReadData> extends Omit<GroupProps, 'content'> {
   content: ReadT,
-  contentQueryOptions: QueryOptions<ReadT[]>,
   textProps?: TextProps,
   iconProps?: IconProps,
 };
 
 export default function EndorsementCounter<ReadT extends ContentReadData>({ 
   content,
-  contentQueryOptions, 
   textProps,
   iconProps,
   ...groupProps
 }: EndorsementCounterProps<ReadT>) {
-  
+
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [ clicked, setClicked ] = useState(false);
+
+  const endorsementsQueryOptions = {
+    queryKey: ['endorsements', content.contentId.toString()],
+    queryFn: getEndorsements,
+    refetchOnMount: true,
+    enabled: clicked || content.endorsementsCount === undefined,
+  };
+
+  const userEndorsementsQueryOptions = {
+    queryKey: ['userEndorsements', content.contentId.toString()],
+    queryFn: getUserEndorsements,
+    refetchOnMount: true,
+    enabled: clicked || content.userEndorsementId === undefined,
+  };
+
+  const invalidateQueries = () => {
+    queryClient.invalidateQueries({ queryKey: userEndorsementsQueryOptions.queryKey });
+    queryClient.invalidateQueries({ queryKey: endorsementsQueryOptions.queryKey });
+  }
+
+  const endorsements = useQuery(endorsementsQueryOptions);
+  const count = endorsements.data ? endorsements.data.length : content.endorsementsCount!;
+  
+  const userEndorsements = useQuery(userEndorsementsQueryOptions);
+  const userEndorsementId = userEndorsements.data ? 
+    (userEndorsements.data.length > 0 ? userEndorsements.data[0].id : undefined) : 
+    content.userEndorsementId;
+  const ThumbIcon = userEndorsementId ? IconThumbUpFilled : IconThumbUp;
 
   const endorsementCreation = useMutation({
     mutationFn: createEndorsement,
     onSuccess: (data) => {
       showSuccess(data.msg);
       invalidateQueries();
+      if (!clicked)
+        setClicked(true);
     },
     onError: showMutationError
   });
@@ -44,30 +76,28 @@ export default function EndorsementCounter<ReadT extends ContentReadData>({
     onSuccess: (data) => {
       showSuccess(data.msg);
       invalidateQueries();
+      if (!clicked)
+        setClicked(true);
     },
     onError: showMutationError
   });
 
-  const invalidateQueries = () => {
-    queryClient.invalidateQueries({ queryKey: contentQueryOptions.queryKey });
-  }
-
   const handleThumbClick = () => {
     if (!user) {
+      showError("É preciso estar logado para executar essa ação.", null);
       window.open('/login', '_blank');
-      throw showError("É preciso estar logado para executar essa ação.", null);
+      return;
     }
 
     if (user.id == content.contentProposer!.id)
-      throw showError("Somente outro usuário pode aprovar conteúdo criado por você.", null);
+      return showError("Somente outro usuário pode aprovar conteúdo criado por você.", null);
 
-    console.log(content)
-    if (content.userEndorsementId)
-      endorsementDeletion.mutate(content.userEndorsementId)
+    if (userEndorsementId)
+      endorsementDeletion.mutate(userEndorsementId);
     else {
       endorsementCreation.mutate({
         contentId: content.contentId,
-      })
+      });
     }
   }
 
@@ -75,9 +105,6 @@ export default function EndorsementCounter<ReadT extends ContentReadData>({
     title: "Usuários que aprovaram a informação",
     children: <EndorsementList contentId={content.contentId} />
   });
-  
-  const count = content.endorsementsCount;
-  const ThumbIcon = content.isEndorsedByUser ? IconThumbUpFilled : IconThumbUp;
 
   return (
     <Group justify="center" gap={25} {...groupProps}>

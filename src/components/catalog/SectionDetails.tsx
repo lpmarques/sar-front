@@ -149,7 +149,6 @@ export function AcceptedContents<ReadT extends ContentReadData, WriteT extends C
         <Tooltip withArrow label="Se concorda com esse item, deixe o seu jóinha." position="bottom-start">
           <EndorsementCounter<ReadT>
             content={item}
-            contentQueryOptions={contentsQueryOptions}
             justify="left"
             textProps={{fz: "xl"}}
             iconProps={{size: 22}}
@@ -162,7 +161,7 @@ export function AcceptedContents<ReadT extends ContentReadData, WriteT extends C
   return (
     <QueryLoader {...sectionConfig.buildQueryOptions(plantId)}>
       <Paper withBorder p={15}>
-        <Text fz="h5" fw={600} pb={10}>Conteúdo aceito</Text>
+        <Text fz="h5" fw={600} pb={10}>Itens aceitos</Text>
         <StickyHeaderTable header={header} rows={rows} scrollWidth={600} scrollHeight={220} withRowBorders={false} />
       </Paper>
     </QueryLoader>
@@ -258,13 +257,14 @@ function ProposedContents<ReadT extends ContentReadData, WriteT extends ContentW
       </Table.Td>
       <Table.Td>{new Date(item.proposedAt!).toLocaleString(lang)}</Table.Td>
       <Table.Td>
-        <EndorsementCounter<ReadT>
-          content={item}
-          contentQueryOptions={contentsQueryOptions}
-          justify="left"
-          textProps={{fz: "xl"}}
-          iconProps={{size: 22}}
-        />
+        <Tooltip withArrow label="Se concorda com essa proposta, deixe o seu jóinha." position="bottom-start">
+          <EndorsementCounter<ReadT>
+            content={item}
+            justify="left"
+            textProps={{fz: "xl"}}
+            iconProps={{size: 22}}
+          />
+        </Tooltip>
       </Table.Td>
       <Table.Td>
         { user?.id === item.contentProposer?.id &&
@@ -286,7 +286,7 @@ function ProposedContents<ReadT extends ContentReadData, WriteT extends ContentW
   return (
     <QueryLoader {...contentsQueryOptions}>
       <Paper withBorder p={15} mb={25}>
-        <Text fz="h5" fw={600} pb={10}>Propostas</Text>
+        <Text fz="h5" fw={600} pb={10}>Itens propostos</Text>
         <StickyHeaderTable header={header} rows={rows} scrollWidth={500} scrollHeight={300} />
       </Paper>
     </QueryLoader>
