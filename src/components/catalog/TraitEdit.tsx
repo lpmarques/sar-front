@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router';
-import { Container, UnstyledButton, Text, Space } from '@mantine/core';
+import { Container, UnstyledButton, Text, Space, Alert } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import {
   getPlant,
@@ -9,6 +9,7 @@ import {
 import { QueryLoader } from '../common/QueryLoader';
 import { TraitValueProposalForm } from '.';
 import { AcceptedTraitValueDisplay } from './TraitDetails';
+import { IconInfoCircle } from '@tabler/icons-react';
 
 export default function TraitEdit() {
   const { plantId, traitSlug } = useParams();
@@ -23,7 +24,12 @@ export default function TraitEdit() {
     queryFn: getTraitList
   };
   const traitValuesQueryOptions = {
-    queryKey: ['plantTraitValueList', plantId!, `trait_slugs=${traitSlug}`],
+    queryKey: [
+      'plantTraitValueList',
+      plantId!,
+      `trait_slugs=${traitSlug}`,
+      'with_user_endorsement_info=true',
+    ],
     queryFn: getPlantTraitValueList
   };
   
@@ -33,24 +39,27 @@ export default function TraitEdit() {
 
   const trait = traits.data && traits.data.find(item => item.slug === traitSlug!);
   const acceptedValue = values.data && values.data.find(item => item.contentStatus === "accepted");
-  const proposedValues = values.data && values.data.filter(item => item.contentStatus === "proposed");
   
   return (
     <QueryLoader {...traitValuesQueryOptions}>
-      {plant.data && trait && acceptedValue && proposedValues &&
+      {plant.data && trait && acceptedValue &&
       <Container size={1000}>
         <UnstyledButton onClick={() => navigate(`/plants/${plantId}`)}>
           <Text fs="italic" fz="h3" pb={15}>{plant.data.acceptedTaxonName}</Text>
         </UnstyledButton>
         <Text fz="h3" pb={15}>
-          [{acceptedValue.sectionName}]&nbsp;
+          [{trait.sectionName}]&nbsp;
           <UnstyledButton fz="h3" fw={600} onClick={() => navigate(`/plants/${plantId}/trait/${traitSlug}`)}>
-            {acceptedValue.traitName}
+            {trait.name}
           </UnstyledButton> - <Text span inherit fw={600}>Proposta de Alteração</Text>
         </Text>
+        <Alert variant="light" color="blue" icon={<IconInfoCircle />}>
+          <Text fz="md" pb={10}>A versão proposta será analisada e, se aprovada, substituirá a versão aceita.</Text>
+        </Alert>
+        <Space h={15} />
         <AcceptedTraitValueDisplay data={acceptedValue} />
         <Space h={15} />
-        <TraitValueProposalForm plant={plant.data} trait={trait} acceptedValue={acceptedValue} proposedValues={proposedValues} proposedValuesQueryKey={traitValuesQueryOptions.queryKey} />
+        <TraitValueProposalForm plant={plant.data} trait={trait} traitValuesQueryOptions={traitValuesQueryOptions} />
       </Container>}
     </QueryLoader>
   )

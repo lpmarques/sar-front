@@ -3,6 +3,11 @@ import { camelToSnakeCase, GenericResponse, JsonSchema, QueryFnInput, snakeToCam
 
 // MUTATIONS
 
+export interface ContentWriteRequestData {
+  sourceId: number,
+  contentProposerComment?: string,
+}
+
 export interface ContentWriteResponseData extends GenericResponse {
   contentId: number,
 }
@@ -133,6 +138,19 @@ export async function createSource(data: SourceWriteRequestData): Promise<Source
 
 
 // QUERIES
+
+export interface ContentReadData {
+  contentId: number,
+  contentStatus: string,
+  contentProposer?: UserReadData,
+  endorsementsCount?: number,
+  isEndorsedByUser?: boolean,
+  userEndorsementId?: number,
+  sourceId?: number,
+  proposedAt?: string,
+  acceptedAt?: string,
+  rejectedAt?: string,
+}
 
 interface SourceFieldValueReadData {
   field: string,

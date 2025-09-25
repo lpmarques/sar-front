@@ -1,5 +1,8 @@
 import axios, { AxiosError } from 'axios';
 import { showError } from '../components/common/notifications';
+import { UseQueryOptions } from '@tanstack/react-query';
+
+export interface QueryOptions<DataType> extends UseQueryOptions<DataType, Error, DataType, string[]> {};
 
 export interface GenericResponse {
   msg: string

@@ -1,29 +1,33 @@
 import axios from 'axios';
 import { Navigate } from 'react-router';
 import { Center, Loader } from '@mantine/core';
-import { useQuery, QueryFunction } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { HttpError } from './HttpError';
+import { QueryOptions } from '../../apis/common';
 import { useAuth } from '../../hooks/useAuth';
+import React from 'react';
 
-type QueryLoaderProps = {
-  queryKey: string[],
-  queryFn: QueryFunction<unknown, string[]>,
-  enabled?: boolean,
+interface QueryLoaderProps<Type=unknown> extends QueryOptions<Type> {
   children?: React.ReactNode,
+  Placeholder?: React.ComponentType,
 }
 
-export function QueryLoader({ children, ...queryOptions }: QueryLoaderProps) {
+function DefaultPlaceholder() {
+  return (
+    <Center>
+      <Loader />
+    </Center>
+  )
+}
+
+export function QueryLoader<Type>({ children, Placeholder = DefaultPlaceholder, ...queryOptions }: QueryLoaderProps<Type>) {
   const { unauth } = useAuth();
   const { isLoading, error } = useQuery(queryOptions);
 
   if (isLoading) {
-    return (
-      <Center>
-        <Loader pt={80} />
-      </Center>
-    )
+    return <Placeholder />;
   }
-    
+  
   if (error && axios.isAxiosError(error)) {
     if (error.response) {
       if (error.response.status == 401) {
@@ -31,10 +35,10 @@ export function QueryLoader({ children, ...queryOptions }: QueryLoaderProps) {
         return <Navigate to="/login" replace />;
       }
       
-      return <HttpError status={error.response.status} statusText={error.response.statusText} queryKey={queryKey} />;
+      return <HttpError status={error.response.status} statusText={error.response.statusText} queryKey={queryOptions.queryKey} />;
     }
 
-    return <HttpError status={503} statusText="Service Unavailable" queryKey={queryKey} />
+    return <HttpError status={503} statusText="Service Unavailable" queryKey={queryOptions.queryKey} />
   }
 
   return children;

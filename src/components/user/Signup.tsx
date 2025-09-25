@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router";
+import unidecode from "unidecode-plus";
 import { Anchor, Button, Container, Loader, Paper, PasswordInput, Select, Text, TextInput, Title } from '@mantine/core';
 import { isNotEmpty, useForm } from '@mantine/form';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -8,7 +9,7 @@ import InputTip from '../common/InputTip';
 import { showError, showSuccess } from '../common/notifications';
 import { showMutationError } from "../../apis/common";
 import { createUserToken, createUser, UserWriteRequestData } from "../../apis/core";
-import { getCountryList, getStateList, getMunicipalityList } from "../../apis/geography";
+import { getCountryList, getStateList, getMunicipalityList, MunicipalityData, CountryData, StateData } from "../../apis/geography";
 import { useAuth } from "../../hooks/useAuth";
 
 export default function Signup() {
@@ -54,7 +55,11 @@ export default function Signup() {
       occupation: '',
     },
     validate: {
-      firstName: isNotEmpty('Campo obrigatório'),
+      firstName: (value) => {
+        if (!value.trim().length) return 'Campo obrigatório';
+        if (!/^[A-Z][a-z]+(\s[A-Z][a-z]+)?$/.test(unidecode(value))) return 'Nome inválido';
+        return null;
+      },
       lastName: isNotEmpty('Campo obrigatório'),
       email: (value) => {
         if (!value.trim().length) return 'Campo obrigatório';
@@ -107,26 +112,18 @@ export default function Signup() {
     enabled: form.getDirty().stateId,
   });
 
-  const countryOptions = countries.data ? countries.data.map(
-    country => ({
-      value: country.id.toString(),
-      label: country.name
-    })
-  ).sort((a, b) => a.label.localeCompare(b.label)) : [];
+  const geoDataToOptions = (data: CountryData[] | StateData[] | MunicipalityData[]) => {
+    return data.map(
+      item => ({
+        value: item.id.toString(),
+        label: item.name
+      })
+    ).sort((a, b) => a.label.localeCompare(b.label));
+  }
 
-  const stateOptions = states.data ? states.data.map(
-    state => ({
-      value: state.id.toString(),
-      label: state.name
-    })
-  ).sort((a, b) => a.label.localeCompare(b.label)) : [];
-
-  const municipalityOptions = municipalities.data ? municipalities.data.map(
-    municipality => ({
-      value: municipality.id.toString(),
-      label: municipality.name
-    })
-  ).sort((a, b) => a.label.localeCompare(b.label)) : [];
+  const countryOptions = countries.data ? geoDataToOptions(countries.data) : [];
+  const stateOptions = states.data ? geoDataToOptions(states.data) : [];
+  const municipalityOptions = municipalities.data ? geoDataToOptions(municipalities.data) : [];
 
   const handleSignup = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.preventDefault();

@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router';
 import { Alert, Button, Container, Grid, Group, List, Paper, Space, Table, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { modals } from '@mantine/modals';
-import { IconCircleDashedPlus, IconInfoCircle, IconX } from '@tabler/icons-react';
+import { IconCircleDashedPlus, IconInfoCircle, IconTrash, IconX } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   deleteTraitValue,
@@ -10,16 +10,15 @@ import {
   PlantReadData,
   TraitValueReadData,
 } from '../../apis/catalog';
-import { showMutationError } from '../../apis/common';
-import { SourceReadData } from '../../apis/core';
+import { QueryOptions, showMutationError } from '../../apis/common';
 import classes from '../common/Clickable.module.css';
 import { showError, showSuccess } from '../common/notifications';
 import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { useAuth } from '../../hooks/useAuth';
 import { useLanguage } from '../../hooks/useLanguage';
-import { UserName } from '../user/';
-import { EndorsementCounter, SourceContent, SourceRef, TraitValueDisplay } from '.';
+import { UserAvatar } from '../user/';
+import { EndorsementCounter, SourceDetails, SourceRef, TraitValueDisplay } from '.';
 
 export default function TraitDetails() {
   const { plantId, traitSlug } = useParams();
@@ -30,20 +29,21 @@ export default function TraitDetails() {
     queryFn: getPlant
   };
   const traitValuesQueryOptions = {
-    queryKey: ['plantTraitValueList', plantId!, `trait_slugs=${traitSlug}`],
+    queryKey: [
+      'plantTraitValueList',
+      plantId!,
+      `trait_slugs=${traitSlug}`,
+      'with_user_endorsement_info=true',
+    ],
     queryFn: getPlantTraitValueList
   };
 
   const plant = useQuery(plantQueryOptions);
   const { data } = useQuery(traitValuesQueryOptions);
-  let acceptedValue: TraitValueReadData | undefined;
-  let proposedValues: TraitValueReadData[] = [];
-  let everAcceptedValues: TraitValueReadData[] = [];
-  if (data) {
-    acceptedValue = data.find(item => item.contentStatus === "accepted");
-    proposedValues = data.filter(item => item.contentStatus === "proposed");
-    everAcceptedValues = data.filter(item => item.acceptedAt);
-  }
+
+  const acceptedValue = data?.find(item => item.contentStatus === "accepted");
+  const proposedValues = data ? data.filter(item => item.contentStatus === "proposed") : [];
+  const everAcceptedValues = data ? data.filter(item => item.acceptedAt) : [];
   
   return (
     <QueryLoader {...traitValuesQueryOptions}>
@@ -69,15 +69,15 @@ export default function TraitDetails() {
           <Grid.Col span={{base: 10, sm: 5}}>
             <AcceptedTraitValueDisplay data={acceptedValue} />
             <Space h={15} />
-            <AcceptedValueEndorsements data={acceptedValue} dataQueryKey={traitValuesQueryOptions.queryKey} />
+            <AcceptedValueEndorsements data={acceptedValue} dataQueryOptions={traitValuesQueryOptions} />
           </Grid.Col>
           <Grid.Col span={{base: 10, sm: 5}}>
-            <AcceptedValueSource data={acceptedValue.source!} />
+            <AcceptedValueSource sourceId={acceptedValue.sourceId!} />
           </Grid.Col>
         </Grid>
         <ValueHistory data={everAcceptedValues} />
         <Space h={15} />
-        <ValueChangeProposals plant={plant.data} proposals={proposedValues} proposalsQueryKey={traitValuesQueryOptions.queryKey} />
+        <ValueChangeProposals plant={plant.data} proposals={proposedValues} proposalsQueryOptions={traitValuesQueryOptions} />
       </Container>}
     </QueryLoader>
   )
@@ -94,24 +94,22 @@ export function AcceptedTraitValueDisplay({ data }: { data: TraitValueReadData }
   )
 }
 
-function AcceptedValueSource({ data }: { data: SourceReadData }) {
+function AcceptedValueSource({ sourceId }: { sourceId: number }) {
   return (
     <Paper withBorder p={15}>
       <Text fz="h5" ta="center" fw={600} pb={10}>Fonte</Text>
-      <SourceContent data={data} />
+      <SourceDetails sourceId={sourceId} />
     </Paper>
   )
 }
 
-function AcceptedValueEndorsements({ data, dataQueryKey }: { data: TraitValueReadData, dataQueryKey: string[] }) {
+function AcceptedValueEndorsements({ data, dataQueryOptions }: { data: TraitValueReadData, dataQueryOptions: QueryOptions<TraitValueReadData[]> }) {
   return (
     <Tooltip withArrow label="Se concorda com essa versão, deixe o seu jóinha." position="bottom">
       <Paper withBorder ta="center" p={15}>
         <Text fz="h5" fw={600} pb={10}>Aprovações</Text>
-        <EndorsementCounter
-          contentId={data.contentId}
-          contentProposer={data.contentProposer!}
-          initialCount={{"value": data.endorsements!, "queryKey": dataQueryKey}}
+        <EndorsementCounter<TraitValueReadData>
+          content={data}
         />
       </Paper>
     </Tooltip>
@@ -142,10 +140,10 @@ function ValueHistory({ data }: { data: TraitValueReadData[] }) {
         <TraitValueDisplay data={item}/>
       </Table.Td>
       <Table.Td>
-        <SourceRef source={item.source!} fz="sm" />
+        <SourceRef sourceId={item.sourceId!} fz="sm" />
       </Table.Td>
       <Table.Td>
-        <UserName user={item.contentProposer!} fz="sm" />
+        <UserAvatar user={item.contentProposer!} size={40} />
       </Table.Td>
       <Table.Td>{new Date(item.proposedAt!).toLocaleString(lang)}</Table.Td>
       <Table.Td>{new Date(item.acceptedAt!).toLocaleString(lang)}</Table.Td>
@@ -161,7 +159,7 @@ function ValueHistory({ data }: { data: TraitValueReadData[] }) {
   )
 }
 
-function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: PlantReadData, proposals: TraitValueReadData[], proposalsQueryKey: string[] }) {
+function ValueChangeProposals({ plant, proposals, proposalsQueryOptions }: { plant: PlantReadData, proposals: TraitValueReadData[], proposalsQueryOptions: QueryOptions<TraitValueReadData[]> }) {
   const { user } = useAuth();
   const { lang } = useLanguage();
   const navigate = useNavigate();
@@ -175,7 +173,7 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: 
     mutationFn: deleteTraitValue,
     onSuccess: (data) => {
       showSuccess(data.msg);
-      queryClient.invalidateQueries({ queryKey: proposalsQueryKey });
+      queryClient.invalidateQueries({ queryKey: proposalsQueryOptions.queryKey });
     },
     onError: showMutationError
   });
@@ -225,26 +223,26 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: 
         <TraitValueDisplay data={item}/>
       </Table.Td>
       <Table.Td>
-        <SourceRef source={item.source!} fz="sm" />
+        <SourceRef sourceId={item.sourceId!} fz="sm" />
       </Table.Td>
       <Table.Td>
-        <UserName user={item.contentProposer!} fz="sm" />
+        <UserAvatar user={item.contentProposer!} fz="sm" size={40} />
       </Table.Td>
       <Table.Td>{new Date(item.proposedAt!).toLocaleString(lang)}</Table.Td>
       <Table.Td>
-        <EndorsementCounter
-          contentId={item.contentId}
-          contentProposer={item.contentProposer!}
-          initialCount={{"value": item.endorsements!, "queryKey": proposalsQueryKey}}
-          justify="left"
-          textProps={{"fz": "xl"}}
-          iconProps={{"size": 22}}
-        />
+        <Tooltip withArrow label="Se concorda com essa proposta, deixe o seu jóinha." position="bottom-start">
+          <EndorsementCounter
+            content={item}
+            justify="left"
+            textProps={{"fz": "xl"}}
+            iconProps={{"size": 22}}
+          />
+        </Tooltip>
       </Table.Td>
       <Table.Td>
         { user?.id === item.contentProposer?.id &&
-        <Button size="compact-xs" color="red" onClick={() => openProposalDeleteConfirmModal(item)}>
-          <IconX size={15} />
+        <Button variant="outline" size="compact-xs" color="red" onClick={() => openProposalDeleteConfirmModal(item)}>
+          <IconTrash size={15} />
         </Button>}
       </Table.Td>
     </Table.Tr>
