@@ -10,8 +10,7 @@ import {
   PlantReadData,
   TraitValueReadData,
 } from '../../apis/catalog';
-import { showMutationError } from '../../apis/common';
-import { SourceReadData } from '../../apis/core';
+import { QueryOptions, showMutationError } from '../../apis/common';
 import classes from '../common/Clickable.module.css';
 import { showError, showSuccess } from '../common/notifications';
 import { QueryLoader } from '../common/QueryLoader';
@@ -30,20 +29,21 @@ export default function TraitDetails() {
     queryFn: getPlant
   };
   const traitValuesQueryOptions = {
-    queryKey: ['plantTraitValueList', plantId!, `trait_slugs=${traitSlug}`],
+    queryKey: [
+      'plantTraitValueList',
+      plantId!,
+      `trait_slugs=${traitSlug}`,
+      'with_user_endorsement_info=true',
+    ],
     queryFn: getPlantTraitValueList
   };
 
   const plant = useQuery(plantQueryOptions);
   const { data } = useQuery(traitValuesQueryOptions);
-  let acceptedValue: TraitValueReadData | undefined;
-  let proposedValues: TraitValueReadData[] = [];
-  let everAcceptedValues: TraitValueReadData[] = [];
-  if (data) {
-    acceptedValue = data.find(item => item.contentStatus === "accepted");
-    proposedValues = data.filter(item => item.contentStatus === "proposed");
-    everAcceptedValues = data.filter(item => item.acceptedAt);
-  }
+
+  const acceptedValue = data?.find(item => item.contentStatus === "accepted");
+  const proposedValues = data ? data.filter(item => item.contentStatus === "proposed") : [];
+  const everAcceptedValues = data ? data.filter(item => item.acceptedAt) : [];
   
   return (
     <QueryLoader {...traitValuesQueryOptions}>
@@ -69,7 +69,7 @@ export default function TraitDetails() {
           <Grid.Col span={{base: 10, sm: 5}}>
             <AcceptedTraitValueDisplay data={acceptedValue} />
             <Space h={15} />
-            <AcceptedValueEndorsements data={acceptedValue} dataQueryKey={traitValuesQueryOptions.queryKey} />
+            <AcceptedValueEndorsements data={acceptedValue} dataQueryOptions={traitValuesQueryOptions} />
           </Grid.Col>
           <Grid.Col span={{base: 10, sm: 5}}>
             <AcceptedValueSource sourceId={acceptedValue.sourceId!} />
@@ -77,7 +77,7 @@ export default function TraitDetails() {
         </Grid>
         <ValueHistory data={everAcceptedValues} />
         <Space h={15} />
-        <ValueChangeProposals plant={plant.data} proposals={proposedValues} proposalsQueryKey={traitValuesQueryOptions.queryKey} />
+        <ValueChangeProposals plant={plant.data} proposals={proposedValues} proposalsQueryOptions={traitValuesQueryOptions} />
       </Container>}
     </QueryLoader>
   )
@@ -103,14 +103,14 @@ function AcceptedValueSource({ sourceId }: { sourceId: number }) {
   )
 }
 
-function AcceptedValueEndorsements({ data, dataQueryKey }: { data: TraitValueReadData, dataQueryKey: string[] }) {
+function AcceptedValueEndorsements({ data, dataQueryOptions }: { data: TraitValueReadData, dataQueryOptions: QueryOptions<TraitValueReadData[]> }) {
   return (
     <Tooltip withArrow label="Se concorda com essa versão, deixe o seu jóinha." position="bottom">
       <Paper withBorder ta="center" p={15}>
         <Text fz="h5" fw={600} pb={10}>Aprovações</Text>
-        <EndorsementCounter
-          contentId={data.contentId}
-          contentProposer={data.contentProposer!}
+        <EndorsementCounter<TraitValueReadData>
+          content={data}
+          contentQueryOptions={dataQueryOptions}
         />
       </Paper>
     </Tooltip>
@@ -160,7 +160,7 @@ function ValueHistory({ data }: { data: TraitValueReadData[] }) {
   )
 }
 
-function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: PlantReadData, proposals: TraitValueReadData[], proposalsQueryKey: string[] }) {
+function ValueChangeProposals({ plant, proposals, proposalsQueryOptions }: { plant: PlantReadData, proposals: TraitValueReadData[], proposalsQueryOptions: QueryOptions<TraitValueReadData[]> }) {
   const { user } = useAuth();
   const { lang } = useLanguage();
   const navigate = useNavigate();
@@ -174,7 +174,7 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: 
     mutationFn: deleteTraitValue,
     onSuccess: (data) => {
       showSuccess(data.msg);
-      queryClient.invalidateQueries({ queryKey: proposalsQueryKey });
+      queryClient.invalidateQueries({ queryKey: proposalsQueryOptions.queryKey });
     },
     onError: showMutationError
   });
@@ -232,8 +232,8 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryKey }: { plant: 
       <Table.Td>{new Date(item.proposedAt!).toLocaleString(lang)}</Table.Td>
       <Table.Td>
         <EndorsementCounter
-          contentId={item.contentId}
-          contentProposer={item.contentProposer!}
+          content={item}
+          contentQueryOptions={proposalsQueryOptions}
           justify="left"
           textProps={{"fz": "xl"}}
           iconProps={{"size": 22}}

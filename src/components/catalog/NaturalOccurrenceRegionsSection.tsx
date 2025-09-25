@@ -11,7 +11,12 @@ import { QueryLoader } from '../common/QueryLoader';
 
 export function buildNaturalOccurrenceRegionListQueryOptions(plantId: number) {
   return {
-    queryKey: ['plantNaturalOccurrenceRegionList', String(plantId), 'status=accepted,proposed'],
+    queryKey: [
+      'plantNaturalOccurrenceRegionList',
+      String(plantId),
+      'status=accepted,proposed',
+      'with_user_endorsement_info=true',
+    ],
     queryFn: getPlantNaturalOccurrenceRegionList,
   } as QueryOptions<NaturalOccurrenceRegionReadData[]>
 }
@@ -21,7 +26,7 @@ export function sortNaturalOccurrenceRegions(a: NaturalOccurrenceRegionReadData,
     sortValueFirst(a.biome.name, b.biome.name, "Mata Atlântica") ||
     a.country.name.localeCompare(b.country.name) ||
     a.biome.name.localeCompare(b.biome.name) ||
-    a.state.code.localeCompare(b.state.code) ||
+    a.state.name.localeCompare(b.state.name) ||
     a.vegetationType.name.localeCompare(b.vegetationType.name);
 }
 
@@ -37,7 +42,6 @@ export function validateNaturalOccurrenceRegionFormToReadDataDiff(
   readData: NaturalOccurrenceRegionReadData,
   errMsg: string
 ): FormErrors {
-  
   return {
     ...(formValues.countryId === readData.country.id && { countryId: errMsg }),
     ...(formValues.stateId === readData.state.id && { stateId: errMsg }),

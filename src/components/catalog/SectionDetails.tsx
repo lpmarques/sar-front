@@ -114,8 +114,10 @@ export function AcceptedContents<ReadT extends ContentReadData, WriteT extends C
   plantId: number,
   sectionConfig: SectionConfig<ReadT, WriteT>,
 }) {
+  const contentsQueryOptions = sectionConfig.buildQueryOptions(plantId);
+
   const { lang } = useLanguage();
-  const { data } = useQuery(sectionConfig.buildQueryOptions(plantId));
+  const { data } = useQuery(contentsQueryOptions);
 
   const acceptedContents = data ? data.filter(item => item.contentStatus === "accepted") : [];
 
@@ -144,10 +146,10 @@ export function AcceptedContents<ReadT extends ContentReadData, WriteT extends C
       </Table.Td>
       <Table.Td>{new Date(item.acceptedAt!).toLocaleString(lang)}</Table.Td>
       <Table.Td>
-        <Tooltip withArrow label="Se concorda com essa versão, deixe o seu jóinha." position="bottom-start">
-          <EndorsementCounter
-            contentId={item.contentId}
-            contentProposer={item.contentProposer!}
+        <Tooltip withArrow label="Se concorda com esse item, deixe o seu jóinha." position="bottom-start">
+          <EndorsementCounter<ReadT>
+            content={item}
+            contentQueryOptions={contentsQueryOptions}
             justify="left"
             textProps={{fz: "xl"}}
             iconProps={{size: 22}}
@@ -256,9 +258,9 @@ function ProposedContents<ReadT extends ContentReadData, WriteT extends ContentW
       </Table.Td>
       <Table.Td>{new Date(item.proposedAt!).toLocaleString(lang)}</Table.Td>
       <Table.Td>
-        <EndorsementCounter
-          contentId={item.contentId}
-          contentProposer={item.contentProposer!}
+        <EndorsementCounter<ReadT>
+          content={item}
+          contentQueryOptions={contentsQueryOptions}
           justify="left"
           textProps={{fz: "xl"}}
           iconProps={{size: 22}}

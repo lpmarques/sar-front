@@ -10,7 +10,12 @@ import { BuildWriteRequestDataProps, ContentDisplayRowProps, ContentForm, Conten
 
 export function buildTaxonListQueryOptions(plantId: number): QueryOptions<TaxonReadData[]> {
   return {
-    queryKey: ['plantTaxonList', String(plantId), 'status=accepted,proposed'],
+    queryKey: [
+      'plantTaxonList',
+      String(plantId),
+      'status=accepted,proposed',
+      'with_user_endorsement_info=true',
+    ],
     queryFn: getPlantTaxonList,
   } as QueryOptions<TaxonReadData[]>;
 }
@@ -20,7 +25,7 @@ export const taxonFormUniqueKey = [
   'species',
   'subspecies',
   'variety',
-  'taxonomicStatus'
+  'taxonomicStatus',
 ] as (keyof ContentForm<TaxonWriteRequestData>)[];
 
 export function validateTaxonFormToReadDataDiff(
@@ -28,7 +33,6 @@ export function validateTaxonFormToReadDataDiff(
   readData: TaxonReadData,
   errMsg: string
 ): FormErrors {
-  
   return {
     ...(formValues.family === readData.family && { family: errMsg }),
     ...(formValues.species === readData.species && { species: errMsg }),

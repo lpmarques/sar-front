@@ -8,7 +8,12 @@ import { QueryOptions } from '../../apis/common';
 
 export function buildPopularNameListQueryOptions(plantId: number): QueryOptions<PopularNameReadData[]> {
   return {
-    queryKey: ['plantPopularNameList', String(plantId), 'status=accepted,proposed'],
+    queryKey: [
+      'plantPopularNameList',
+      String(plantId),
+      'status=accepted,proposed',
+      'with_user_endorsement_info=true',
+    ],
     queryFn: getPlantPopularNameList,
   } as QueryOptions<PopularNameReadData[]>;
 }
@@ -22,7 +27,6 @@ export function validatePopularNameFormToReadDataDiff(
   readData: PopularNameReadData,
   errMsg: string
 ): FormErrors {
-  
   return {
     ...(formValues.name === readData.name && { name: errMsg }),
   };
