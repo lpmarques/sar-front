@@ -94,12 +94,12 @@ function SectionDetailsBody<ReadT extends ContentReadData, WriteT extends Conten
     <Text fz="h3" pb={15}>
       <Text span inherit fw={600}>{sectionConfig.sectionName}</Text>
     </Text>
-    <AcceptedContents<ReadT, WriteT>
+    <AcceptedItems<ReadT, WriteT>
       plantId={plant.id}
       sectionConfig={sectionConfig}
       />
     <Space h={15} />
-    <ProposedContents<ReadT, WriteT>
+    <ProposedItems<ReadT, WriteT>
       plant={plant}
       sectionConfig={sectionConfig}
       />
@@ -107,21 +107,21 @@ function SectionDetailsBody<ReadT extends ContentReadData, WriteT extends Conten
   )
 }
 
-export function AcceptedContents<ReadT extends ContentReadData, WriteT extends ContentWriteRequestData>({
+export function AcceptedItems<ReadT extends ContentReadData, WriteT extends ContentWriteRequestData>({
   plantId,
   sectionConfig,
 }: {
   plantId: number,
   sectionConfig: SectionConfig<ReadT, WriteT>,
 }) {
-  const contentsQueryOptions = sectionConfig.buildQueryOptions(plantId);
+  const itemsQueryOptions = sectionConfig.buildQueryOptions(plantId);
 
   const { lang } = useLanguage();
-  const { data } = useQuery(contentsQueryOptions);
+  const { data } = useQuery(itemsQueryOptions);
 
-  const acceptedContents = data ? data.filter(item => item.contentStatus === "accepted") : [];
+  const acceptedItems = data ? data.filter(item => item.contentStatus === "accepted") : [];
 
-  const sortedContents = acceptedContents.sort((a, b) => 
+  const sortedItems = acceptedItems.sort((a, b) => 
     sectionConfig.sortReadData && sectionConfig.sortReadData(a, b) || a.acceptedAt!.localeCompare(b.acceptedAt!)
   );
   
@@ -135,7 +135,7 @@ export function AcceptedContents<ReadT extends ContentReadData, WriteT extends C
     </Table.Tr>
   );
   
-  const rows = sortedContents.map((item) => (
+  const rows = sortedItems.map((item) => (
     <Table.Tr key={item.contentId}>
       <sectionConfig.DisplayRow data={item} style={{backgroundColor: "#bef7ce"}} />
       <Table.Td>
@@ -168,7 +168,7 @@ export function AcceptedContents<ReadT extends ContentReadData, WriteT extends C
   )
 }
 
-function ProposedContents<ReadT extends ContentReadData, WriteT extends ContentWriteRequestData>({
+function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWriteRequestData>({
   plant,
   sectionConfig,
 }: {
@@ -180,20 +180,20 @@ function ProposedContents<ReadT extends ContentReadData, WriteT extends ContentW
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const contentsQueryOptions = sectionConfig.buildQueryOptions(plant.id);
-  const { data } = useQuery(contentsQueryOptions);
+  const itemsQueryOptions = sectionConfig.buildQueryOptions(plant.id);
+  const { data } = useQuery(itemsQueryOptions);
 
   const proposals = data ? data.filter(item => item.contentStatus === "proposed") : [];
 
   const sortedValues = proposals.sort((a, b) =>
-    sectionConfig.sortReadData && sectionConfig.sortReadData(a, b) || b.proposedAt!.localeCompare(a.proposedAt!)
+    b.proposedAt!.localeCompare(a.proposedAt!)
   );
 
   const proposalDeletion = useMutation({
     mutationFn: sectionConfig.deleteMutationFunction,
     onSuccess: (data) => {
       showSuccess(data.msg);
-      queryClient.invalidateQueries({ queryKey: contentsQueryOptions.queryKey });
+      queryClient.invalidateQueries({ queryKey: itemsQueryOptions.queryKey });
     },
     onError: showMutationError
   });
@@ -284,7 +284,7 @@ function ProposedContents<ReadT extends ContentReadData, WriteT extends ContentW
   )
 
   return (
-    <QueryLoader {...contentsQueryOptions}>
+    <QueryLoader {...itemsQueryOptions}>
       <Paper withBorder p={15} mb={25}>
         <Text fz="h5" fw={600} pb={10}>Itens propostos</Text>
         <StickyHeaderTable header={header} rows={rows} scrollWidth={500} scrollHeight={300} />

@@ -23,11 +23,11 @@ export function buildNaturalOccurrenceRegionListQueryOptions(plantId: number) {
 
 export function sortNaturalOccurrenceRegions(a: NaturalOccurrenceRegionReadData, b: NaturalOccurrenceRegionReadData) {
   return sortValueFirst(a.country.name, b.country.name, "Brasil") ||
-    sortValueFirst(a.biome.name, b.biome.name, "Mata Atlântica") ||
+    sortValueFirst((a.biome?.name ?? ""), (b.biome?.name ?? ""), "Mata Atlântica") ||
     a.country.name.localeCompare(b.country.name) ||
-    a.biome.name.localeCompare(b.biome.name) ||
-    a.state.name.localeCompare(b.state.name) ||
-    a.vegetationType.name.localeCompare(b.vegetationType.name);
+    (a.biome?.name ?? "").localeCompare((b.biome?.name ?? "")) ||
+    (a.state?.name ?? "").localeCompare((b.state?.name ?? "")) ||
+    (a.vegetationType?.name ?? "").localeCompare((b.vegetationType?.name ?? ""));
 }
 
 export const naturalOccurrenceRegionFormUniqueKey = [
@@ -44,9 +44,9 @@ export function validateNaturalOccurrenceRegionFormToReadDataDiff(
 ): FormErrors {
   return {
     ...(formValues.countryId === readData.country.id && { countryId: errMsg }),
-    ...(formValues.stateId === readData.state.id && { stateId: errMsg }),
-    ...(formValues.biomeId === readData.biome.id && { biomeId: errMsg }),
-    ...(formValues.vegetationTypeId === readData.vegetationType.id && { vegetationTypeId: errMsg }),
+    ...(formValues.stateId === readData.state?.id && { stateId: errMsg }),
+    ...(formValues.biomeId === readData.biome?.id && { biomeId: errMsg }),
+    ...(formValues.vegetationTypeId === readData.vegetationType?.id && { vegetationTypeId: errMsg }),
   };
 }
 
@@ -84,9 +84,9 @@ export function NaturalOccurrenceRegionRow({ data, ...tableTdProps }: ContentDis
   return (
     <>
     <Table.Td {...tableTdProps}>{data.country.name}</Table.Td>
-    <Table.Td {...tableTdProps}>{data.biome.name}</Table.Td>
-    <Table.Td {...tableTdProps}>{data.state.name}</Table.Td>
-    <Table.Td {...tableTdProps}>{data.vegetationType.name}</Table.Td>
+    <Table.Td {...tableTdProps}>{data.biome?.name ?? ""}</Table.Td>
+    <Table.Td {...tableTdProps}>{data.state?.name ?? ""}</Table.Td>
+    <Table.Td {...tableTdProps}>{data.vegetationType?.name ?? ""}</Table.Td>
     </>
   )
 }
@@ -132,7 +132,7 @@ function FormRowBody({ forms, setForms, countries }: FormRowBodyProps) {
       stateId: lastRowValues?.stateId ?? 0,
       vegetationTypeId: 0,
     },
-    validate: { // TODO: not working, only last row being validated
+    validate: {
       countryId: (value) => {
         if (!value) return 'Campo obrigatório';
       },
@@ -145,7 +145,13 @@ function FormRowBody({ forms, setForms, countries }: FormRowBodyProps) {
       vegetationTypeId: (value, values) => {
         if (!value && values.countryId === brazilId) return 'Campo obrigatório';
       },
-    }
+    },
+    transformValues: (values) => ({
+      countryId: values.countryId,
+      stateId: values.stateId ? values.stateId : undefined,
+      biomeId: values.biomeId ? values.biomeId : undefined,
+      vegetationTypeId: values.vegetationTypeId ? values.vegetationTypeId : undefined,
+    })
   });
   
   useEffect(() => {
@@ -153,18 +159,24 @@ function FormRowBody({ forms, setForms, countries }: FormRowBodyProps) {
   }, []);
 
   form.watch('countryId', () => {
-    form.resetField('biomeId');
-    form.resetField('stateId');
-    form.resetField('vegetationTypeId');
+    form.setValues({
+      biomeId: undefined,
+      stateId: undefined,
+      vegetationTypeId: undefined,
+    });
   });
   
   form.watch('biomeId', () => {
-    form.resetField('stateId');
-    form.resetField('vegetationTypeId');
+    form.setValues({
+      stateId: undefined,
+      vegetationTypeId: undefined,
+    });
   });
   
   form.watch('stateId', () => {
-    form.resetField('vegetationTypeId');
+    form.setValues({
+      vegetationTypeId: undefined,
+    });
   });
   
   const selectedCountryId = form.getValues().countryId;

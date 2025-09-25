@@ -13,7 +13,7 @@ import { ContentForm, SectionConfig } from './SectionConfigs';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { CommentInput, SourceSelect } from '.';
 
-export default function SectionContentsProposalForm<ReadT extends ContentReadData, WriteT extends ContentWriteRequestData>({
+export default function SectionItemsProposalForm<ReadT extends ContentReadData, WriteT extends ContentWriteRequestData>({
   plantId,
   sectionConfig,
 }: {
@@ -24,22 +24,22 @@ export default function SectionContentsProposalForm<ReadT extends ContentReadDat
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const contentsQueryOptions = sectionConfig.buildQueryOptions(plantId);
+  const itemsQueryOptions = sectionConfig.buildQueryOptions(plantId);
 
-  const contentCreation = useMutation({
+  const proposalCreation = useMutation({
     mutationFn: sectionConfig.createMutationFunction,
     onSuccess: (data) => {
       showSuccess(data.msg);
-      queryClient.invalidateQueries({ queryKey: contentsQueryOptions.queryKey });
+      queryClient.invalidateQueries({ queryKey: itemsQueryOptions.queryKey });
       navigate("..", {relative: "path"});
     },
     onError: showMutationError
   });
 
-  const { data } = useQuery(contentsQueryOptions);
+  const { data } = useQuery(itemsQueryOptions);
 
-  const acceptedContents = data ? data.filter(item => item.contentStatus === "accepted") : [];
-  const proposedContents = data ? data.filter(item => item.contentStatus === "proposed") : [];
+  const acceptedItems = data ? data.filter(item => item.contentStatus === "accepted") : [];
+  const proposedItems = data ? data.filter(item => item.contentStatus === "proposed") : [];
 
   const sourceField = useField<string | undefined>({
     initialValue: undefined,
@@ -58,9 +58,9 @@ export default function SectionContentsProposalForm<ReadT extends ContentReadDat
   const [forms, setForms] = useState<UseFormReturnType<ContentFormData>[]>([]);
   const [rowKeys, setRowKeys] = useState<number[]>([]);
 
-  const contentForms = forms.filter((_, index) => rowKeys.includes(index));
+  const itemForms = forms.filter((_, index) => rowKeys.includes(index));
 
-  const validateContentForms = (forms: UseFormReturnType<ContentFormData>[]) => {
+  const validateItemForms = (forms: UseFormReturnType<ContentFormData>[]) => {
 
     const errors = forms.reduce((acc: FormErrors[], form) => {
       let validation = form.validate();
@@ -101,9 +101,9 @@ export default function SectionContentsProposalForm<ReadT extends ContentReadDat
         }
       }
 
-      // uniqueness validation between form and accepted contents
-      for (const content of acceptedContents) {
-        let matchErrors = sectionConfig.validateFormToReadDataDiff(values, content, "Igual a item aceito");
+      // uniqueness validation between form and accepted items
+      for (const item of acceptedItems) {
+        let matchErrors = sectionConfig.validateFormToReadDataDiff(values, item, "Igual a item aceito");
         if (Object.keys(matchErrors).length === uniqueKey.length) {
           form.setErrors(matchErrors);
           acc.push(matchErrors);
@@ -111,9 +111,9 @@ export default function SectionContentsProposalForm<ReadT extends ContentReadDat
         }
       }
 
-      // uniqueness validation between form and proposed contents
-      for (const content of proposedContents) {
-        let matchErrors = sectionConfig.validateFormToReadDataDiff(values, content, "Igual a item já proposto");
+      // uniqueness validation between form and proposed items
+      for (const item of proposedItems) {
+        let matchErrors = sectionConfig.validateFormToReadDataDiff(values, item, "Igual a item já proposto");
         if (Object.keys(matchErrors).length === uniqueKey.length) {
           form.setErrors(matchErrors);
           acc.push(matchErrors);
@@ -128,10 +128,10 @@ export default function SectionContentsProposalForm<ReadT extends ContentReadDat
   }
 
   const handleAddBarClick = () => {
-    contentForms.forEach((form) => {
+    itemForms.forEach((form) => {
       form.setValues(form.getTransformedValues());
     });
-    const errors = validateContentForms(contentForms);
+    const errors = validateItemForms(itemForms);
 
     if (errors.length > 0)
       throw showError("Corrija campos inválidos antes de adicionar um novo item.", "Erro");
@@ -147,25 +147,25 @@ export default function SectionContentsProposalForm<ReadT extends ContentReadDat
     e.preventDefault();
 
     const comment = commentField.getValue().trim();
-    contentForms.forEach((form) => {
+    itemForms.forEach((form) => {
       form.setValues(form.getTransformedValues());
     });
 
-    const contentErrors = [ ...validateContentForms(contentForms), ...validateContentUniqueness(contentForms) ];
+    const itemErrors = [ ...validateItemForms(itemForms), ...validateContentUniqueness(itemForms) ];
     const sourceError = await sourceField.validate();
     const commentError = await commentField.validate();
 
-    if (contentErrors.length > 0 || sourceError || commentError)
+    if (itemErrors.length > 0 || sourceError || commentError)
       throw showError("Há campos inválidos no formulário.", "Erro");
     
-    contentForms.forEach((form) => {
+    itemForms.forEach((form) => {
       let writeData = sectionConfig.buildWriteRequestData({
         formValues: form.getValues(),
         plantId: plantId,
         sourceId: Number(sourceField.getValue()),
         contentProposerComment: comment.length > 0 ? comment : undefined,
       });
-      contentCreation.mutate(writeData);
+      proposalCreation.mutate(writeData);
     })
   }
 
@@ -180,7 +180,7 @@ export default function SectionContentsProposalForm<ReadT extends ContentReadDat
       <sectionConfig.FormRow
         forms={forms}
         setForms={setForms} // passing setter here is necessary since you can't call the useForm hook conditionally
-        contentsQueryOptions={contentsQueryOptions}
+        itemsQueryOptions={itemsQueryOptions}
         />
       <Table.Td>
         <CloseButton size="sm" onClick={() => handleRemoveButtonClick(key)} />
@@ -203,7 +203,7 @@ export default function SectionContentsProposalForm<ReadT extends ContentReadDat
   const enableSubmit = rows.length > 0;
 
   return (
-    <QueryLoader {...contentsQueryOptions}>
+    <QueryLoader {...itemsQueryOptions}>
       <Paper withBorder style={style} ta="center" p={15} mb={20}>
         <Text fz="h5" fw={600} pb={10}>Proposta</Text>
         <StickyHeaderTable header={header} rows={[...rows, footer]} scrollWidth={600} scrollHeight={500} headerStyle={style} />
@@ -214,7 +214,7 @@ export default function SectionContentsProposalForm<ReadT extends ContentReadDat
         <Text fz="h5" fw={600} pb={10}>Comentário <Text span size="sm" c="dimmed">(opcional)</Text></Text>
         <CommentInput field={commentField} maxChars={commentMaxChars} />
         {divider}
-        <Button type="submit" color="teal" disabled={!enableSubmit} onClick={handleSubmit} loading={contentCreation.isPending}>Publicar proposta</Button>
+        <Button type="submit" color="teal" disabled={!enableSubmit} onClick={handleSubmit} loading={proposalCreation.isPending}>Publicar proposta</Button>
       </Paper>
     </QueryLoader>
   )

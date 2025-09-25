@@ -211,9 +211,9 @@ export async function getPlantPopularNameList({ queryKey: [queryName, plantId, .
 
 export interface NaturalOccurrenceRegionReadData extends ContentReadData {
   country: CountryData,
-  state: StateData,
-  biome: BiomeData,
-  vegetationType: VegetationTypeData,
+  state: StateData | null,
+  biome: BiomeData | null,
+  vegetationType: VegetationTypeData | null,
   plantId: number,
 }
 

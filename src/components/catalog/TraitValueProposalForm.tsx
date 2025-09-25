@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router';
 import { Text, Paper, Divider, Button } from '@mantine/core';
 import { isNotEmpty, useField } from '@mantine/form';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createTraitValue,
   PlantReadData,
@@ -10,31 +10,62 @@ import {
   TraitValue,
   TraitValueReadData,
 } from '../../apis/catalog';
-import { showMutationError } from '../../apis/common';
+import { QueryOptions, showMutationError } from '../../apis/common';
 import { showError, showSuccess } from '../common/notifications';
 import { CommentInput, SourceSelect, TraitValueInput } from '.';
 
-export default function TraitValueProposalForm({plant, trait, acceptedValue, proposedValues, proposedValuesQueryKey}: {plant: PlantReadData, trait: TraitReadData, acceptedValue: TraitValueReadData, proposedValues: TraitValueReadData[], proposedValuesQueryKey: string[] }) {
+export default function TraitValueProposalForm({
+  plant,
+  trait,
+  traitValuesQueryOptions
+}: {
+  plant: PlantReadData,
+  trait: TraitReadData,
+  traitValuesQueryOptions: QueryOptions<TraitValueReadData[]>
+}) {
+
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const traitValueCreation = useMutation({
+  const values = useQuery(traitValuesQueryOptions);
+  const acceptedValue = values.data && values.data.find(item => item.contentStatus === "accepted");
+  const proposedValues = values.data ? values.data.filter(item => item.contentStatus === "proposed") : [];
+
+  const proposalCreation = useMutation({
     mutationFn: createTraitValue,
     onSuccess: (data) => {
       showSuccess(data.msg);
-      queryClient.invalidateQueries({ queryKey: proposedValuesQueryKey });
+      queryClient.invalidateQueries({ queryKey: traitValuesQueryOptions.queryKey });
       navigate("..", {relative: "path"});
     },
     onError: showMutationError
   });
 
+  const getinitialTraitValue = () => {
+    if (acceptedValue)
+      return acceptedValue.value;
+    
+    switch (trait.type) {
+      case "string":
+        return "";
+      case "string[]":
+        return [];
+      case "number":
+        return trait.numericValueMin;
+      case "range":
+        return [trait.numericValueMin, trait.numericValueMax] as Range;
+      default:
+        return false;
+    }
+  }
+
   const validateTraitValue = (value: TraitValue) => {
     const valueRep = JSON.stringify(value);
 
-    if (value === null)
+    if (value === null || value === undefined)
       return 'Campo obrigatório';
       
-    if (valueRep === JSON.stringify(acceptedValue.value))
+    if (acceptedValue && valueRep === JSON.stringify(acceptedValue.value))
       return 'A proposta não pode ser igual à versão aceita';
     
     if (proposedValues.some((item) => valueRep === JSON.stringify(item.value)))
@@ -63,7 +94,7 @@ export default function TraitValueProposalForm({plant, trait, acceptedValue, pro
 
   const valueField = useField<TraitValue>({
     mode: 'controlled',
-    initialValue: acceptedValue.value,
+    initialValue: getinitialTraitValue(),
     validate: (value) => validateTraitValue(value)
   });
 
@@ -88,15 +119,17 @@ export default function TraitValueProposalForm({plant, trait, acceptedValue, pro
     const valueError = await valueField.validate();
     const sourceError = await sourceField.validate();
     const commentError = await commentField.validate();
-    if (valueError || sourceError || commentError)
-      throw showError("Há campos inválidos no formulário.", "Erro");
+    if (valueError || sourceError || commentError) {
+      showError("Há campos inválidos no formulário.", "Erro");
+      return;
+    }
 
     const comment = commentField.getValue().trim();
 
-    traitValueCreation.mutate({
+    proposalCreation.mutate({
       plantId: plant.id,
       traitId: trait.id,
-      value: valueField.getValue(),
+      value: valueField.getValue()!,
       sourceId: Number(sourceField.getValue()),
       contentProposerComment: comment.length > 0 ? comment : undefined,
     });

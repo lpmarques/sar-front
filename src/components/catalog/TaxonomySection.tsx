@@ -93,8 +93,8 @@ export function TaxonRow({ data, ...tableTdProps }: ContentDisplayRowProps<Taxon
   )
 }
 
-export function TaxonFormRow({ forms, setForms, contentsQueryOptions }: ContentFormRowProps<TaxonReadData, TaxonWriteRequestData>) {
-  const { data } = useQuery(contentsQueryOptions);
+export function TaxonFormRow({ forms, setForms, itemsQueryOptions }: ContentFormRowProps<TaxonReadData, TaxonWriteRequestData>) {
+  const { data } = useQuery(itemsQueryOptions);
   const acceptedName = data?.find(item => item.contentStatus === "accepted" && item.taxonomicStatus === "accepted");
 
   const form = useForm<ContentForm<TaxonWriteRequestData>>({

@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from 'react-router';
-import { Container, UnstyledButton, Text, Space, Table, Paper, Alert, ContainerProps, TextInput } from '@mantine/core';
-import { IconInfoCircle, IconSearch } from '@tabler/icons-react';
+import { Container, UnstyledButton, Text, Space, Table, Paper, Alert, ContainerProps } from '@mantine/core';
+import { IconInfoCircle } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import {
   getPlant,
@@ -16,7 +16,7 @@ import { ContentReadData, ContentWriteRequestData } from '../../apis/core';
 import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { SectionConfig, getSectionConfig, SectionSlug } from './SectionConfigs';
-import SectionContentsProposalForm from './SectionContentsProposalForm';
+import SectionItemsProposalForm from './SectionItemsProposalForm';
 
 export default function SectionEdit() {
   const { plantId, sectionSlug } = useParams();
@@ -85,12 +85,12 @@ function SectionEditBody<ReadT extends ContentReadData, WriteT extends ContentWr
         <Text fz="md" pb={10}>Itens propostos serão analisados e, se aprovados, serão incorporados ao conteúdo aceito.</Text>
       </Alert>
       <Space h={15} />
-      <AcceptedContents<ReadT, WriteT>
+      <AcceptedItems<ReadT, WriteT>
         plantId={plant.id}
         sectionConfig={sectionConfig}
         />
       <Space h={15} />
-      <SectionContentsProposalForm<ReadT, WriteT>
+      <SectionItemsProposalForm<ReadT, WriteT>
         plantId={plant.id}
         sectionConfig={sectionConfig}
         />
@@ -98,18 +98,18 @@ function SectionEditBody<ReadT extends ContentReadData, WriteT extends ContentWr
   )
 }
 
-export function AcceptedContents<ReadT extends ContentReadData, WriteT extends ContentWriteRequestData>({
+export function AcceptedItems<ReadT extends ContentReadData, WriteT extends ContentWriteRequestData>({
   plantId,
   sectionConfig,
 }: {
   plantId: number,
   sectionConfig: SectionConfig<ReadT, WriteT>,
 }) {
-  const contentsQueryOptions = sectionConfig.buildQueryOptions(plantId);
-  const { data } = useQuery(contentsQueryOptions);
+  const itemsQueryOptions = sectionConfig.buildQueryOptions(plantId);
+  const { data } = useQuery(itemsQueryOptions);
 
-  const acceptedContents = data ? data.filter(item => item.contentStatus === "accepted") : [];
-  const sortedContents = acceptedContents.sort((a, b) =>
+  const acceptedItems = data ? data.filter(item => item.contentStatus === "accepted") : [];
+  const sortedItems = acceptedItems.sort((a, b) =>
     sectionConfig.sortReadData && sectionConfig.sortReadData(a, b) || a.acceptedAt!.localeCompare(b.acceptedAt!)
   );
 
@@ -120,7 +120,7 @@ export function AcceptedContents<ReadT extends ContentReadData, WriteT extends C
     </Table.Tr>
   );
   
-  const rows = sortedContents.map((item) => (
+  const rows = sortedItems.map((item) => (
     <Table.Tr key={item.contentId}>
       <sectionConfig.DisplayRow data={item} style={{backgroundColor: "#bef7ce"}} />
       <Table.Td style={{backgroundColor: "#bef7ce"}}></Table.Td>
@@ -128,9 +128,9 @@ export function AcceptedContents<ReadT extends ContentReadData, WriteT extends C
   ));
 
   return (
-    <QueryLoader {...contentsQueryOptions}>
+    <QueryLoader {...itemsQueryOptions}>
       <Paper withBorder p={15}>
-        <Text fz="h5" fw={600} pb={10} ta="center">Conteúdo aceito</Text>
+        <Text fz="h5" fw={600} pb={10} ta="center">Itens aceitos</Text>
         <StickyHeaderTable header={header} rows={rows} scrollWidth={500} scrollHeight={300} withRowBorders={false} />
       </Paper>
     </QueryLoader>

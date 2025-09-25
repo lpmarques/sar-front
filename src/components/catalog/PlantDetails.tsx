@@ -13,9 +13,9 @@ import {
   TaxonReadData,
   TraitValueReadData,
 } from "../../apis/catalog";
-import { sortValueFirst } from '../../utils/common';
 import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
+import { sortNaturalOccurrenceRegions } from "./NaturalOccurrenceRegionsSection";
 import { TraitValueDisplay } from '.';
 
 export default function PlantDetails() {
@@ -148,15 +148,7 @@ function TraitSection({ sectionName, traitValues }: { sectionName: string, trait
 function NaturalOccurrenceSection({ data }: { data: NaturalOccurrenceRegionReadData[] }) {
   const navigate = useNavigate();
 
-  const sortedRegions = data.sort((a, b) => 
-    sortValueFirst(a.country.name, b.country.name, "Brasil") ||
-    sortValueFirst(a.country.name, b.country.name, "Brazil") ||
-    sortValueFirst(a.biome.name, b.biome.name, "Mata Atlântica") ||
-    a.country.name.localeCompare(b.country.name) ||
-    a.biome.name.localeCompare(b.biome.name) ||
-    a.state.code.localeCompare(b.state.code) ||
-    a.vegetationType.name.localeCompare(b.vegetationType.name)
-  );
+  const sortedRegions = data.sort((a, b) => sortNaturalOccurrenceRegions(a, b));
 
   const header = (
       <Table.Tr>
@@ -170,9 +162,9 @@ function NaturalOccurrenceSection({ data }: { data: NaturalOccurrenceRegionReadD
   const rows = sortedRegions.map((region: NaturalOccurrenceRegionReadData) => (
     <Table.Tr key={`${region.contentId}`}>
       <Table.Td fz="sm">{region.country.name}</Table.Td>
-      <Table.Td fz="sm">{region.state.code}</Table.Td>
-      <Table.Td fz="sm">{region.biome.name}</Table.Td>
-      <Table.Td fz="sm">{region.vegetationType.name}</Table.Td>
+      <Table.Td fz="sm">{region.state?.code ?? ""}</Table.Td>
+      <Table.Td fz="sm">{region.biome?.name ?? ""}</Table.Td>
+      <Table.Td fz="sm">{region.vegetationType?.name ?? ""}</Table.Td>
     </Table.Tr>
   ));
 

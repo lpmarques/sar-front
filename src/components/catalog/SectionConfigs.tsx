@@ -57,7 +57,7 @@ export interface ContentDisplayRowProps<ReadT extends ContentReadData> extends T
 export interface ContentFormRowProps<ReadT extends ContentReadData, WriteT extends ContentWriteRequestData> {
   forms: UseFormReturnType<ContentForm<WriteT>>[],
   setForms: React.Dispatch<React.SetStateAction<UseFormReturnType<ContentForm<WriteT>>[]>>,
-  contentsQueryOptions: QueryOptions<ReadT[]>,
+  itemsQueryOptions: QueryOptions<ReadT[]>,
 }
 
 export interface BuildWriteRequestDataProps<WriteT> {
