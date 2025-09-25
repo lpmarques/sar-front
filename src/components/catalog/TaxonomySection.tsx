@@ -113,7 +113,7 @@ export function TaxonFormRow({ forms, setForms, itemsQueryOptions }: ContentForm
       },
       species: (value) => {
         if (!value.trim().length) return 'Campo obrigatório';
-        if (!/^[A-Z][a-z]+\s[a-z]{2,}$/.test(value)) return 'Formato inválido';
+        if (!/^[A-Z][a-z]+\s(x\s)?[a-z]+$/.test(value)) return 'Formato inválido';
       },
       subspecies: (value) => {
         if (value && !/^[a-z]{2,}$/.test(value)) return 'Formato inválido';
