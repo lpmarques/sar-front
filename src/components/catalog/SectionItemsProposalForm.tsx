@@ -6,11 +6,11 @@ import { IconCircleDashedPlus } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { showMutationError } from '../../apis/common';
 import { ContentReadData, ContentWriteRequestData } from '../../apis/core';
-import classes from '../common/Clickable.module.css';
+import ClickableRow from '../common/ClickableRow';
 import { showError, showSuccess } from '../common/notifications';
 import { QueryLoader } from '../common/QueryLoader';
-import { ContentForm, SectionConfig } from './SectionConfigs';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
+import { ContentForm, SectionConfig } from './SectionConfigs';
 import { CommentInput, SourceSelect } from '.';
 
 export default function SectionItemsProposalForm<ReadT extends ContentReadData, WriteT extends ContentWriteRequestData>({
@@ -181,7 +181,7 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
         forms={forms}
         setForms={setForms} // passing setter here is necessary since you can't call the useForm hook conditionally
         itemsQueryOptions={itemsQueryOptions}
-        />
+      />
       <Table.Td>
         <CloseButton size="sm" onClick={() => handleRemoveButtonClick(key)} />
       </Table.Td>
@@ -189,16 +189,16 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
   )), [rowKeys]);
 
   const footer = (
-    <Table.Tr key={-1}>
+    <ClickableRow key={-1} onClick={() => handleAddBarClick()} style={{'--hover-color': 'var(--mantine-color-gray-2)'}}>
       <Tooltip withArrow label="Clique para adicionar um novo item a sua proposta." position="bottom">
-        <Table.Td colSpan={10} align="center" onClick={() => handleAddBarClick()} className={classes.row}>
+        <Table.Td colSpan={10} align="center">
           <IconCircleDashedPlus color="var(--mantine-color-dark-3)" size={35}/>
         </Table.Td>
       </Tooltip>
-    </Table.Tr>
+    </ClickableRow>
   );
 
-  const style = { backgroundColor: "#f0f2f2" };
+  const style = { backgroundColor: "var(--mantine-color-gray-1)" };
   const divider = <Divider mt={25} mb={15} />;
   const enableSubmit = rows.length > 0;
 
@@ -212,7 +212,7 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
         <SourceSelect field={sourceField} />
         {divider}
         <Text fz="h5" fw={600} pb={10}>Comentário <Text span size="sm" c="dimmed">(opcional)</Text></Text>
-        <CommentInput field={commentField} maxChars={commentMaxChars} />
+        <CommentInput field={commentField} maxChars={commentMaxChars} placeholder="Se achar pertinente, fale mais aqui sobre sua proposta." />
         {divider}
         <Button type="submit" color="teal" disabled={!enableSubmit} onClick={handleSubmit} loading={proposalCreation.isPending}>Publicar proposta</Button>
       </Paper>

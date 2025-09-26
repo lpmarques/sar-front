@@ -1,12 +1,12 @@
 import Ajv from "ajv";
 import AjvFormats from "ajv-formats";
-import { Button, Fieldset, Select, TextInput, Text } from "@mantine/core";
+import { Button, Fieldset, Select } from "@mantine/core";
 import { isNotEmpty, useField, UseFieldReturnType } from "@mantine/form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { isValidHttpUrl, JsonSchemaString, showMutationError } from "../../apis/common";
 import { createSource, getSourceTypeList, SourceField, SourceValue, SourceFieldValueWriteData, getSourceSubtypeList, SourceTypeReadData } from "../../apis/core";
 import { showError, showSuccess } from '../common/notifications';
-import { SourceFieldValueInput } from ".";
+import { CommentInput, SourceFieldValueInput } from ".";
 import { QueryLoader } from "../common/QueryLoader";
 
 export default function SourceForm({ onSubmit }: { onSubmit: Function }) {
@@ -196,29 +196,18 @@ function SourceDataForm({ type, subtype, onSubmit }: { type: SourceTypeReadData,
     <SourceFieldValueInput key={field.id} sourceField={field} formField={valuesForm[field.id]} />
   ))
 
-  const notes = notesField.getValue();
-  const notesLength = notes ? notes.length : 0;
-  const notesInput = (
-    <>
-      <TextInput
-        mt={5}
-        key={notesField.key}
-        label="Observações (opcional)"
-        placeholder="Suas observações sobre essa fonte"
-        {...notesField.getInputProps()}
-        />
-      <Text size="xs" c={notesLength > notesMaxChars ? "red" : "dimmed"} pt={5}>
-        {notesLength}/{notesMaxChars}
-      </Text>
-    </>
-  )
-
   return (
     <>
       <Fieldset legend="Dados da fonte" mt={10}>
         {valueInputs}
       </Fieldset>
-      {notesInput}
+      <CommentInput
+        field={notesField}
+        maxChars={notesMaxChars}
+        size="sm"
+        label="Observações (opcional)"
+        placeholder="Suas observações sobre essa fonte"
+      />
       <Button loading={sourceCreation.isPending} mt={10} type="submit" onClick={handleSubmit}>Cadastrar fonte</Button>
     </>
   )

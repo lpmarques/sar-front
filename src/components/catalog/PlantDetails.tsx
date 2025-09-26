@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { Container, Paper, SimpleGrid, Space, Table, Text } from '@mantine/core';
+import { Button, Container, Group, Paper, SimpleGrid, Space, Table, Text } from '@mantine/core';
+import { IconCircleDashedPlus, IconPencil, IconPencilOff } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import {
   getPlant,
@@ -8,11 +10,14 @@ import {
   getPlantTaxonList,
   getPlantTraitValueList,
   getTaxonName,
+  getTraitList,
   NaturalOccurrenceRegionReadData,
   PopularNameReadData,
   TaxonReadData,
+  TraitReadData,
   TraitValueReadData,
 } from "../../apis/catalog";
+import classes from '../common/Clickable.module.css';
 import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { sortNaturalOccurrenceRegions } from "./NaturalOccurrenceRegionsSection";
@@ -20,6 +25,7 @@ import { TraitValueDisplay } from '.';
 
 export default function PlantDetails() {
   const { plantId } = useParams();
+  const [editMode, setEditMode] = useState(false);
   
   const plantQueryOptions = {
     queryKey: ['plant', plantId!],
@@ -33,30 +39,44 @@ export default function PlantDetails() {
     queryKey: ['plantPopularNames', plantId!, 'status=accepted'],
     queryFn: getPlantPopularNameList 
   };
-  const traitValuesQueryOptions = { 
+  const traitsQueryOptions = { 
+    queryKey: ['traitList'],
+    queryFn: getTraitList
+  };
+  const traitValuesQueryOptions = {
     queryKey: ['plantTraitValueList', plantId!, 'status=accepted'],
     queryFn: getPlantTraitValueList
   };
   const naturalOccurrenceRegionsQueryOptions = {
     queryKey: ['plantNaturalOccurrenceRegionList', plantId!, 'status=accepted'],
     queryFn: getPlantNaturalOccurrenceRegionList
-  }
+  };
  
   const plant = useQuery(plantQueryOptions);
   const taxa = useQuery(taxaQueryOptions);
   const popularNames = useQuery(popularNamesQueryOptions);
+  const traits = useQuery(traitsQueryOptions);
   const traitValues = useQuery(traitValuesQueryOptions);
   const naturalOccurrenceRegions = useQuery(naturalOccurrenceRegionsQueryOptions);
 
-  const sections = traitValues.data ? Object.fromEntries(traitValues.data.map(item => [item.sectionSlug!, item.sectionName!])): {};
+  const sections = traits.data ? Object.fromEntries(traits.data.map(item => [item.sectionSlug!, item.sectionName!])): {};
   const traitSections = Object.entries(sections).map(([key, value]) => (
-    <TraitSection key={key} sectionName={value} traitValues={traitValues.data!.filter(item => item.sectionName === value)}/>
+    <TraitSection
+      key={key}
+      sectionName={value}
+      traits={traits.data!.filter(item => item.sectionSlug === key)}
+      traitValues={traitValues.data ? traitValues.data.filter(item => item.sectionSlug === key) : []}
+      editMode={editMode}
+    />
   ));
 
   return (
     <QueryLoader {...plantQueryOptions}>
       <Container size={1000}>
-        <Text fz="h2" fs="italic" fw={600} pb={15}>{plant.data?.acceptedTaxonName}</Text>
+        <Group justify="space-between" pb={15}>
+          <Text fz="h2" fs="italic" fw={600}>{plant.data?.acceptedTaxonName}</Text>
+          <EditButton editMode={editMode} setEditMode={setEditMode}/>
+        </Group>
         <QueryLoader {...popularNamesQueryOptions}>
           <PopularNamesSection data={popularNames.data!}/>
         </QueryLoader>
@@ -73,6 +93,27 @@ export default function PlantDetails() {
         </QueryLoader>
       </Container>
     </QueryLoader>
+  )
+}
+
+function EditButton({
+  editMode,
+  setEditMode,
+}: {
+  editMode: boolean,
+  setEditMode: React.Dispatch<React.SetStateAction<boolean>>,
+}) {
+  const Icon = editMode ? IconPencilOff : IconPencil;
+
+  return (
+    <Button variant="default" size="compact-md" color="dimmed" onClick={() => setEditMode(!editMode)} style={classes}>
+      <Icon />
+      <Text fw={600}>&nbsp;
+        {editMode ? 
+        <>Sair do modo edição</> :
+        <>Adicionar informações</>}
+      </Text>
+    </Button>
   )
 }
 
@@ -97,8 +138,8 @@ function PopularNamesSection({ data }: { data: PopularNameReadData[] }) {
   const popularNames = data.map(item => item.name).join(", ");
 
   return (
-    <Section title="Nome(s) popular(es)" style={{cursor: 'pointer'}} onClick={() => navigate(`popular-names`)}>
-      <Text size="md">{popularNames}</Text>
+    <Section title="Nome(s) popular(es)" style={{cursor: 'pointer'}} onClick={() => navigate('popular-names')}>
+      <Text size="xl">{popularNames}</Text>
     </Section>
   )
 }
@@ -112,34 +153,64 @@ function TaxonomySection({ taxa }: { taxa: TaxonReadData[] }) {
   return (
     <>
     {accepted &&
-    <Section title="Taxonomia" style={{cursor: 'pointer'}} onClick={() => navigate(`taxonomy`)}>
-      <Text size="md">Família: {accepted ? accepted.family : ""}</Text>
-      <Text size="md">Espécie: {accepted ? accepted.species : ""}</Text>
+    <Section title="Taxonomia" style={{cursor: 'pointer'}} onClick={() => navigate('taxonomy')}>
+      <Text size="md">
+        <Text span c="dimmed">Família:</Text> {accepted ? accepted.family : ""}
+      </Text>
+      <Text size="md">
+        <Text span c="dimmed">Espécie:</Text> {accepted ? accepted.species : ""}
+      </Text>
       {accepted?.subspecies &&
-      <Text size="md">Subespécie: {accepted.subspecies}</Text>}
+      <Text size="md">
+        <Text span c="dimmed">Subespécie:</Text> {accepted.subspecies}
+      </Text>}
       {accepted?.variety &&
-      <Text size="md">Variedade: {accepted.variety}</Text>}
+      <Text size="md">
+        <Text span c="dimmed">Variedade:</Text> {accepted.variety}
+      </Text>}
       {synonymNames &&
-      <Text size="md">Sinônimo(s): {synonymNames}</Text>}
+      <Text size="md">
+        <Text span c="dimmed">Sinônimo(s):</Text> {synonymNames}
+      </Text>}
     </Section>}
     </>
   )
 }
 
-function TraitSection({ sectionName, traitValues }: { sectionName: string, traitValues: TraitValueReadData[] }) {
+function TraitSection({
+  sectionName,
+  traits,
+  traitValues,
+  editMode,
+}: {
+  sectionName: string,
+  traits: TraitReadData[],
+  traitValues: TraitValueReadData[],
+  editMode: boolean,
+}) {
   const navigate = useNavigate();
+  const traitValuesMap = Object.fromEntries(traitValues.map(item => [item.traitSlug, item]));
 
-  const traits = traitValues.map(item => (
-    <Paper key={item.traitSlug} withBorder ta="center" radius="md" style={{cursor: 'pointer'}} onClick={() => navigate(`trait/${item.traitSlug}`)}>
-      <Text fz="h6" fw={550} p={5}>{item.traitName}</Text>
-      <TraitValueDisplay data={item} style={item.type=="string[]" ? { cursor: 'pointer' } : undefined} />
-    </Paper>
+  const subsections = traits.map(item => (
+    <>
+    {item.slug in traitValuesMap || editMode ?
+    <Paper key={item.slug} withBorder ta="center" radius="md" style={{cursor: 'pointer'}} onClick={() => navigate(`trait/${item.slug}`)}>
+      {item.slug in traitValuesMap ? <>
+        <Text fz="h6" fw={550} p={5}>{item.name}</Text>
+        <TraitValueDisplay data={traitValuesMap[item.slug]} style={item.type=="string[]" ? { cursor: 'pointer' } : undefined} />
+        </> : <>
+        <Text fz="h6" fw={550} p={5} c="var(--mantine-color-gray-6)">{item.name}</Text>
+        <IconCircleDashedPlus color="var(--mantine-color-dark-3)" />
+      </>}
+    </Paper> :
+    <></>}
+    </>
   ));
   
   return (
     <Section title={sectionName}>
       <SimpleGrid cols={{ base: 2, sm: 3, lg: 4}}>
-        {traits}
+        {subsections}
       </SimpleGrid>
     </Section>
   )
@@ -169,7 +240,7 @@ function NaturalOccurrenceSection({ data }: { data: NaturalOccurrenceRegionReadD
   ));
 
   return (
-    <Section title="Regiões de ocorrência natural (onde é nativa)" style={{cursor: 'pointer'}} onClick={() => navigate(`natural-occurrence-regions`)}>
+    <Section title="Regiões de ocorrência natural (onde é nativa)" style={{cursor: 'pointer'}} onClick={() => navigate('natural-occurrence-regions')}>
       <StickyHeaderTable header={header} rows={rows} scrollWidth={600} scrollHeight={300} striped stripedColor="#f0f2f2" />
     </Section>
   )

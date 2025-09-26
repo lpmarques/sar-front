@@ -1,14 +1,15 @@
+import { TextProps } from '@mantine/core';
 import { UserReadData } from '../../apis/core';
-import { UnstyledButton, UnstyledButtonProps } from '@mantine/core';
+import ClickableText from '../common/ClickableText';
 
-export interface UserNameProps extends UnstyledButtonProps {
-  user: UserReadData
+export interface UserNameProps extends TextProps {
+  user: UserReadData,
 }
 
-export default function UserName({ user, ...buttonProps }: UserNameProps) {
+export default function UserName({ user, ...textProps }: UserNameProps) {
   return (
-    <UnstyledButton onClick={() => window.open(`/users/${user.id}`, '_blank')} {...buttonProps}>
+    <ClickableText onClick={() => window.open(`/users/${user.id}`, '_blank')} {...textProps}>
       {user.firstName} {user.lastName}
-    </UnstyledButton>
+    </ClickableText>
   )
 }

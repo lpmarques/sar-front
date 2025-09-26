@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router';
-import { Container, UnstyledButton, Text, Space, Table, Paper, Alert, ContainerProps } from '@mantine/core';
+import { Container, Text, Space, Table, Paper, Alert, ContainerProps } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -13,6 +13,7 @@ import {
   TaxonWriteRequestData,
 } from '../../apis/catalog';
 import { ContentReadData, ContentWriteRequestData } from '../../apis/core';
+import ClickableText from '../common/ClickableText';
 import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { SectionConfig, getSectionConfig, SectionSlug } from './SectionConfigs';
@@ -73,13 +74,13 @@ function SectionEditBody<ReadT extends ContentReadData, WriteT extends ContentWr
 
   return (
     <Container {...containerProps}>
-      <UnstyledButton onClick={() => navigate(`/plants/${plant.id}`)}>
-        <Text fs="italic" fz="h3" pb={15}>{plant.acceptedTaxonName}</Text>
-      </UnstyledButton>
+      <ClickableText fs="italic" fz="h3" pb={15} onClick={() => navigate(`/plants/${plant.id}`)}>
+        {plant.acceptedTaxonName}
+      </ClickableText>
       <Text fz="h3" pb={15}>
-        <UnstyledButton fz="h3" fw={600} onClick={() => navigate(`/plants/${plant.id}/${sectionSlug}`)}>
+        <ClickableText span inherit fw={600} onClick={() => navigate(`/plants/${plant.id}/${sectionSlug}`)}>
           {sectionConfig.sectionName}
-        </UnstyledButton> - <Text span inherit fw={600}>Proposta de Inclusão</Text>
+        </ClickableText> - <Text span inherit fw={600}>Proposta de Inclusão</Text>
       </Text>
       <Alert variant="light" color="blue" icon={<IconInfoCircle />}>
         <Text fz="md" pb={10}>Itens propostos serão analisados e, se aprovados, serão incorporados ao conteúdo aceito.</Text>

@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router';
-import { Alert, Button, Container, Grid, Group, List, Paper, Space, Table, Text, Tooltip, UnstyledButton } from '@mantine/core';
+import { Alert, Button, Container, Grid, Group, List, Paper, Space, Table, Text, Tooltip } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { IconCircleDashedPlus, IconInfoCircle, IconTrash, IconX } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -11,13 +11,14 @@ import {
   TraitValueReadData,
 } from '../../apis/catalog';
 import { QueryOptions, showMutationError } from '../../apis/common';
-import classes from '../common/Clickable.module.css';
 import { showError, showSuccess } from '../common/notifications';
 import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { useAuth } from '../../hooks/useAuth';
 import { useLanguage } from '../../hooks/useLanguage';
 import { UserAvatar } from '../user/';
+import ClickableText from '../common/ClickableText';
+import ClickableRow from '../common/ClickableRow';
 import { EndorsementCounter, SourceDetails, SourceRef, TraitValueDisplay } from '.';
 
 export default function TraitDetails() {
@@ -28,6 +29,12 @@ export default function TraitDetails() {
     queryKey: ['plant', plantId!],
     queryFn: getPlant
   };
+  const traitsQueryOptions = {
+    queryKey: [
+      'traitList',
+
+    ]
+  }
   const traitValuesQueryOptions = {
     queryKey: [
       'plantTraitValueList',
@@ -59,9 +66,9 @@ export default function TraitDetails() {
           </List>
         </Alert> */}
         {/* <Space h={20} /> */}
-        <UnstyledButton onClick={() => navigate(`/plants/${plantId}`)}>
-          <Text fs="italic" fz="h3" pb={15}>{plant.data.acceptedTaxonName}</Text>
-        </UnstyledButton>
+        <ClickableText fs="italic" fz="h3" pb={15} onClick={() => navigate(`/plants/${plantId}`)}>
+          {plant.data.acceptedTaxonName}
+        </ClickableText>
         <Text fz="h3" pb={15}>
           [{acceptedValue.sectionName}] <Text span inherit fw={600}>{acceptedValue.traitName}</Text>
         </Text>
@@ -69,7 +76,7 @@ export default function TraitDetails() {
           <Grid.Col span={{base: 10, sm: 5}}>
             <AcceptedTraitValueDisplay data={acceptedValue} />
             <Space h={15} />
-            <AcceptedValueEndorsements data={acceptedValue} dataQueryOptions={traitValuesQueryOptions} />
+            <AcceptedValueEndorsements data={acceptedValue} />
           </Grid.Col>
           <Grid.Col span={{base: 10, sm: 5}}>
             <AcceptedValueSource sourceId={acceptedValue.sourceId!} />
@@ -103,7 +110,7 @@ function AcceptedValueSource({ sourceId }: { sourceId: number }) {
   )
 }
 
-function AcceptedValueEndorsements({ data, dataQueryOptions }: { data: TraitValueReadData, dataQueryOptions: QueryOptions<TraitValueReadData[]> }) {
+function AcceptedValueEndorsements({ data }: { data: TraitValueReadData }) {
   return (
     <Tooltip withArrow label="Se concorda com essa versão, deixe o seu jóinha." position="bottom">
       <Paper withBorder ta="center" p={15}>
@@ -159,7 +166,15 @@ function ValueHistory({ data }: { data: TraitValueReadData[] }) {
   )
 }
 
-function ValueChangeProposals({ plant, proposals, proposalsQueryOptions }: { plant: PlantReadData, proposals: TraitValueReadData[], proposalsQueryOptions: QueryOptions<TraitValueReadData[]> }) {
+function ValueChangeProposals({
+  plant,
+  proposals,
+  proposalsQueryOptions
+}: {
+  plant: PlantReadData,
+  proposals: TraitValueReadData[],
+  proposalsQueryOptions: QueryOptions<TraitValueReadData[]>
+}) {
   const { user } = useAuth();
   const { lang } = useLanguage();
   const navigate = useNavigate();
@@ -199,8 +214,9 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryOptions }: { pla
 
   const handleAddBarClick = () => {
     if (!user) {
+      showError("É preciso estar logado para executar essa ação.", null);
       window.open('/login', '_blank');
-      throw showError("É preciso estar logado para executar essa ação.", null);
+      return;
     }
 
     navigate('edit');
@@ -249,11 +265,11 @@ function ValueChangeProposals({ plant, proposals, proposalsQueryOptions }: { pla
   ));
 
   rows.push(
-    <Table.Tr key={0}>
-      <Table.Td colSpan={6} align="center" onClick={() => handleAddBarClick()} className={classes.row}>
-        <IconCircleDashedPlus className={classes.icon} size={35}/>
+    <ClickableRow key={0} onClick={() => handleAddBarClick()}>
+      <Table.Td colSpan={10} align="center">
+        <IconCircleDashedPlus color="var(--mantine-color-gray-5)" size={35}/>
       </Table.Td>
-    </Table.Tr>
+    </ClickableRow>
   )
 
   return (

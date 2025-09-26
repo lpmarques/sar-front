@@ -7,6 +7,7 @@ import { getPlantList, getTaxonName, PlantReadData, TraitValueReadData } from ".
 import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { TraitValueDisplay } from '.';
+import ClickableRow from '../common/ClickableRow';
 
 export default function PlantList() {
   const plantListQueryOptions = {
@@ -102,13 +103,17 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
   );
 
   const rows = rowsData.map((row: RowData) => (
-    <Table.Tr key={row.acceptedName} style={{cursor: 'pointer'}} onClick={() => handleRowClick(row)}>
+    <ClickableRow 
+      key={row.acceptedName} 
+      onClick={() => handleRowClick(row)} 
+      style={{'--hover-color': '#bef7ce'}}
+    >
       <Table.Td w={230}>{row.acceptedName}</Table.Td>
       <Table.Td w={100}>{row.familyName}</Table.Td>
       <Table.Td w={500}>{row.popularNames}</Table.Td>
       <Table.Td w={150}>{row.lifeForms && <TraitValueDisplay data={row.lifeForms} />}</Table.Td>
       <Table.Td w={110}>{row.lifeCycle && <TraitValueDisplay data={row.lifeCycle} />}</Table.Td>
-    </Table.Tr>
+    </ClickableRow>
   ));
 
   rows.push(
@@ -138,8 +143,6 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
           scrollHeight={550}
           striped
           stripedColor="#f0f2f2"
-          highlightOnHover
-          highlightOnHoverColor="#bef7ce"
           withRowBorders={false}
         />
       </Paper>

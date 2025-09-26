@@ -35,10 +35,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             { user ? 
             <UserAvatar user={user} /> :
             <UnstyledButton onClick={() => navigate("/login")}>
-                <Avatar
-                  mb={15}
-                  size={60} />
-                {/* <img src={userLogo} className={classes.logo} alt="User logo" /> */}
+              <Avatar mb={15} size={60} />
             </UnstyledButton>
             }
           </Group>

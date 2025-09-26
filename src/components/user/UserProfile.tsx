@@ -1,14 +1,13 @@
-import axios, { AxiosResponse } from 'axios';
 import { useNavigate, useParams } from "react-router";
 import { Avatar, Button, Center, Container, Group, Paper, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { IconMail, IconBuildings, IconMapPin } from '@tabler/icons-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useAuth } from "../../hooks/useAuth";
-import { deleteUser, deleteUserToken, getUser } from "../../apis/core";
-import classes from './UserProfile.module.css';
-import { QueryLoader } from '../common/QueryLoader';
 import { showMutationError } from '../../apis/common';
+import { deleteUser, deleteUserToken, getUser } from "../../apis/core";
+import { QueryLoader } from '../common/QueryLoader';
+import { useAuth } from "../../hooks/useAuth";
+import classes from './UserProfile.module.css';
 
 export default function UserProfile() {
   let { userId } = useParams();

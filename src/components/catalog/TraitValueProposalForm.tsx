@@ -147,7 +147,7 @@ export default function TraitValueProposalForm({
       <SourceSelect field={sourceField} />
       {divider}
       <Text fz="h5" fw={600} pb={10}>Comentário <Text span size="sm" c="dimmed">(opcional)</Text></Text>
-      <CommentInput field={commentField} maxChars={commentMaxChars} />
+      <CommentInput field={commentField} maxChars={commentMaxChars} placeholder="Se achar pertinente, fale mais aqui sobre sua proposta." />
       {divider}
       <Button type="submit" color="teal" onClick={handleSubmit}>Publicar proposta</Button>
     </Paper>

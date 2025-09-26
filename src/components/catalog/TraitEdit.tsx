@@ -1,15 +1,16 @@
 import { useNavigate, useParams } from 'react-router';
-import { Container, UnstyledButton, Text, Space, Alert } from '@mantine/core';
+import { Container, Text, Space, Alert } from '@mantine/core';
+import { IconInfoCircle } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import {
   getPlant,
   getPlantTraitValueList,
   getTraitList,
 } from '../../apis/catalog';
+import ClickableText from '../common/ClickableText';
 import { QueryLoader } from '../common/QueryLoader';
-import { TraitValueProposalForm } from '.';
 import { AcceptedTraitValueDisplay } from './TraitDetails';
-import { IconInfoCircle } from '@tabler/icons-react';
+import { TraitValueProposalForm } from '.';
 
 export default function TraitEdit() {
   const { plantId, traitSlug } = useParams();
@@ -44,14 +45,14 @@ export default function TraitEdit() {
     <QueryLoader {...traitValuesQueryOptions}>
       {plant.data && trait && acceptedValue &&
       <Container size={1000}>
-        <UnstyledButton onClick={() => navigate(`/plants/${plantId}`)}>
-          <Text fs="italic" fz="h3" pb={15}>{plant.data.acceptedTaxonName}</Text>
-        </UnstyledButton>
+        <ClickableText fs="italic" fz="h3" pb={15} onClick={() => navigate(`/plants/${plantId}`)}>
+          {plant.data.acceptedTaxonName}
+        </ClickableText>
         <Text fz="h3" pb={15}>
           [{trait.sectionName}]&nbsp;
-          <UnstyledButton fz="h3" fw={600} onClick={() => navigate(`/plants/${plantId}/trait/${traitSlug}`)}>
+          <ClickableText span inherit fw={600} onClick={() => navigate(`/plants/${plantId}/trait/${traitSlug}`)}>
             {trait.name}
-          </UnstyledButton> - <Text span inherit fw={600}>Proposta de Alteração</Text>
+          </ClickableText> - <Text span inherit fw={600}>Proposta de Alteração</Text>
         </Text>
         <Alert variant="light" color="blue" icon={<IconInfoCircle />}>
           <Text fz="md" pb={10}>A versão proposta será analisada e, se aprovada, substituirá a versão aceita.</Text>

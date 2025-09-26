@@ -20,7 +20,7 @@ export default function SourceSelect({ field }: { field: UseFieldReturnType<stri
   const sources = useQuery(sourcesQueryOptions);
 
   const visibleSources = useMemo(() => {
-    // TODO: implement filters on source endpoint, allowing for separate querying of user-created sources and static sources, without need for client-side deduplication
+    // TODO: implement filters on source endpoint, allowing for separate querying of user-created sources and static sources, with no need of client-side deduplication
     const staticSources = sources.data ? sources.data.filter((source) => source.isStatic) : [];
     const userSources = sources.data ? sources.data.filter((source) => source.creatorId == user?.id) : [];
     return userSources.concat(staticSources).sort(
@@ -65,7 +65,6 @@ export default function SourceSelect({ field }: { field: UseFieldReturnType<stri
         aria-label="Fonte"
         {...field.getInputProps()}
         />
-      {/* <Button size="xs" color="gray" title="Remover seleção" onClick={unselectSource}><IconX /></Button> */}
       <Button size="compact-sm" color="teal" title="Cadastrar nova fonte" onClick={handleNewSourceButtonClick}><IconPlus /></Button>
     </Group>
     { selectedSource && 

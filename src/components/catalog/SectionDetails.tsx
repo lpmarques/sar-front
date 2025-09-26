@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router';
-import { Alert, Button, Container, ContainerProps, Group, List, Paper, Space, Table, Text, Tooltip, UnstyledButton } from '@mantine/core';
+import { Alert, Button, Container, ContainerProps, Group, Paper, Space, Table, Text, Tooltip } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { IconCircleDashedPlus, IconInfoCircle, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -15,15 +15,16 @@ import {
 } from '../../apis/catalog';
 import { showMutationError } from '../../apis/common';
 import { ContentReadData, ContentWriteRequestData } from '../../apis/core';
-import classes from '../common/Clickable.module.css';
+import ClickableRow from '../common/ClickableRow';
+import ClickableText from '../common/ClickableText';
 import { showError, showSuccess } from '../common/notifications';
 import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { useAuth } from '../../hooks/useAuth';
 import { useLanguage } from '../../hooks/useLanguage';
 import { UserAvatar } from '../user';
-import { EndorsementCounter, SourceRef } from '.';
 import { SectionConfig, getSectionConfig, SectionSlug } from './SectionConfigs';
+import { EndorsementCounter, SourceRef } from '.';
 
 export default function SectionDetails() {
   const { plantId, sectionSlug } = useParams();
@@ -88,9 +89,10 @@ function SectionDetailsBody<ReadT extends ContentReadData, WriteT extends Conten
       </List>
     </Alert> */}
     {/* <Space h={20} /> */}
-    <UnstyledButton onClick={() => navigate(`/plants/${plant.id}`)}>
-      <Text fs="italic" fz="h3" pb={15}>{plant.acceptedTaxonName}</Text>
-    </UnstyledButton>
+    {/* TODO: criar componentes ClickableText e ClickableRow para evitar import de classes */}
+    <ClickableText fs="italic" fz="h3" pb={15} onClick={() => navigate(`/plants/${plant.id}`)}>
+      {plant.acceptedTaxonName}
+    </ClickableText>
     <Text fz="h3" pb={15}>
       <Text span inherit fw={600}>{sectionConfig.sectionName}</Text>
     </Text>
@@ -276,11 +278,11 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
   ));
 
   rows.push(
-    <Table.Tr key={0}>
-      <Table.Td colSpan={10} align="center" onClick={() => handleAddBarClick()} className={classes.row}>
-        <IconCircleDashedPlus className={classes.icon} size={35}/>
+    <ClickableRow key={0} onClick={() => handleAddBarClick()}>
+      <Table.Td colSpan={10} align="center">
+        <IconCircleDashedPlus color="var(--mantine-color-gray-5)" size={35}/>
       </Table.Td>
-    </Table.Tr>
+    </ClickableRow>
   )
 
   return (

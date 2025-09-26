@@ -1,20 +1,18 @@
-button:hover {
-  text-decoration: underline;
+.icon:hover {
+  cursor: pointer;
 }
 
-.icon {
-  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+.fillableIcon:hover {
+  cursor: pointer;
+  fill: var(--mantine-color-gray-4);
 }
 
 .row:hover {
   cursor: pointer;
-  background-color: #bef7ce;
-}
-
-.text {
-  cursor: pointer;
+  background-color: var(--hover-color);
 }
 
 .text:hover {
+  cursor: pointer;
   text-decoration: underline;
 }
