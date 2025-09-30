@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { createContext, ReactElement, useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { Button, Container, Group, Paper, SimpleGrid, Space, Table, Text } from '@mantine/core';
+import { Button, Center, Container, Group, Paper, SimpleGrid, Space, Table, Text } from '@mantine/core';
 import { IconCircleDashedPlus, IconPencil, IconPencilOff } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -22,10 +22,12 @@ import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { sortNaturalOccurrenceRegions } from "./NaturalOccurrenceRegionsSection";
 import { TraitValueDisplay } from '.';
+import { useLocalStorage } from "../../hooks/useLocalStorage";
 
 export default function PlantDetails() {
   const { plantId } = useParams();
-  const [editMode, setEditMode] = useState(false);
+  const [editMode, setEditMode] = useLocalStorage('editMode', false);
+  const EditModeContext = createContext(false);
   
   const plantQueryOptions = {
     queryKey: ['plant', plantId!],
@@ -60,39 +62,48 @@ export default function PlantDetails() {
   const naturalOccurrenceRegions = useQuery(naturalOccurrenceRegionsQueryOptions);
 
   const sections = traits.data ? Object.fromEntries(traits.data.map(item => [item.sectionSlug!, item.sectionName!])): {};
-  const traitSections = Object.entries(sections).map(([key, value]) => (
-    <TraitSection
-      key={key}
-      sectionName={value}
-      traits={traits.data!.filter(item => item.sectionSlug === key)}
-      traitValues={traitValues.data ? traitValues.data.filter(item => item.sectionSlug === key) : []}
-      editMode={editMode}
-    />
-  ));
+  const traitSections = Object.entries(sections).reduce((acc: ReactElement[], [key, value]) => {
+    let sectionTraitValues = traitValues.data ? traitValues.data.filter(item => item.sectionSlug === key) : [];
+    if (sectionTraitValues.length > 0 || editMode) {
+      acc.push(
+        <TraitSection
+        key={key}
+        sectionName={value}
+        traits={traits.data!.filter(item => item.sectionSlug === key)}
+        traitValues={sectionTraitValues}
+        editMode={editMode}
+        />
+      )
+    }
+    return acc;
+  }, []);
 
   return (
-    <QueryLoader {...plantQueryOptions}>
-      <Container size={1000}>
-        <Group justify="space-between" pb={15}>
-          <Text fz="h2" fs="italic" fw={600}>{plant.data?.acceptedTaxonName}</Text>
-          <EditButton editMode={editMode} setEditMode={setEditMode}/>
-        </Group>
-        <QueryLoader {...popularNamesQueryOptions}>
-          <PopularNamesSection data={popularNames.data!}/>
-        </QueryLoader>
-        <QueryLoader {...taxaQueryOptions}>
-          {taxa.data &&
-          <TaxonomySection taxa={taxa.data}/>}
-        </QueryLoader>
-        <QueryLoader {...traitValuesQueryOptions}>
-          {traitSections}
-        </QueryLoader>
-        <QueryLoader {...naturalOccurrenceRegionsQueryOptions}>
-          {naturalOccurrenceRegions.data && naturalOccurrenceRegions.data.length > 0 &&
-          <NaturalOccurrenceSection data={naturalOccurrenceRegions.data}/>}
-        </QueryLoader>
-      </Container>
-    </QueryLoader>
+    <EditModeContext.Provider value={editMode}>
+        <Container size={1000}>
+          <QueryLoader {...plantQueryOptions}>
+            <Group justify="space-between" pb={15}>
+              <Text fz="h2" fs="italic" fw={600}>{plant.data?.acceptedTaxonName}</Text>
+              <EditButton editMode={editMode} setEditMode={setEditMode}/>
+            </Group>
+          </QueryLoader>
+          <QueryLoader {...popularNamesQueryOptions}>
+            {popularNames.data && (popularNames.data.length > 0 || editMode) &&
+            <PopularNamesSection popularNames={popularNames.data!}/>}
+          </QueryLoader>
+          <QueryLoader {...taxaQueryOptions}>
+            {taxa.data && (taxa.data.length > 0 || editMode) &&
+            <TaxonomySection taxa={taxa.data}/>}
+          </QueryLoader>
+          <QueryLoader {...traitValuesQueryOptions}>
+            {traitSections}
+          </QueryLoader>
+          <QueryLoader {...naturalOccurrenceRegionsQueryOptions}>
+            {naturalOccurrenceRegions.data && (naturalOccurrenceRegions.data.length > 0 || editMode) &&
+            <NaturalOccurrenceSection regions={naturalOccurrenceRegions.data}/>}
+          </QueryLoader>
+        </Container>
+    </EditModeContext.Provider>
   )
 }
 
@@ -117,6 +128,14 @@ function EditButton({
   )
 }
 
+function ContentPlaceholder({ size }: { size: number }) {
+  return (
+    <Center py={10}>
+      <IconCircleDashedPlus size={size} color="var(--mantine-color-dark-2)" />
+    </Center>
+  ) 
+}
+
 interface SectionProps extends React.ComponentProps<'section'> {
   title: string,
 }
@@ -124,7 +143,7 @@ interface SectionProps extends React.ComponentProps<'section'> {
 function Section({ title, children, ...sectionProps }: SectionProps) {
   return (
     <>
-    <Paper withBorder p={10} component="section" {...sectionProps}>
+    <Paper withBorder shadow="xs" p={10} component="section" {...sectionProps}>
       <Text fz="h5" fw={600} pb={10}>{title}</Text>
       { children }
     </Paper>
@@ -133,13 +152,15 @@ function Section({ title, children, ...sectionProps }: SectionProps) {
   )
 }
 
-function PopularNamesSection({ data }: { data: PopularNameReadData[] }) {
+function PopularNamesSection({ popularNames }: { popularNames: PopularNameReadData[] }) {
   const navigate = useNavigate();
-  const popularNames = data.map(item => item.name).join(", ");
+  const nameList = popularNames.map(item => item.name).join(", ");
 
   return (
-    <Section title="Nome(s) popular(es)" style={{cursor: 'pointer'}} onClick={() => navigate('popular-names')}>
-      <Text size="xl">{popularNames}</Text>
+    <Section title="Nomes populares" style={{cursor: 'pointer'}} onClick={() => navigate('popular-names')}>
+      {popularNames.length > 0 ?
+      <Text size="lg">{nameList}</Text> :
+      <ContentPlaceholder size={50} />}
     </Section>
   )
 }
@@ -151,29 +172,31 @@ function TaxonomySection({ taxa }: { taxa: TaxonReadData[] }) {
   const synonymNames = synonyms ? synonyms.map(item => getTaxonName(item)).join(", ") : "";
 
   return (
-    <>
-    {accepted &&
     <Section title="Taxonomia" style={{cursor: 'pointer'}} onClick={() => navigate('taxonomy')}>
-      <Text size="md">
-        <Text span c="dimmed">Família:</Text> {accepted ? accepted.family : ""}
-      </Text>
-      <Text size="md">
-        <Text span c="dimmed">Espécie:</Text> {accepted ? accepted.species : ""}
-      </Text>
-      {accepted?.subspecies &&
-      <Text size="md">
-        <Text span c="dimmed">Subespécie:</Text> {accepted.subspecies}
-      </Text>}
-      {accepted?.variety &&
-      <Text size="md">
-        <Text span c="dimmed">Variedade:</Text> {accepted.variety}
-      </Text>}
-      {synonymNames &&
-      <Text size="md">
+      {taxa.length > 0 ? <>
+        {accepted && <>
+        <Text size="md">
+          <Text span c="dimmed">Família:</Text> {accepted.family}
+        </Text>
+        <Text size="md">
+          <Text span c="dimmed">Espécie:</Text> {accepted.species}
+        </Text>
+        {accepted.subspecies &&
+        <Text size="md">
+          <Text span c="dimmed">Subespécie:</Text> {accepted.subspecies}
+        </Text>}
+        {accepted.variety &&
+        <Text size="md">
+          <Text span c="dimmed">Variedade:</Text> {accepted.variety}
+        </Text>}
+        </>}
+        {synonymNames &&
+        <Text size="md">
         <Text span c="dimmed">Sinônimo(s):</Text> {synonymNames}
-      </Text>}
-    </Section>}
-    </>
+        </Text>}
+      </> :
+      <ContentPlaceholder size={50} />}
+    </Section>
   )
 }
 
@@ -200,7 +223,7 @@ function TraitSection({
         <TraitValueDisplay data={traitValuesMap[item.slug]} style={item.type=="string[]" ? { cursor: 'pointer' } : undefined} />
         </> : <>
         <Text fz="h6" fw={550} p={5} c="var(--mantine-color-gray-6)">{item.name}</Text>
-        <IconCircleDashedPlus color="var(--mantine-color-dark-3)" />
+        <ContentPlaceholder size={40} />
       </>}
     </Paper> :
     <></>}
@@ -216,10 +239,10 @@ function TraitSection({
   )
 }
 
-function NaturalOccurrenceSection({ data }: { data: NaturalOccurrenceRegionReadData[] }) {
+function NaturalOccurrenceSection({ regions }: { regions: NaturalOccurrenceRegionReadData[] }) {
   const navigate = useNavigate();
 
-  const sortedRegions = data.sort((a, b) => sortNaturalOccurrenceRegions(a, b));
+  const sortedRegions = regions.sort((a, b) => sortNaturalOccurrenceRegions(a, b));
 
   const header = (
       <Table.Tr>
@@ -241,7 +264,16 @@ function NaturalOccurrenceSection({ data }: { data: NaturalOccurrenceRegionReadD
 
   return (
     <Section title="Regiões de ocorrência natural (onde é nativa)" style={{cursor: 'pointer'}} onClick={() => navigate('natural-occurrence-regions')}>
-      <StickyHeaderTable header={header} rows={rows} scrollWidth={600} scrollHeight={300} striped stripedColor="#f0f2f2" />
+      {regions.length > 0 ?
+      <StickyHeaderTable
+        header={header}
+        rows={rows}
+        scrollWidth={600}
+        scrollHeight={300}
+        striped
+        stripedColor="#f0f2f2"
+      /> :
+      <ContentPlaceholder size={50} />}
     </Section>
   )
 }

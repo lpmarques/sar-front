@@ -1,12 +1,13 @@
 import { useParams, useNavigate } from 'react-router';
 import { Alert, Button, Container, Grid, Group, List, Paper, Space, Table, Text, Tooltip } from '@mantine/core';
 import { modals } from '@mantine/modals';
-import { IconCircleDashedPlus, IconInfoCircle, IconTrash, IconX } from '@tabler/icons-react';
+import { IconAlertHexagon, IconEyeQuestion, IconInfoCircle, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   deleteTraitValue,
   getPlant,
   getPlantTraitValueList,
+  getTraitList,
   PlantReadData,
   TraitValueReadData,
 } from '../../apis/catalog';
@@ -18,8 +19,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useLanguage } from '../../hooks/useLanguage';
 import { UserAvatar } from '../user/';
 import ClickableText from '../common/ClickableText';
-import ClickableRow from '../common/ClickableRow';
 import { EndorsementCounter, SourceDetails, SourceRef, TraitValueDisplay } from '.';
+import AddRow from '../common/AddRow';
 
 export default function TraitDetails() {
   const { plantId, traitSlug } = useParams();
@@ -27,14 +28,12 @@ export default function TraitDetails() {
 
   const plantQueryOptions = {
     queryKey: ['plant', plantId!],
-    queryFn: getPlant
+    queryFn: getPlant,
   };
   const traitsQueryOptions = {
-    queryKey: [
-      'traitList',
-
-    ]
-  }
+    queryKey: ['traitList', `trait_slugs=${traitSlug}`],
+    queryFn: getTraitList,
+  };
   const traitValuesQueryOptions = {
     queryKey: [
       'plantTraitValueList',
@@ -46,15 +45,21 @@ export default function TraitDetails() {
   };
 
   const plant = useQuery(plantQueryOptions);
-  const { data } = useQuery(traitValuesQueryOptions);
+  const traits = useQuery(traitsQueryOptions);
+  const traitValues = useQuery(traitValuesQueryOptions);
 
-  const acceptedValue = data?.find(item => item.contentStatus === "accepted");
-  const proposedValues = data ? data.filter(item => item.contentStatus === "proposed") : [];
-  const everAcceptedValues = data ? data.filter(item => item.acceptedAt) : [];
+  const trait = traits.data ? traits.data[0] : undefined;
+  const acceptedValue = traitValues.data?.find(item => item.contentStatus === "accepted");
+  const proposedValues = traitValues.data ? traitValues.data.filter(item => item.contentStatus === "proposed") : [];
+  const everAcceptedValues = traitValues.data ? traitValues.data.filter(item => item.acceptedAt) : [];
   
+  const callToActionMsg = proposedValues.length > 0 ?
+    "Nos ajude adicionando sua proposta abaixo ou avaliando propostas de outros usuários." :
+    "Nos ajude adicionando sua proposta abaixo.";
+
   return (
     <QueryLoader {...traitValuesQueryOptions}>
-      {plant.data && acceptedValue &&
+      {plant.data && trait &&
       <Container size={1000}>
         {/* TODO: adicionar descrição para cada traço e opções de valores
          <Alert variant="light" color="blue" title="Ciclo de vida" icon={<IconInfoCircle />}>
@@ -64,14 +69,15 @@ export default function TraitDetails() {
             <List.Item fz="sm">bianual, quando dura em torno de dois anos;</List.Item>
             <List.Item fz="sm">perene, quando dura mais de dois anos.</List.Item>
           </List>
-        </Alert> */}
+          </Alert> */}
         {/* <Space h={20} /> */}
         <ClickableText fs="italic" fz="h3" pb={15} onClick={() => navigate(`/plants/${plantId}`)}>
           {plant.data.acceptedTaxonName}
         </ClickableText>
         <Text fz="h3" pb={15}>
-          [{acceptedValue.sectionName}] <Text span inherit fw={600}>{acceptedValue.traitName}</Text>
+          [{trait.sectionName}] <Text span inherit fw={600}>{trait.name}</Text>
         </Text>
+        {acceptedValue ? <>
         <Grid columns={10} justify="space-between" mb={15}>
           <Grid.Col span={{base: 10, sm: 5}}>
             <AcceptedTraitValueDisplay data={acceptedValue} />
@@ -82,9 +88,19 @@ export default function TraitDetails() {
             <AcceptedValueSource sourceId={acceptedValue.sourceId!} />
           </Grid.Col>
         </Grid>
-        <ValueHistory data={everAcceptedValues} />
+        <AcceptedValueHistory data={everAcceptedValues} />
         <Space h={15} />
-        <ValueChangeProposals plant={plant.data} proposals={proposedValues} proposalsQueryOptions={traitValuesQueryOptions} />
+        <Alert variant="light" color="gray" icon={<IconEyeQuestion />}>
+          <Text pb={10}>Não concorda com a informação apresentada?</Text>
+          <Text pb={10}>{callToActionMsg}</Text>
+        </Alert>
+        </> : 
+        <Alert variant="light" color="red" title="Informação pendente" icon={<IconAlertHexagon />}>
+          <Text pb={10}>Ainda não temos uma versão aceita do traço "{trait.name}" para {plant.data.acceptedTaxonName}.</Text>
+          <Text pb={10}>{callToActionMsg}</Text>
+        </Alert>}
+        <Space h={15} />
+        <ProposedValues plant={plant.data} proposals={proposedValues} proposalsQueryOptions={traitValuesQueryOptions} />
       </Container>}
     </QueryLoader>
   )
@@ -123,7 +139,7 @@ function AcceptedValueEndorsements({ data }: { data: TraitValueReadData }) {
   )
 }
 
-function ValueHistory({ data }: { data: TraitValueReadData[] }) {
+function AcceptedValueHistory({ data }: { data: TraitValueReadData[] }) {
   const { lang } = useLanguage();
 
   const sortedValues = data.sort((a, b) =>
@@ -166,7 +182,7 @@ function ValueHistory({ data }: { data: TraitValueReadData[] }) {
   )
 }
 
-function ValueChangeProposals({
+function ProposedValues({
   plant,
   proposals,
   proposalsQueryOptions
@@ -210,17 +226,16 @@ function ValueChangeProposals({
     labels: { confirm: 'Excluir', cancel: 'Cancelar exclusão' },
     confirmProps: { color: 'red' },
     onConfirm: () => proposalDeletion.mutate(proposal.contentId),
-  })
+  });
 
-  const handleAddBarClick = () => {
+  const handleAddRowClick = () => {
     if (!user) {
       showError("É preciso estar logado para executar essa ação.", null);
-      window.open('/login', '_blank');
-      return;
+      return navigate('/login');
     }
 
     navigate('edit');
-  }
+  };
 
   const header = (
     <Table.Tr>
@@ -265,16 +280,14 @@ function ValueChangeProposals({
   ));
 
   rows.push(
-    <ClickableRow key={0} onClick={() => handleAddBarClick()}>
-      <Table.Td colSpan={10} align="center">
-        <IconCircleDashedPlus color="var(--mantine-color-gray-5)" size={35}/>
-      </Table.Td>
-    </ClickableRow>
-  )
+    <Tooltip key={0} withArrow label="Clique para adicionar uma nova proposta." position="bottom" >
+      <AddRow colSpan={6} onClick={() => handleAddRowClick()} />
+    </Tooltip>
+  );
 
   return (
     <Paper withBorder p={15} mb={25}>
-      <Text fz="h5" fw={600} pb={10}>Propostas de alteração</Text>
+      <Text fz="h5" fw={600} pb={10}>Outras propostas</Text>
       <StickyHeaderTable header={header} rows={rows} scrollWidth={600} scrollHeight={220} />
     </Paper>
   )

@@ -1,12 +1,12 @@
 import { MantineStyleProp, Table, TableTrProps } from "@mantine/core";
 import classes from '../common/Clickable.module.css';
 
-interface ClickableRow extends TableTrProps {
+export interface ClickableRowProps extends TableTrProps {
   children: React.ReactNode,
   style?: MantineStyleProp,
 }
 
-export default function ClickableRow({ children, style, ...props }: ClickableRow) {
+export default function ClickableRow({ children, style, ...props }: ClickableRowProps) {
   const defaultStyle = {
     '--hover-color': 'var(--mantine-color-gray-1)',
   };

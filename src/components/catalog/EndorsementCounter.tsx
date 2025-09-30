@@ -93,7 +93,7 @@ export default function EndorsementCounter<ReadT extends ContentReadData>({
     }
 
     if (user.id == content.contentProposer!.id)
-      return showError("Somente outro usuário pode aprovar conteúdo criado por você.", null);
+      return showError("Somente outro usuário pode avaliar conteúdo criado por você.", null);
 
     if (userEndorsementId)
       endorsementDeletion.mutate(userEndorsementId);
@@ -102,7 +102,7 @@ export default function EndorsementCounter<ReadT extends ContentReadData>({
         contentId: content.contentId,
       });
     }
-  }
+  };
 
   const openEndorsementListModal = () => modals.open({
     title: "Usuários que aprovaram a informação",

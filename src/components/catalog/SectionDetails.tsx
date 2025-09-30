@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router';
 import { Alert, Button, Container, ContainerProps, Group, Paper, Space, Table, Text, Tooltip } from '@mantine/core';
 import { modals } from '@mantine/modals';
-import { IconCircleDashedPlus, IconInfoCircle, IconTrash } from '@tabler/icons-react';
+import { IconAlertHexagon, IconCircleDashedPlus, IconEyeQuestion, IconInfoCircle, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getPlant,
@@ -15,7 +15,6 @@ import {
 } from '../../apis/catalog';
 import { showMutationError } from '../../apis/common';
 import { ContentReadData, ContentWriteRequestData } from '../../apis/core';
-import ClickableRow from '../common/ClickableRow';
 import ClickableText from '../common/ClickableText';
 import { showError, showSuccess } from '../common/notifications';
 import { QueryLoader } from '../common/QueryLoader';
@@ -25,6 +24,7 @@ import { useLanguage } from '../../hooks/useLanguage';
 import { UserAvatar } from '../user';
 import { SectionConfig, getSectionConfig, SectionSlug } from './SectionConfigs';
 import { EndorsementCounter, SourceRef } from '.';
+import AddRow from '../common/AddRow';
 
 export default function SectionDetails() {
   const { plantId, sectionSlug } = useParams();
@@ -89,7 +89,6 @@ function SectionDetailsBody<ReadT extends ContentReadData, WriteT extends Conten
       </List>
     </Alert> */}
     {/* <Space h={20} /> */}
-    {/* TODO: criar componentes ClickableText e ClickableRow para evitar import de classes */}
     <ClickableText fs="italic" fz="h3" pb={15} onClick={() => navigate(`/plants/${plant.id}`)}>
       {plant.acceptedTaxonName}
     </ClickableText>
@@ -97,7 +96,7 @@ function SectionDetailsBody<ReadT extends ContentReadData, WriteT extends Conten
       <Text span inherit fw={600}>{sectionConfig.sectionName}</Text>
     </Text>
     <AcceptedItems<ReadT, WriteT>
-      plantId={plant.id}
+      plant={plant}
       sectionConfig={sectionConfig}
       />
     <Space h={15} />
@@ -110,18 +109,19 @@ function SectionDetailsBody<ReadT extends ContentReadData, WriteT extends Conten
 }
 
 export function AcceptedItems<ReadT extends ContentReadData, WriteT extends ContentWriteRequestData>({
-  plantId,
+  plant,
   sectionConfig,
 }: {
-  plantId: number,
+  plant: PlantReadData,
   sectionConfig: SectionConfig<ReadT, WriteT>,
 }) {
-  const itemsQueryOptions = sectionConfig.buildQueryOptions(plantId);
+  const itemsQueryOptions = sectionConfig.buildQueryOptions(plant.id);
 
   const { lang } = useLanguage();
   const { data } = useQuery(itemsQueryOptions);
 
   const acceptedItems = data ? data.filter(item => item.contentStatus === "accepted") : [];
+  const proposedItems = data ? data.filter(item => item.contentStatus === "proposed") : [];
 
   const sortedItems = acceptedItems.sort((a, b) => 
     sectionConfig.sortReadData && sectionConfig.sortReadData(a, b) || a.acceptedAt!.localeCompare(b.acceptedAt!)
@@ -159,13 +159,29 @@ export function AcceptedItems<ReadT extends ContentReadData, WriteT extends Cont
       </Table.Td>
     </Table.Tr>
   ));
+  
+  const callToActionMsg = proposedItems.length > 0 ?
+    "Nos ajude adicionando sua proposta abaixo ou avaliando propostas de outros usuários." :
+    "Nos ajude adicionando sua proposta abaixo.";
 
   return (
-    <QueryLoader {...sectionConfig.buildQueryOptions(plantId)}>
+    <QueryLoader {...itemsQueryOptions}>
+      {acceptedItems.length > 0 ?
+      <>
       <Paper withBorder p={15}>
         <Text fz="h5" fw={600} pb={10}>Itens aceitos</Text>
         <StickyHeaderTable header={header} rows={rows} scrollWidth={600} scrollHeight={220} withRowBorders={false} />
       </Paper>
+      <Space h={15} />
+      <Alert variant="light" color="gray" icon={<IconEyeQuestion />}>
+        <Text pb={10}>Não concorda com a informação apresentada?</Text>
+        <Text pb={10}>{callToActionMsg}</Text>
+      </Alert>
+      </> :
+      <Alert variant="light" color="red" title="Informação pendente" icon={<IconAlertHexagon />}>
+        <Text pb={10}>Ainda não temos itens aceitos de "{sectionConfig.sectionName}" para {plant.acceptedTaxonName}.</Text>
+        <Text pb={10}>{callToActionMsg}</Text>
+      </Alert>}
     </QueryLoader>
   )
 }
@@ -228,14 +244,14 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
     onConfirm: () => proposalDeletion.mutate(proposal.contentId),
   })
 
-  const handleAddBarClick = () => {
+  const handleAddRowClick = () => {
     if (!user) {
-      window.open('/login', '_blank');
-      throw showError("É preciso estar logado para executar essa ação.", null);
+      showError("É preciso estar logado para executar essa ação.", null);
+      return navigate('/login');
     }
 
     navigate('edit');
-  }
+  };
 
   const header = (
     <Table.Tr>
@@ -278,11 +294,9 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
   ));
 
   rows.push(
-    <ClickableRow key={0} onClick={() => handleAddBarClick()}>
-      <Table.Td colSpan={10} align="center">
-        <IconCircleDashedPlus color="var(--mantine-color-gray-5)" size={35}/>
-      </Table.Td>
-    </ClickableRow>
+    <Tooltip key={0} withArrow label="Clique para adicionar uma nova proposta." position="bottom" >
+      <AddRow colSpan={10} onClick={() => handleAddRowClick()} />
+    </Tooltip>
   )
 
   return (

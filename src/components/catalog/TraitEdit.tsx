@@ -40,10 +40,10 @@ export default function TraitEdit() {
 
   const trait = traits.data && traits.data.find(item => item.slug === traitSlug!);
   const acceptedValue = values.data && values.data.find(item => item.contentStatus === "accepted");
-  
+
   return (
     <QueryLoader {...traitValuesQueryOptions}>
-      {plant.data && trait && acceptedValue &&
+      {plant.data && trait && 
       <Container size={1000}>
         <ClickableText fs="italic" fz="h3" pb={15} onClick={() => navigate(`/plants/${plantId}`)}>
           {plant.data.acceptedTaxonName}
@@ -55,11 +55,12 @@ export default function TraitEdit() {
           </ClickableText> - <Text span inherit fw={600}>Proposta de Alteração</Text>
         </Text>
         <Alert variant="light" color="blue" icon={<IconInfoCircle />}>
-          <Text fz="md" pb={10}>A versão proposta será analisada e, se aprovada, substituirá a versão aceita.</Text>
+          <Text fz="md" pb={10}>A versão proposta será analisada e, se aprovada, se tornará a versão aceita.</Text>
         </Alert>
         <Space h={15} />
+        {acceptedValue && <>
         <AcceptedTraitValueDisplay data={acceptedValue} />
-        <Space h={15} />
+        <Space h={15} /></>}
         <TraitValueProposalForm plant={plant.data} trait={trait} traitValuesQueryOptions={traitValuesQueryOptions} />
       </Container>}
     </QueryLoader>

@@ -83,7 +83,7 @@ function SectionEditBody<ReadT extends ContentReadData, WriteT extends ContentWr
         </ClickableText> - <Text span inherit fw={600}>Proposta de Inclusão</Text>
       </Text>
       <Alert variant="light" color="blue" icon={<IconInfoCircle />}>
-        <Text fz="md" pb={10}>Itens propostos serão analisados e, se aprovados, serão incorporados ao conteúdo aceito.</Text>
+        <Text fz="md" pb={10}>Itens propostos serão analisados e, se aprovados, serão incorporados aos itens aceitos.</Text>
       </Alert>
       <Space h={15} />
       <AcceptedItems<ReadT, WriteT>
@@ -130,10 +130,11 @@ export function AcceptedItems<ReadT extends ContentReadData, WriteT extends Cont
 
   return (
     <QueryLoader {...itemsQueryOptions}>
+      {acceptedItems.length > 0 &&
       <Paper withBorder p={15}>
         <Text fz="h5" fw={600} pb={10} ta="center">Itens aceitos</Text>
         <StickyHeaderTable header={header} rows={rows} scrollWidth={500} scrollHeight={300} withRowBorders={false} />
-      </Paper>
+      </Paper>}
     </QueryLoader>
   )
 }
