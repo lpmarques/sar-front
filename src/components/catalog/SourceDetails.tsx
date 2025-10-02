@@ -20,7 +20,7 @@ export default function SourceDetails({ sourceId, sourceData }: { sourceId?: num
     <Text key={item.field} pb={10}>
       <Text span c="dimmed">{item.field}:</Text> <SourceValueDisplay value={item.value} schema={item.schema}/>
     </Text>
-  ))
+  ));
   
   return (
     <QueryLoader {...sourceQueryOptions}>
@@ -44,12 +44,12 @@ function SourceValueDisplay({ value, schema }: { value: SourceValue, schema: Jso
   }
 
   if (schema.type === "string" && schema.format === "uri") {
-    return <Anchor className={classes.text} onClick={() => window.open(value as string)}>{value as string}</Anchor>
+    return <Anchor onClick={() => window.open(value as string)} className={classes.text}>{value as string}</Anchor>;
   }
 
   if (schema.type === "string" && schema.format === "date") {
     return <>{new Date(value as string).toLocaleDateString(lang, { timeZone: 'UTC' })}</>;
   }
 
-  return <>{value}</>
+  return <>{value}</>;
 }

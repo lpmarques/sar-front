@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Container, Paper, Table, Text, TextInput } from '@mantine/core';
+import { Container, Paper, Table, Text, TextInput, Tooltip } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
@@ -7,24 +7,30 @@ import { getPlantList, getTaxonName, PlantReadData, TraitValueReadData } from ".
 import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { TraitValueDisplay } from '.';
+import ClickableRow from '../common/ClickableRow';
+import AddRow from '../common/AddRow';
+import { useAuth } from '../../hooks/useAuth';
+import { showError } from '../common/notifications';
 
 export default function PlantList() {
-  const plantListQueryOptions = {
+  const plantsQueryOptions = {
     queryKey: [
       'plantList',
+      'status=accepted,proposed',
       'with_taxa=true',
       'with_popular_names=true',
       'with_trait_values=true',
-      'taxa_toxonomic_status=synonym',
+      'taxa_taxonomic_status=synonym',
       'trait_values_trait_slugs=life_cycle,life_forms',
     ],
     queryFn: getPlantList
   };
-  const { data } = useQuery(plantListQueryOptions);
+  const plants = useQuery(plantsQueryOptions);
   
   return (
-    <QueryLoader {...plantListQueryOptions}>
-      <PlantsTable data={data!}/>
+    <QueryLoader {...plantsQueryOptions}>
+      {plants.data &&
+      <PlantsTable data={plants.data}/>}
     </QueryLoader>
   );
 }
@@ -66,6 +72,7 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
   const [rowsData, setRowsData] = useState(defaultRowsData);
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const nameKeys = [
     'acceptedName',
@@ -90,6 +97,15 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
   const handleRowClick = (row: RowData) => {
     navigate(row.plantId);
   }
+  
+  const handleAddRowClick = () => {
+    if (!user) {
+      showError("É preciso estar logado para executar essa ação.", null);
+      return navigate('/login');
+    }
+
+    navigate('new');
+  };
 
   const header = (
     <Table.Tr>
@@ -102,23 +118,30 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
   );
 
   const rows = rowsData.map((row: RowData) => (
-    <Table.Tr key={row.acceptedName} style={{cursor: 'pointer'}} onClick={() => handleRowClick(row)}>
+    <ClickableRow 
+      key={row.acceptedName} 
+      onClick={() => handleRowClick(row)} 
+      style={{'--hover-color': '#bef7ce'}}
+    >
       <Table.Td w={230}>{row.acceptedName}</Table.Td>
       <Table.Td w={100}>{row.familyName}</Table.Td>
       <Table.Td w={500}>{row.popularNames}</Table.Td>
       <Table.Td w={150}>{row.lifeForms && <TraitValueDisplay data={row.lifeForms} />}</Table.Td>
       <Table.Td w={110}>{row.lifeCycle && <TraitValueDisplay data={row.lifeCycle} />}</Table.Td>
-    </Table.Tr>
+    </ClickableRow>
   ));
 
   rows.push(
-    <Table.Tr key={0}>
+    <Tooltip key={0} withArrow position="top" label="Clique para cadastrar uma nova planta.">
+      <AddRow colSpan={6} onClick={() => handleAddRowClick()} style={{'--hover-color': '#bef7ce'}}/>
+    </Tooltip>,
+    <Table.Tr key={-1}>
       <Table.Td colSpan={5}>
         <Text c="dimmed" fw={500} ta="center">
           {rows.length} resultado(s) encontrado(s)
         </Text>
       </Table.Td>
-    </Table.Tr>
+    </Table.Tr>,
   )
 
   return (
@@ -138,8 +161,6 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
           scrollHeight={550}
           striped
           stripedColor="#f0f2f2"
-          highlightOnHover
-          highlightOnHoverColor="#bef7ce"
           withRowBorders={false}
         />
       </Paper>

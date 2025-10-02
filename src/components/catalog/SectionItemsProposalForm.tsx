@@ -2,15 +2,14 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Button, CloseButton, Divider, Paper, Table, Text, Tooltip } from '@mantine/core';
 import { FormErrors, isNotEmpty, useField, UseFormReturnType } from '@mantine/form';
-import { IconCircleDashedPlus } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { showMutationError } from '../../apis/common';
 import { ContentReadData, ContentWriteRequestData } from '../../apis/core';
-import classes from '../common/Clickable.module.css';
+import AddRow from '../common/AddRow';
 import { showError, showSuccess } from '../common/notifications';
 import { QueryLoader } from '../common/QueryLoader';
-import { ContentForm, SectionConfig } from './SectionConfigs';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
+import { ContentForm, SectionConfig } from './SectionConfigs';
 import { CommentInput, SourceSelect } from '.';
 
 export default function SectionItemsProposalForm<ReadT extends ContentReadData, WriteT extends ContentWriteRequestData>({
@@ -20,7 +19,7 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
   plantId: number,
   sectionConfig: SectionConfig<ReadT, WriteT>,
 }) {
-  type ContentFormData = ContentForm<WriteT>; 
+  type ContentFormData = ContentForm<WriteT>;
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -73,7 +72,7 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
     return errors;
   }
 
-  const validateFormsDiff = (a: ContentFormData, b: ContentFormData, errMsg: string) => {
+  const defaultValidateFormsDiff = (a: ContentFormData, b: ContentFormData, errMsg: string) => {
 
     const matchErrors = sectionConfig.formUniqueKey.reduce((matchErrors: FormErrors, key) => {
       if (a[key] === b[key])
@@ -82,19 +81,21 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
       return matchErrors;
     }, {});
 
-    return matchErrors;
+    if (Object.keys(matchErrors).length === sectionConfig.formUniqueKey.length)
+      return matchErrors;
   }
+
+  const validateFormsDiff = sectionConfig.validateFormsDiff ?? defaultValidateFormsDiff;
 
   const validateContentUniqueness = (forms: UseFormReturnType<ContentFormData>[]) => {
 
     const errors = forms.reduce((acc: FormErrors[], form, index) => {
       let values = form.getValues();
-      let uniqueKey = sectionConfig.formUniqueKey;
 
       // uniqueness validation among forms
       for (let i=0; i<index; i++) {
         let matchErrors = validateFormsDiff(values, forms[i].getValues(), "Item duplicado");
-        if (Object.keys(matchErrors).length === uniqueKey.length) {
+        if (matchErrors) {
           form.setErrors(matchErrors);
           acc.push(matchErrors);
           return acc;
@@ -104,7 +105,7 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
       // uniqueness validation between form and accepted items
       for (const item of acceptedItems) {
         let matchErrors = sectionConfig.validateFormToReadDataDiff(values, item, "Igual a item aceito");
-        if (Object.keys(matchErrors).length === uniqueKey.length) {
+        if (matchErrors) {
           form.setErrors(matchErrors);
           acc.push(matchErrors);
           return acc;
@@ -114,7 +115,7 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
       // uniqueness validation between form and proposed items
       for (const item of proposedItems) {
         let matchErrors = sectionConfig.validateFormToReadDataDiff(values, item, "Igual a item já proposto");
-        if (Object.keys(matchErrors).length === uniqueKey.length) {
+        if (matchErrors) {
           form.setErrors(matchErrors);
           acc.push(matchErrors);
           return acc;
@@ -127,14 +128,14 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
     return errors;
   }
 
-  const handleAddBarClick = () => {
+  const handleAddRowClick = () => {
     itemForms.forEach((form) => {
       form.setValues(form.getTransformedValues());
     });
     const errors = validateItemForms(itemForms);
 
     if (errors.length > 0)
-      throw showError("Corrija campos inválidos antes de adicionar um novo item.", "Erro");
+      return showError("Corrija campos inválidos antes de adicionar um novo item.", "Erro");
 
     setRowKeys([...rowKeys, forms.length ]);
   }
@@ -156,7 +157,7 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
     const commentError = await commentField.validate();
 
     if (itemErrors.length > 0 || sourceError || commentError)
-      throw showError("Há campos inválidos no formulário.", "Erro");
+      return showError("Há campos inválidos no formulário.", "Erro");
     
     itemForms.forEach((form) => {
       let writeData = sectionConfig.buildWriteRequestData({
@@ -181,7 +182,7 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
         forms={forms}
         setForms={setForms} // passing setter here is necessary since you can't call the useForm hook conditionally
         itemsQueryOptions={itemsQueryOptions}
-        />
+      />
       <Table.Td>
         <CloseButton size="sm" onClick={() => handleRemoveButtonClick(key)} />
       </Table.Td>
@@ -189,16 +190,12 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
   )), [rowKeys]);
 
   const footer = (
-    <Table.Tr key={-1}>
-      <Tooltip withArrow label="Clique para adicionar um novo item a sua proposta." position="bottom">
-        <Table.Td colSpan={10} align="center" onClick={() => handleAddBarClick()} className={classes.row}>
-          <IconCircleDashedPlus color="var(--mantine-color-dark-3)" size={35}/>
-        </Table.Td>
-      </Tooltip>
-    </Table.Tr>
+    <Tooltip key={-1} withArrow label="Clique para adicionar um novo item a sua proposta." position="bottom">
+      <AddRow colSpan={10} onClick={() => handleAddRowClick()} style={{'--hover-color': 'var(--mantine-color-gray-2)'}} />
+    </Tooltip>
   );
 
-  const style = { backgroundColor: "#f0f2f2" };
+  const style = { backgroundColor: "var(--mantine-color-gray-1)" };
   const divider = <Divider mt={25} mb={15} />;
   const enableSubmit = rows.length > 0;
 
@@ -212,7 +209,7 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
         <SourceSelect field={sourceField} />
         {divider}
         <Text fz="h5" fw={600} pb={10}>Comentário <Text span size="sm" c="dimmed">(opcional)</Text></Text>
-        <CommentInput field={commentField} maxChars={commentMaxChars} />
+        <CommentInput field={commentField} maxChars={commentMaxChars} placeholder="Se achar pertinente, fale mais aqui sobre sua proposta." />
         {divider}
         <Button type="submit" color="teal" disabled={!enableSubmit} onClick={handleSubmit} loading={proposalCreation.isPending}>Publicar proposta</Button>
       </Paper>

@@ -1,15 +1,21 @@
-import { Container, Text, TextInput } from "@mantine/core";
+import { Container, Text, Textarea, TextareaProps } from "@mantine/core";
 import { UseFieldReturnType } from "@mantine/form";
 
-export default function CommentInput ({ field, maxChars }: { field: UseFieldReturnType<string>, maxChars: number }) {
+interface CommentInputProps extends TextareaProps {
+  field: UseFieldReturnType<string>,
+  maxChars: number,
+}
+
+export default function CommentInput ({ field, maxChars, ...textareaProps }: CommentInputProps) {
   const comment = field.getValue();
   const commentLength = comment ? comment.length : 0;
 
   return (
-    <Container size={700}>
-      <TextInput
+    <Container size={500}>
+      <Textarea
         key={field.key}
-        placeholder="Se achar pertinente, fale mais aqui sobre sua proposta."
+        size="md"
+        {...textareaProps}
         {...field.getInputProps()}
       />
       <Text size="xs" c={commentLength > maxChars ? "red" : "dimmed"} pt={5}>

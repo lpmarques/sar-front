@@ -11,6 +11,28 @@ export type TraitValue = Range | number | boolean | string[] | string;
 
 // MUTATIONS
 
+export interface PlantWriteRequestData extends Omit<ContentWriteRequestData, 'sourceId'> {
+  taxon: Omit<TaxonWriteRequestData, 'plantId'>,
+  popularName: Omit<PopularNameWriteRequestData, 'plantId'>,
+}
+
+export interface PlantWriteResponseData extends ContentWriteResponseData {
+  plantId: number,
+}
+
+export async function createPlant(data: PlantWriteRequestData): Promise<PlantWriteResponseData> {
+  const body = camelToSnakeCase(data);
+  const res = await axios.post("/catalog/plant", body);
+  
+  return snakeToCamelCase(res.data);
+}
+
+export async function deletePlant(contentId: number): Promise<ContentWriteResponseData> {
+  const res = await axios.delete(`/catalog/plant/${contentId}`);
+  
+  return res.data;
+}
+
 export interface TraitValueWriteRequestData extends ContentWriteRequestData {
   plantId: number,
   traitId: number,
@@ -93,18 +115,26 @@ export async function deleteNaturalOccurrenceRegion(contentId: number): Promise<
 
 // QUERIES
 
-export interface TraitValueReadData extends ContentReadData {
-  traitSlug: string,
-  traitName: string,
-  type: TraitType,
-  value: TraitValue,
-  boundaries?: boolean[] | string[] | Range,
-  sectionSlug?: string,
-  sectionName?: string,
+export interface PlantReadData extends ContentReadData {
+  id: number,
+  acceptedTaxonName: string,
+  acceptedFamilyName: string,
+  taxa?: TaxonReadData[],
+  popularNames?: string[],
+  traitValues?: TraitValueReadData[],
+  naturalOccurrenceRegions?: NaturalOccurrenceRegionReadData[],
 }
 
-export async function getPlantTraitValueList({ queryKey: [queryName, plantId, ...params] }: QueryFnInput ): Promise<TraitValueReadData[]> {
-  let res = await axios.get(`/catalog/plants/${plantId}/trait-values` + (params && `?${params.join('&')}`));
+export async function getPlant({ queryKey: [queryName, plantId, ...params] }: QueryFnInput ): Promise<PlantReadData> {
+  let res = await axios.get(`/catalog/plants/${plantId}` + (params && `?${params.join('&')}`));
+
+  let data = snakeToCamelCase(res.data);
+
+  return data;
+}
+
+export async function getPlantList({ queryKey: [queryName, ...params] }: QueryFnInput ): Promise<PlantReadData[]> {
+  let res = await axios.get('/catalog/plants' + (params && `?${params.join('&')}`));
 
   let data = snakeToCamelCase(res.data);
 
@@ -132,28 +162,20 @@ export async function getTraitList({ queryKey: [queryName, ...params] }: QueryFn
   return data;
 }
 
-export interface PlantReadData extends ContentReadData {
-  id: number,
-  acceptedTaxonName: string,
-  acceptedFamilyName: string,
-  taxa?: TaxonReadData[],
-  popularNames?: string[],
-  traitValues?: TraitValueReadData[],
-  naturalOccurrenceRegions?: NaturalOccurrenceRegionReadData[],
+export interface TraitValueReadData extends ContentReadData {
+  traitSlug: string,
+  traitName: string,
+  type: TraitType,
+  value: TraitValue,
+  boundaries?: boolean[] | string[] | Range,
+  sectionSlug?: string,
+  sectionName?: string,
 }
 
-export async function getPlant({ queryKey: [queryName, plantId, ...params] }: QueryFnInput ): Promise<PlantReadData> {
-  let res = await axios.get(`/catalog/plants/${plantId}` + (params && `?${params.join('&')}`));
+export async function getPlantTraitValueList({ queryKey: [queryName, plantId, ...params] }: QueryFnInput ): Promise<TraitValueReadData[]> {
+  let res = await axios.get(`/catalog/plants/${plantId}/trait-values` + (params && `?${params.join('&')}`));
 
-  let data = snakeToCamelCase(res.data)
-
-  return data;
-}
-
-export async function getPlantList({ queryKey: [queryName, ...params] }: QueryFnInput ): Promise<PlantReadData[]> {
-  let res = await axios.get('/catalog/plants' + (params && `?${params.join('&')}`));
-
-  let data = snakeToCamelCase(res.data)
+  let data = snakeToCamelCase(res.data);
 
   return data;
 }
@@ -175,7 +197,7 @@ export function getTaxonName({ genus, species, subspecies, variety }: TaxonReadD
 export async function getTaxonList(): Promise<TaxonReadData[]> {
   let res = await axios.get('/catalog/taxa');
 
-  let data = snakeToCamelCase(res.data)
+  let data = snakeToCamelCase(res.data);
 
   return data;
 }
@@ -196,7 +218,7 @@ export interface PopularNameReadData extends ContentReadData {
 export async function getPopularNameList(): Promise<PopularNameReadData[]> {
   let res = await axios.get('/catalog/popular-names');
 
-  let data = snakeToCamelCase(res.data)
+  let data = snakeToCamelCase(res.data);
 
   return data;
 }
@@ -220,7 +242,7 @@ export interface NaturalOccurrenceRegionReadData extends ContentReadData {
 export async function getNaturalOccurrenceRegionList(): Promise<NaturalOccurrenceRegionReadData[]> {
   let res = await axios.get('/catalog/natural-occurrence-regions');
 
-  let data = snakeToCamelCase(res.data)
+  let data = snakeToCamelCase(res.data);
 
   return data;
 }
@@ -228,7 +250,7 @@ export async function getNaturalOccurrenceRegionList(): Promise<NaturalOccurrenc
 export async function getPlantNaturalOccurrenceRegionList({ queryKey: [queryName, plantId, ...params] }: QueryFnInput): Promise<NaturalOccurrenceRegionReadData[]> {
   let res = await axios.get(`/catalog/plants/${plantId}/natural-occurrence-regions` + (params && `?${params.join('&')}`));
 
-  let data = snakeToCamelCase(res.data)
+  let data = snakeToCamelCase(res.data);
 
   return data;
 }

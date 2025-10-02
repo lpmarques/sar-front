@@ -24,6 +24,7 @@ import {
   taxonFormUniqueKey,
   TaxonHeader,
   TaxonRow,
+  validateTaxonFormsDiff,
   validateTaxonFormToReadDataDiff,
 } from './TaxonomySection';
 import {
@@ -75,7 +76,8 @@ export interface SectionConfig<ReadT extends ContentReadData, WriteT extends Con
   DisplayRow: ComponentType<ContentDisplayRowProps<ReadT>>,
   FormRow: ComponentType<ContentFormRowProps<ReadT, WriteT>>,
   formUniqueKey: (keyof ContentForm<WriteT>)[],
-  validateFormToReadDataDiff: (formValues: ContentForm<WriteT>, readData: ReadT, errMsg: string) => FormErrors,
+  validateFormsDiff?: (a: ContentForm<WriteT>, b: ContentForm<WriteT>, errMsg: string) => FormErrors | undefined,
+  validateFormToReadDataDiff: (formValues: ContentForm<WriteT>, readData: ReadT, errMsg: string) => FormErrors | undefined,
   buildWriteRequestData: (props: BuildWriteRequestDataProps<WriteT>) => WriteT,
   createMutationFunction: (data: WriteT) => Promise<ContentWriteResponseData>,
   deleteMutationFunction: (contentId: number) => Promise<GenericResponse>,
@@ -96,6 +98,7 @@ export const getSectionConfig = (sectionSlug: SectionSlug):
         DisplayRow: TaxonRow,
         FormRow: TaxonFormRow,
         formUniqueKey: taxonFormUniqueKey,
+        validateFormsDiff: validateTaxonFormsDiff,
         validateFormToReadDataDiff: validateTaxonFormToReadDataDiff,
         buildWriteRequestData: buildTaxonWriteRequestData,
         createMutationFunction: createTaxon,

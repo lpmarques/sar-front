@@ -1,12 +1,8 @@
-import axios from "axios";
-import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   Anchor,
   Button,
-  Checkbox,
   Container,
-  Group,
   Paper,
   PasswordInput,
   Text,
@@ -15,11 +11,11 @@ import {
 } from '@mantine/core';
 import { isNotEmpty, useForm } from '@mantine/form';
 import { useMutation } from '@tanstack/react-query';
+import { showMutationError } from "../../apis/common";
 import { createUserToken } from "../../apis/core";
-import { showError, showSuccess } from '../common/notifications';
+import { showSuccess } from '../common/notifications';
 import { useAuth } from "../../hooks/useAuth";
 import classes from './Login.module.css';
-import { showMutationError } from "../../apis/common";
 
 export default function Login() {
   const { auth } = useAuth();

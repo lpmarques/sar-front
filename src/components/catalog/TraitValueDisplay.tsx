@@ -32,7 +32,7 @@ function StringTraitValue({ value, style }: { value: string, style?: MantineStyl
 
 function NumberTraitValue({ value, style }: { value: number, style?: MantineStyleProp }) {
   return (
-    <Text size="md" tt="uppercase" fw={600} m={5} style={style}>{value}</Text>
+    <Text size="lg" fw={600} mb={10} style={style}>{value}</Text>
   )
 }
 

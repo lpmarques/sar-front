@@ -130,7 +130,7 @@ export default function Signup() {
 
     const validation = form.validate();
     if (validation.hasErrors)
-      throw showError("Há campos inválidos no formulário.", "Erro");
+      return showError("Há campos inválidos no formulário.", "Erro");
     
     form.values['country'] = form.values.countryId ? countries.data!.find(item => item.id == form.values.countryId)?.name : undefined;
     form.values['state'] = form.values.stateId ? states.data!.find(item => item.id == form.values.stateId)?.name : undefined;

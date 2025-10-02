@@ -1,9 +1,9 @@
+import clsx from 'clsx';
 import { useState } from 'react';
-import { Group, GroupProps, Text, TextProps, UnstyledButton } from '@mantine/core';
+import { Group, GroupProps, TextProps } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { IconProps, IconThumbUp, IconThumbUpFilled } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { showError, showSuccess } from '../common/notifications';
 import { showMutationError } from "../../apis/common";
 import {
   ContentReadData,
@@ -12,6 +12,9 @@ import {
   getEndorsements,
   getUserEndorsements,
 } from '../../apis/core';
+import classes from '../common/Clickable.module.css';
+import ClickableText from '../common/ClickableText';
+import { showError, showSuccess } from '../common/notifications';
 import { useAuth } from "../../hooks/useAuth";
 import { EndorsementList } from '.';
 
@@ -90,7 +93,7 @@ export default function EndorsementCounter<ReadT extends ContentReadData>({
     }
 
     if (user.id == content.contentProposer!.id)
-      return showError("Somente outro usuário pode aprovar conteúdo criado por você.", null);
+      return showError("Somente outro usuário pode avaliar conteúdo criado por você.", null);
 
     if (userEndorsementId)
       endorsementDeletion.mutate(userEndorsementId);
@@ -99,7 +102,7 @@ export default function EndorsementCounter<ReadT extends ContentReadData>({
         contentId: content.contentId,
       });
     }
-  }
+  };
 
   const openEndorsementListModal = () => modals.open({
     title: "Usuários que aprovaram a informação",
@@ -108,12 +111,15 @@ export default function EndorsementCounter<ReadT extends ContentReadData>({
 
   return (
     <Group justify="center" gap={25} {...groupProps}>
-      <UnstyledButton onClick={openEndorsementListModal}>
-        <Text fz="h2" {...textProps}>{count}</Text>
-      </UnstyledButton>
-      <UnstyledButton mt={5} onClick={handleThumbClick}>
-        <ThumbIcon size={25} {...iconProps} />
-      </UnstyledButton>
+      <ClickableText fz="h2" onClick={openEndorsementListModal} {...textProps}>
+        {count}
+      </ClickableText>
+      <ThumbIcon 
+        size={25} 
+        onClick={handleThumbClick} 
+        className={clsx({ [classes.fillableIcon]: !userEndorsementId }, { [classes.icon]: userEndorsementId })} 
+        {...iconProps}
+      />
     </Group>
   )
 }

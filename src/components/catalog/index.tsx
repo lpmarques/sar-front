@@ -1,7 +1,8 @@
-import EndorsementCounter from '../catalog/EndorsementCounter';
-import EndorsementList from '../catalog/EndorsementList';
+import EndorsementCounter from './EndorsementCounter';
+import EndorsementList from './EndorsementList';
 import PlantDetails from './PlantDetails';
 import PlantList from './PlantList';
+import PlantNew from './PlantNew';
 import SectionDetails from './SectionDetails';
 import SectionEdit from './SectionEdit';
 import SourceDetails from './SourceDetails';
@@ -23,6 +24,7 @@ export {
   EndorsementList,
   PlantDetails,
   PlantList,
+  PlantNew,
   SectionItemsProposalForm,
   SectionDetails,
   SectionEdit,

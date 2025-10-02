@@ -16,7 +16,7 @@ export default function UserAvatar({ user, ...avatarProps }: UserAvatarProps) {
 
   return (
     <Group align="center">
-      <UnstyledButton onClick={() => window.open(path, '_blank')} style={{'textDecoration': 'none'}}>
+      <UnstyledButton onClick={() => window.open(path, '_blank')}>
         <Avatar
           title={name}
           size={60}
