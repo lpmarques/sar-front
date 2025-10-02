@@ -18,18 +18,23 @@ export function buildPopularNameListQueryOptions(plantId: number): QueryOptions<
   } as QueryOptions<PopularNameReadData[]>;
 }
 
+export type PopularNameForm = ContentForm<PopularNameWriteRequestData>; 
+
 export const popularNameFormUniqueKey = [
   'name',
-] as (keyof ContentForm<PopularNameWriteRequestData>)[];
+] as (keyof PopularNameForm)[];
 
 export function validatePopularNameFormToReadDataDiff(
-  formValues: ContentForm<PopularNameWriteRequestData>,
+  formValues: PopularNameForm,
   readData: PopularNameReadData,
   errMsg: string
-): FormErrors {
-  return {
+): FormErrors | undefined {
+  const matchErrors = {
     ...(formValues.name === readData.name && { name: errMsg }),
   };
+
+  if (Object.keys(matchErrors).length === popularNameFormUniqueKey.length)
+    return matchErrors;
 }
 
 export function buildPopularNameWriteRequestData({
@@ -63,11 +68,15 @@ export function PopularNameRow({ data, ...tableTdProps }: ContentDisplayRowProps
   )
 }
 
-export function PopularNameFormRow({ forms, setForms }: ContentFormRowProps<PopularNameReadData, PopularNameWriteRequestData>) {
+export function usePopularNameForm({ initialValues }: { initialValues?: { [key in keyof PopularNameForm]?: string } } = {}) {
+  const defaultInitial = {
+    name: '',
+  };
 
-  const form = useForm<ContentForm<PopularNameWriteRequestData>>({
+  return useForm<PopularNameForm>({
     initialValues: {
-      name: '',
+      ...defaultInitial,
+      ...initialValues,
     },
     validate: {
       name: (value) => {
@@ -79,6 +88,11 @@ export function PopularNameFormRow({ forms, setForms }: ContentFormRowProps<Popu
       name: values.name.trim().toLowerCase().replace(/\s+/g, '-'),
     })
   });
+}
+
+export function PopularNameFormRow({ forms, setForms }: ContentFormRowProps<PopularNameReadData, PopularNameWriteRequestData>) {
+
+  const form = usePopularNameForm();
 
   useEffect(() => {
     setForms([...forms, form]);

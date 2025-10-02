@@ -23,7 +23,7 @@ export default function SectionEdit() {
   const { plantId, sectionSlug } = useParams();
   
   const plantQueryOptions = {
-    queryKey: ['plant', plantId!],
+    queryKey: ['plant', plantId!, 'status=accepted,proposed'],
     queryFn: getPlant
   };
   
@@ -90,7 +90,6 @@ function SectionEditBody<ReadT extends ContentReadData, WriteT extends ContentWr
         plantId={plant.id}
         sectionConfig={sectionConfig}
         />
-      <Space h={15} />
       <SectionItemsProposalForm<ReadT, WriteT>
         plantId={plant.id}
         sectionConfig={sectionConfig}
@@ -130,11 +129,13 @@ export function AcceptedItems<ReadT extends ContentReadData, WriteT extends Cont
 
   return (
     <QueryLoader {...itemsQueryOptions}>
-      {acceptedItems.length > 0 &&
+      {acceptedItems.length > 0 && <>
       <Paper withBorder p={15}>
         <Text fz="h5" fw={600} pb={10} ta="center">Itens aceitos</Text>
         <StickyHeaderTable header={header} rows={rows} scrollWidth={500} scrollHeight={300} withRowBorders={false} />
-      </Paper>}
+      </Paper>
+      <Space h={15} />
+      </>}
     </QueryLoader>
   )
 }

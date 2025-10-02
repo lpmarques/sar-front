@@ -1,7 +1,6 @@
 import { ReactNode } from 'react';
 import { Navigate } from "react-router";
 import { useAuth } from "../hooks/useAuth";
-import { showError } from './common/notifications';
 
 type RouteProps = {
   children: ReactNode

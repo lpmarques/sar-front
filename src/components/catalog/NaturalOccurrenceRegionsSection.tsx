@@ -41,13 +41,16 @@ export function validateNaturalOccurrenceRegionFormToReadDataDiff(
   formValues: ContentForm<NaturalOccurrenceRegionWriteRequestData>,
   readData: NaturalOccurrenceRegionReadData,
   errMsg: string
-): FormErrors {
-  return {
+): FormErrors | undefined {
+  const matchErrors =  {
     ...(formValues.countryId === readData.country.id && { countryId: errMsg }),
     ...(formValues.stateId === readData.state?.id && { stateId: errMsg }),
     ...(formValues.biomeId === readData.biome?.id && { biomeId: errMsg }),
     ...(formValues.vegetationTypeId === readData.vegetationType?.id && { vegetationTypeId: errMsg }),
   };
+
+  if (Object.keys(matchErrors).length === naturalOccurrenceRegionFormUniqueKey.length)
+    return matchErrors;
 }
 
 export function buildNaturalOccurrenceRegionWriteRequestData({

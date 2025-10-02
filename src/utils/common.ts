@@ -11,6 +11,10 @@ export function sortValueFirst(a: string | number, b: string | number, value: st
   return 0;
 }
 
+export function emptyIfUndefined(value: any | undefined) {
+  return value ?? "";
+}
+
 export function undefinedIfEmpty(value: string | null | undefined): string | undefined;
 export function undefinedIfEmpty(value: string[] | null | undefined): string[] | undefined;
 export function undefinedIfEmpty(value: string | string[] | null | undefined) {
@@ -29,4 +33,23 @@ export function capitalize(value: string) {
 
 export function getArraySubset(arr: any[], indices: number[]) {
   return arr.filter((_, index) => indices.includes(index));
+}
+
+export type Primitive = number | string | boolean | symbol | bigint | undefined;
+
+export function convertStringToPrimitiveType(str: string, primitive: Primitive) {
+  switch (typeof primitive) {
+    case "string":
+      return str;
+    case "number":
+      return Number(str);
+    case "boolean":
+      return str === "true";
+    case "symbol":
+      return Symbol(str);
+    case "bigint":
+      return BigInt(str);
+    case "undefined":
+      return undefined
+  }
 }

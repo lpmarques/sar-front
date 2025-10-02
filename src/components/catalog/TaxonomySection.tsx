@@ -20,26 +20,54 @@ export function buildTaxonListQueryOptions(plantId: number): QueryOptions<TaxonR
   } as QueryOptions<TaxonReadData[]>;
 }
 
+export type TaxonForm = ContentForm<TaxonWriteRequestData>;
+
 export const taxonFormUniqueKey = [
   'family',
   'species',
   'subspecies',
   'variety',
   'taxonomicStatus',
-] as (keyof ContentForm<TaxonWriteRequestData>)[];
+] as (keyof TaxonForm)[];
+
+export function validateTaxonFormsDiff(
+  a: TaxonForm,
+  b: TaxonForm,
+  errMsg: string = "Item duplicado"
+): FormErrors | undefined {
+
+  const matchErrors = taxonFormUniqueKey.reduce((matchErrors: FormErrors, key) => {
+    if (a[key] === b[key])
+      matchErrors[key as string] = errMsg;
+
+    return matchErrors;
+  }, {});
+
+  if (Object.keys(matchErrors).length === taxonFormUniqueKey.length)
+    return matchErrors;
+
+  if (a['taxonomicStatus'] === 'accepted' && 'taxonomicStatus' in matchErrors)
+    return { 'taxonomicStatus': 'Já há outro nome aceito na proposta' };
+}
 
 export function validateTaxonFormToReadDataDiff(
-  formValues: ContentForm<TaxonWriteRequestData>,
+  formValues: TaxonForm,
   readData: TaxonReadData,
   errMsg: string
-): FormErrors {
-  return {
+): FormErrors | undefined {
+  const matchErrors =  {
     ...(formValues.family === readData.family && { family: errMsg }),
     ...(formValues.species === readData.species && { species: errMsg }),
     ...(formValues.subspecies === undefinedIfEmpty(readData.subspecies) && { subspecies: errMsg }),
     ...(formValues.variety === undefinedIfEmpty(readData.variety) && { variety: errMsg }),
     ...(formValues.taxonomicStatus === readData.taxonomicStatus && { taxonomicStatus: errMsg }),
   };
+  
+  if (Object.keys(matchErrors).length === taxonFormUniqueKey.length)
+    return matchErrors;
+
+  if (formValues.species === readData.species)
+    return { 'species': errMsg };
 }
 
 export function buildTaxonWriteRequestData({
@@ -93,17 +121,19 @@ export function TaxonRow({ data, ...tableTdProps }: ContentDisplayRowProps<Taxon
   )
 }
 
-export function TaxonFormRow({ forms, setForms, itemsQueryOptions }: ContentFormRowProps<TaxonReadData, TaxonWriteRequestData>) {
-  const { data } = useQuery(itemsQueryOptions);
-  const acceptedName = data?.find(item => item.contentStatus === "accepted" && item.taxonomicStatus === "accepted");
+export function useTaxonForm({ initialValues }: { initialValues?: { [key in keyof TaxonForm]?: string } } = {}) {
+  const defaultInitial = {
+    family: '',
+    species: '',
+    subspecies: '',
+    variety: '',
+    taxonomicStatus: '',
+  };
 
-  const form = useForm<ContentForm<TaxonWriteRequestData>>({
+  return useForm<TaxonForm>({
     initialValues: {
-      family: acceptedName?.family ?? '',
-      species: '',
-      subspecies: '',
-      variety: '',
-      taxonomicStatus: 'synonym',
+      ...defaultInitial,
+      ...initialValues
     },
     validate: {
       taxonomicStatus: isNotEmpty('Campo obrigatório'),
@@ -129,6 +159,21 @@ export function TaxonFormRow({ forms, setForms, itemsQueryOptions }: ContentForm
       variety: undefinedIfEmpty(values.variety?.trim().toLowerCase()),
       taxonomicStatus: values.taxonomicStatus,
     })
+  });
+}
+
+export function TaxonFormRow({ forms, setForms, itemsQueryOptions }: ContentFormRowProps<TaxonReadData, TaxonWriteRequestData>) {
+  const { data } = useQuery(itemsQueryOptions);
+  const acceptedName = data?.find(item => item.contentStatus === "accepted" && item.taxonomicStatus === "accepted");
+
+  const form = useTaxonForm({
+    initialValues: {
+      family: acceptedName?.family ?? '',
+      species: '',
+      subspecies: '',
+      variety: '',
+      taxonomicStatus: 'synonym',
+    }
   });
 
   useEffect(() => {

@@ -1,0 +1,194 @@
+import { useNavigate } from 'react-router';
+import { Button, Container, Fieldset, Paper, TextInput, Title } from "@mantine/core";
+import { isNotEmpty, useField } from "@mantine/form";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createPlant, getTaxonList, TaxonReadData } from "../../apis/catalog";
+import { showMutationError } from '../../apis/common';
+import { showError, showSuccess } from "../common/notifications";
+import { QueryLoader } from '../common/QueryLoader';
+import { usePopularNameForm } from "./PopularNamesSection";
+import { useTaxonForm, validateTaxonFormToReadDataDiff } from "./TaxonomySection";
+import { CommentInput, SourceSelect } from '.';
+
+export default function PlantNew() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const taxaQueryOptions = {
+    queryKey: ['plantTaxonList', 'status=accepted'],
+    queryFn: getTaxonList
+  };
+
+  const taxa = useQuery(taxaQueryOptions);
+
+  const taxonForm = useTaxonForm({
+    initialValues: {
+      taxonomicStatus: 'accepted'
+    }
+  });
+
+  const taxonSourceField = useField<string | undefined>({
+    initialValue: undefined,
+    validate: isNotEmpty('Campo obrigatório')
+  });
+
+  const validateTaxonUniqueness = (acceptedTaxa: TaxonReadData[]) => {
+    for (const item of acceptedTaxa) {
+      let matchErrors = validateTaxonFormToReadDataDiff(taxonForm.getValues(), item, "Igual a nome ou sinônimo já cadastrado");
+      if (matchErrors) {
+        taxonForm.setErrors(matchErrors);
+        return matchErrors;
+      }
+    }
+  };
+
+  const taxonFieldset = (
+    <Fieldset key="taxonomy" legend="Taxonomia (classificação aceita)" mb={10}>
+      <TextInput
+        key={taxonForm.key('species')}
+        label="Espécie"
+        placeholder="Genus species"
+        required
+        {...taxonForm.getInputProps('species')}
+      />
+      <TextInput
+        key={taxonForm.key('subspecies')}
+        label="Subespécie"
+        placeholder="subspecies"
+        {...taxonForm.getInputProps('subspecies')}
+      />
+      <TextInput
+        key={taxonForm.key('variety')}
+        label="Variedade"
+        placeholder="varietas"
+        {...taxonForm.getInputProps('variety')}
+      />
+      <TextInput
+        key={taxonForm.key('family')}
+        label="Família"
+        placeholder="Famileae"
+        required
+        {...taxonForm.getInputProps('family')}
+      />
+      <SourceSelect
+        key="taxonSource"
+        field={taxonSourceField}
+        label="Fonte"
+        groupProps={{align: "end", justify: "left", mb: 0}}
+      />
+    </Fieldset>
+  );
+
+  const popularNameForm = usePopularNameForm();
+
+  const popularNameSourceField = useField<string | undefined>({
+    initialValue: undefined,
+    validate: isNotEmpty('Campo obrigatório')
+  });
+
+  const popularNameFieldset = (
+    <Fieldset key="popularName" legend="Nome popular" mb={10}>
+      <TextInput
+        key={popularNameForm.key('name')}
+        label="Nome"
+        placeholder="nome-exemplo"
+        required
+        {...popularNameForm.getInputProps('name')}
+      />
+      <SourceSelect
+        key="popularNameSource"
+        field={popularNameSourceField}
+        label="Fonte"
+        groupProps={{align: "end", justify: "left", mb: 0}}
+      />
+    </Fieldset>
+  );
+
+  const commentMaxChars = 300;
+  const commentField = useField<string>({
+    initialValue: '',
+    validateOnChange: true,
+    validate: (value) => {
+      if (value && value.length > commentMaxChars) return 'Comentário ultrapassa o limite máximo de caracteres';
+    }
+  });
+
+  const plantCreation = useMutation({
+    mutationFn: createPlant,
+    onSuccess: (data) => {
+      showSuccess(data.msg);
+      queryClient.refetchQueries({ predicate: (query) => { return query.queryKey[0] === 'plantList' } });
+      navigate(`/plants/${data.plantId}?edit=true`);
+    },
+    onError: showMutationError
+  });
+
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    e.preventDefault();
+    
+    const comment = commentField.getValue().trim();
+    taxonForm.setValues(taxonForm.getTransformedValues());
+    popularNameForm.setValues(popularNameForm.getTransformedValues());
+
+    const taxonValidation = taxonForm.validate();
+    const taxonErrors = (taxonValidation.hasErrors && taxonValidation.errors) || validateTaxonUniqueness(taxa.data!);
+    const taxonSourceError = await taxonSourceField.validate();
+
+    const popularNameValidation = popularNameForm.validate();
+    const popularNameErrors = (popularNameValidation.hasErrors && popularNameValidation.errors) || validateTaxonUniqueness(taxa.data!);
+    const popularNameSourceError = await popularNameSourceField.validate();
+
+    const commentError = await commentField.validate();
+    
+    if (taxonErrors ||
+      taxonSourceError ||
+      popularNameErrors ||
+      popularNameSourceError ||
+      commentError) {   
+        return showError("Há campos inválidos no formulário.", "Erro");
+    }
+      
+    plantCreation.mutate({
+      taxon: {
+        ...taxonForm.getValues(),
+        sourceId: Number(taxonSourceField.getValue()),
+      },
+      popularName: {
+        ...popularNameForm.getValues(),
+        sourceId: Number(popularNameSourceField.getValue()),
+      },
+      contentProposerComment: comment.length > 0 ? comment : undefined,
+    });
+  }
+  
+  return (
+    <QueryLoader {...taxaQueryOptions}>
+      <Container size={450} mt={20} mb={60}>
+        <Title fw={500} ta="center" mb={30}>
+          Nova Planta
+        </Title>
+        <Paper withBorder shadow="sm" p={20}>
+          {taxonFieldset}
+          {popularNameFieldset}
+          <CommentInput
+            label="Comentário"
+            size="sm"
+            field={commentField}
+            maxChars={commentMaxChars}
+            placeholder="Se achar pertinente, fale mais aqui sobre sua proposta."
+          />
+          <Button
+            fullWidth
+            mt="xl"
+            radius="md"
+            color="teal"
+            loading={plantCreation.isPending}
+            onClick={handleSubmit}
+          >
+            Publicar proposta
+          </Button>
+        </Paper>
+      </Container>
+    </QueryLoader>
+  )
+}

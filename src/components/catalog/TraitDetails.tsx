@@ -27,7 +27,7 @@ export default function TraitDetails() {
   const navigate = useNavigate();
 
   const plantQueryOptions = {
-    queryKey: ['plant', plantId!],
+    queryKey: ['plant', plantId!, 'status=accepted,proposed'],
     queryFn: getPlant,
   };
   const traitsQueryOptions = {

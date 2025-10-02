@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Modal, Select, Button, Group } from '@mantine/core';
+import { Modal, Select, Button, Group, GroupProps, SelectProps, Space } from '@mantine/core';
 import { UseFieldReturnType } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
 import { IconPlus } from '@tabler/icons-react';
@@ -8,7 +8,12 @@ import { getSourceList, SourceReadData } from '../../apis/core';
 import { useAuth } from '../../hooks/useAuth';
 import { SourceDetails, SourceForm } from '.';
 
-export default function SourceSelect({ field }: { field: UseFieldReturnType<string | undefined>}) {
+interface SourceSelectProps extends SelectProps {
+  field: UseFieldReturnType<string | undefined>,
+  groupProps?: GroupProps,
+}
+
+export default function SourceSelect({ field, groupProps, ...selectProps }: SourceSelectProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [opened, {open, close}] = useDisclosure(false);
@@ -57,18 +62,21 @@ export default function SourceSelect({ field }: { field: UseFieldReturnType<stri
 
   return (
     <>
-    <Group gap={10} align="center" justify="center" mb={20}>
+    <Group gap={10} align="center" justify="center" {...groupProps}>
       <Select
         key={field.key}
         data={sourceOptions}
         searchable
         aria-label="Fonte"
         {...field.getInputProps()}
+        {...selectProps}
         />
-      <Button size="compact-sm" color="teal" title="Cadastrar nova fonte" onClick={handleNewSourceButtonClick}><IconPlus /></Button>
+      <Button size="sm" color="teal" title="Cadastrar nova fonte" onClick={handleNewSourceButtonClick}><IconPlus /></Button>
     </Group>
-    { selectedSource && 
-    <SourceDetails sourceData={selectedSource} />}
+    { selectedSource && <>
+    <Space h="20" />
+    <SourceDetails sourceData={selectedSource} />
+    </>}
     <Modal opened={opened} onClose={close} title="Procurou uma fonte e não achou? Cadastre-a aqui:">
       <SourceForm onSubmit={handleNewSourceSubmit}/>
     </Modal>

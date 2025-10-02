@@ -1,9 +1,10 @@
-import { createContext, ReactElement, useState } from "react";
+import { ReactElement, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { Button, Center, Container, Group, Paper, SimpleGrid, Space, Table, Text } from '@mantine/core';
-import { IconCircleDashedPlus, IconPencil, IconPencilOff } from "@tabler/icons-react";
-import { useQuery } from "@tanstack/react-query";
+import { Alert, Button, Center, Container, Group, Paper, SimpleGrid, Space, Table, Text } from '@mantine/core';
+import { IconAlertHexagon, IconCircleDashedPlus, IconPencil, IconPencilOff, IconTrash } from "@tabler/icons-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  deletePlant,
   getPlant,
   getPlantNaturalOccurrenceRegionList,
   getPlantPopularNameList,
@@ -12,6 +13,7 @@ import {
   getTaxonName,
   getTraitList,
   NaturalOccurrenceRegionReadData,
+  PlantReadData,
   PopularNameReadData,
   TaxonReadData,
   TraitReadData,
@@ -20,17 +22,19 @@ import {
 import classes from '../common/Clickable.module.css';
 import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
+import { useAuth, useStoredSearchParam } from "../../hooks";
 import { sortNaturalOccurrenceRegions } from "./NaturalOccurrenceRegionsSection";
 import { TraitValueDisplay } from '.';
-import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { showSuccess } from "../common/notifications";
+import { QueryOptions, showMutationError } from "../../apis/common";
+import { modals } from "@mantine/modals";
 
 export default function PlantDetails() {
   const { plantId } = useParams();
-  const [editMode, setEditMode] = useLocalStorage('editMode', false);
-  const EditModeContext = createContext(false);
+  const [editMode, setEditMode] = useStoredSearchParam("edit", false);
   
   const plantQueryOptions = {
-    queryKey: ['plant', plantId!],
+    queryKey: ['plant', plantId!, 'status=accepted,proposed'],
     queryFn: getPlant
   };
   const taxaQueryOptions = {
@@ -61,49 +65,66 @@ export default function PlantDetails() {
   const traitValues = useQuery(traitValuesQueryOptions);
   const naturalOccurrenceRegions = useQuery(naturalOccurrenceRegionsQueryOptions);
 
+  useEffect(() => {
+    if (plant.data?.contentStatus === "proposed" && !editMode)
+      setEditMode(true);
+  }, [plant.data?.contentStatus]);
+
   const sections = traits.data ? Object.fromEntries(traits.data.map(item => [item.sectionSlug!, item.sectionName!])): {};
   const traitSections = Object.entries(sections).reduce((acc: ReactElement[], [key, value]) => {
     let sectionTraitValues = traitValues.data ? traitValues.data.filter(item => item.sectionSlug === key) : [];
     if (sectionTraitValues.length > 0 || editMode) {
       acc.push(
         <TraitSection
-        key={key}
-        sectionName={value}
-        traits={traits.data!.filter(item => item.sectionSlug === key)}
-        traitValues={sectionTraitValues}
-        editMode={editMode}
+          key={key}
+          sectionName={value}
+          traits={traits.data!.filter(item => item.sectionSlug === key)}
+          traitValues={sectionTraitValues}
+          editMode={editMode}
         />
       )
     }
     return acc;
   }, []);
 
+  const { user } = useAuth();
+
   return (
-    <EditModeContext.Provider value={editMode}>
-        <Container size={1000}>
-          <QueryLoader {...plantQueryOptions}>
-            <Group justify="space-between" pb={15}>
-              <Text fz="h2" fs="italic" fw={600}>{plant.data?.acceptedTaxonName}</Text>
-              <EditButton editMode={editMode} setEditMode={setEditMode}/>
-            </Group>
-          </QueryLoader>
-          <QueryLoader {...popularNamesQueryOptions}>
-            {popularNames.data && (popularNames.data.length > 0 || editMode) &&
-            <PopularNamesSection popularNames={popularNames.data!}/>}
-          </QueryLoader>
-          <QueryLoader {...taxaQueryOptions}>
-            {taxa.data && (taxa.data.length > 0 || editMode) &&
-            <TaxonomySection taxa={taxa.data}/>}
-          </QueryLoader>
-          <QueryLoader {...traitValuesQueryOptions}>
-            {traitSections}
-          </QueryLoader>
-          <QueryLoader {...naturalOccurrenceRegionsQueryOptions}>
-            {naturalOccurrenceRegions.data && (naturalOccurrenceRegions.data.length > 0 || editMode) &&
-            <NaturalOccurrenceSection regions={naturalOccurrenceRegions.data}/>}
-          </QueryLoader>
-        </Container>
-    </EditModeContext.Provider>
+    <QueryLoader {...plantQueryOptions}>
+      {plant.data && 
+      <Container size={1000}>
+        <Group justify="space-between" pb={15}>
+          <Text fz="h2" fs="italic" fw={600}>{plant.data.acceptedTaxonName}</Text>
+          <Group>
+            <EditButton editMode={editMode} setEditMode={setEditMode} />
+            {plant.data.contentStatus === 'proposed' && plant.data.contentProposer?.id === user?.id &&
+            <DeleteButton plant={plant.data} queryOptions={plantQueryOptions} />}
+          </Group>
+        </Group>
+        {plant.data.contentStatus === 'proposed' && <>
+        <Alert variant="light" color="red" title="Cadastro pendente" icon={<IconAlertHexagon />}>
+          <Text pb={10}>Essa planta ainda consta com o status de <strong>proposta</strong> para o Catálogo.</Text>
+          <Text pb={10}>Adicione mais informações sobre ela para aumentar suas chances de inclusão definitiva.</Text>
+        </Alert>
+        <Space h={15} />
+        </>}
+        <QueryLoader {...popularNamesQueryOptions}>
+          {popularNames.data && (popularNames.data.length > 0 || editMode) &&
+          <PopularNamesSection popularNames={popularNames.data!}/>}
+        </QueryLoader>
+        <QueryLoader {...taxaQueryOptions}>
+          {taxa.data && (taxa.data.length > 0 || editMode) &&
+          <TaxonomySection taxa={taxa.data}/>}
+        </QueryLoader>
+        <QueryLoader {...traitValuesQueryOptions}>
+          {traitSections}
+        </QueryLoader>
+        <QueryLoader {...naturalOccurrenceRegionsQueryOptions}>
+          {naturalOccurrenceRegions.data && (naturalOccurrenceRegions.data.length > 0 || editMode) &&
+          <NaturalOccurrenceSection regions={naturalOccurrenceRegions.data}/>}
+        </QueryLoader>
+      </Container>}
+    </QueryLoader>
   )
 }
 
@@ -116,13 +137,56 @@ function EditButton({
 }) {
   const Icon = editMode ? IconPencilOff : IconPencil;
 
+  const handleEditButtonClick = () => {
+    setEditMode(!editMode);
+  };
+
   return (
-    <Button variant="default" size="compact-md" color="dimmed" onClick={() => setEditMode(!editMode)} style={classes}>
+    <Button variant="default" size="compact-md" color="dimmed" onClick={() => handleEditButtonClick()} style={classes}>
       <Icon />
       <Text fw={600}>&nbsp;
         {editMode ? 
         <>Sair do modo edição</> :
         <>Adicionar informações</>}
+      </Text>
+    </Button>
+  )
+}
+
+function DeleteButton({ plant, queryOptions }: { plant: PlantReadData, queryOptions: QueryOptions<PlantReadData> }) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  
+  const proposalDeletion = useMutation({
+    mutationFn: deletePlant,
+    onSuccess: (data) => {
+      queryClient.refetchQueries({ predicate: (query) => { return query.queryKey[0] === 'plantList' } });
+      showSuccess(data.msg);
+      navigate('/plants');
+      queryClient.removeQueries({ queryKey: queryOptions.queryKey });
+    },
+    onError: showMutationError
+  });
+
+  const openProposalDeleteConfirmModal = () => modals.openConfirmModal({
+    title: 'Deseja mesmo excluir essa planta?',
+    children: (
+      <Text size="sm" mb={20}>
+        Ao confirmar, você <strong>removerá</strong> a proposta de inclusão
+        da planta <Text span fs="italic" fw={600}>{plant.acceptedTaxonName}</Text> no Catálogo, 
+        junto com todos os seus dados.
+      </Text>
+    ),
+    labels: { confirm: 'Excluir', cancel: 'Cancelar exclusão' },
+    confirmProps: { color: 'red' },
+    onConfirm: () => proposalDeletion.mutate(plant.contentId),
+  });
+
+  return (
+    <Button variant="outline" size="compact-md" color="red" onClick={() => openProposalDeleteConfirmModal()}>
+      <IconTrash size={20} />
+      <Text fw={600}>&nbsp;
+        Excluir planta
       </Text>
     </Button>
   )
@@ -214,21 +278,22 @@ function TraitSection({
   const navigate = useNavigate();
   const traitValuesMap = Object.fromEntries(traitValues.map(item => [item.traitSlug, item]));
 
-  const subsections = traits.map(item => (
-    <>
-    {item.slug in traitValuesMap || editMode ?
-    <Paper key={item.slug} withBorder ta="center" radius="md" style={{cursor: 'pointer'}} onClick={() => navigate(`trait/${item.slug}`)}>
-      {item.slug in traitValuesMap ? <>
-        <Text fz="h6" fw={550} p={5}>{item.name}</Text>
-        <TraitValueDisplay data={traitValuesMap[item.slug]} style={item.type=="string[]" ? { cursor: 'pointer' } : undefined} />
-        </> : <>
-        <Text fz="h6" fw={550} p={5} c="var(--mantine-color-gray-6)">{item.name}</Text>
-        <ContentPlaceholder size={40} />
-      </>}
-    </Paper> :
-    <></>}
-    </>
-  ));
+  const subsections = traits.reduce((acc: ReactElement[], item) => {
+    if (item.slug in traitValuesMap || editMode) {
+      acc.push(
+        <Paper key={item.slug} withBorder ta="center" radius="md" style={{cursor: 'pointer'}} onClick={() => navigate(`trait/${item.slug}`)}>
+          {item.slug in traitValuesMap ? <>
+            <Text fz="h6" fw={550} p={5}>{item.name}</Text>
+            <TraitValueDisplay data={traitValuesMap[item.slug]} style={item.type=="string[]" ? { cursor: 'pointer' } : undefined} />
+          </> : <>
+            <Text fz="h6" fw={550} p={5} c="var(--mantine-color-gray-6)">{item.name}</Text>
+            <ContentPlaceholder size={40} />
+          </>}
+        </Paper>    
+      )
+    }
+    return acc;
+  }, []);
   
   return (
     <Section title={sectionName}>

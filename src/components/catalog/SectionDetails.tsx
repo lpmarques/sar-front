@@ -30,7 +30,7 @@ export default function SectionDetails() {
   const { plantId, sectionSlug } = useParams();
 
   const plantQueryOptions = {
-    queryKey: ['plant', plantId!],
+    queryKey: ['plant', plantId!, 'status=accepted,proposed'],
     queryFn: getPlant,
   };
 
