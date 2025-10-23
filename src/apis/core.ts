@@ -169,13 +169,13 @@ export interface SourceReadData {
   deletedAt: string,
 }
 
-export async function getSource({ queryKey: [queryName, sourceId] }: QueryFnInput): Promise<SourceReadData> {
+export async function getSource({ queryKey: [_, sourceId] }: QueryFnInput): Promise<SourceReadData> {
   const res = await axios.get(`/core/sources/${sourceId}`);
 
   return snakeToCamelCase(res.data);
 }
 
-export async function getSourceList({ queryKey: [queryName] }: QueryFnInput): Promise<SourceReadData[]> {
+export async function getSourceList(_: QueryFnInput): Promise<SourceReadData[]> {
   const res = await axios.get("/core/sources");
 
   return snakeToCamelCase(res.data);
@@ -199,13 +199,13 @@ export interface SourceTypeReadData {
   fields: SourceField[],
 }
 
-export async function getSourceTypeList({ queryKey: [queryName] }: QueryFnInput): Promise<SourceTypeReadData[]> {
+export async function getSourceTypeList({ queryKey: [_] }: QueryFnInput): Promise<SourceTypeReadData[]> {
   const res = await axios.get("/core/source-types");
 
   return snakeToCamelCase(res.data);
 }
 
-export async function getSourceSubtypeList({ queryKey: [queryName, typeId] }: QueryFnInput): Promise<SourceTypeReadData[]> {
+export async function getSourceSubtypeList({ queryKey: [_, typeId] }: QueryFnInput): Promise<SourceTypeReadData[]> {
   const res = await axios.get(`/core/source-types/${typeId}/subtypes`);
 
   return snakeToCamelCase(res.data);
@@ -223,7 +223,7 @@ export interface UserReadData {
   municipality?: string,
 };
 
-export async function getUser({ queryKey: [queryName, userId] }: QueryFnInput): Promise<UserReadData> {
+export async function getUser({ queryKey: [_, userId] }: QueryFnInput): Promise<UserReadData> {
   const endpoint = userId ? `/core/users/${userId}` : "/core/user";
 
   let res = await axios.get(endpoint);
@@ -238,7 +238,7 @@ export interface EndorsementReadData {
   createdAt: string
 }
 
-export async function getEndorsements({ queryKey: [queryName, contentId] }: QueryFnInput): Promise<EndorsementReadData[]> {
+export async function getEndorsements({ queryKey: [_, contentId] }: QueryFnInput): Promise<EndorsementReadData[]> {
   const endpoint = `/core/endorsements?content_id=${contentId}`;
 
   let res = await axios.get(endpoint);
@@ -255,7 +255,7 @@ export async function getEndorsements({ queryKey: [queryName, contentId] }: Quer
   return data;
 }
 
-export async function getUserEndorsements({ queryKey: [queryName, contentId] }: QueryFnInput): Promise<EndorsementReadData[]> {
+export async function getUserEndorsements({ queryKey: [_, contentId] }: QueryFnInput): Promise<EndorsementReadData[]> {
   const endpoint = `/core/user/endorsements?content_id=${contentId}`;
 
   let res = await axios.get(endpoint);

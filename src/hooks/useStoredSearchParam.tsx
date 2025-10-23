@@ -1,4 +1,4 @@
-import { useNavigate, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import { useLocalStorage } from "./useLocalStorage";
 import { convertStringToPrimitiveType, Primitive } from "../utils/common";
 import { useEffect } from "react";

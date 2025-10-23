@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import unidecode from 'unidecode-plus';
 import { Table, TextInput } from '@mantine/core';
 import { getPlantPopularNameList, PopularNameReadData, PopularNameWriteRequestData } from '../../apis/catalog';
 import { BuildWriteRequestDataProps, ContentDisplayRowProps, ContentForm, ContentFormRowProps } from './SectionConfigs';
 import { FormErrors, useForm } from '@mantine/form';
 import { QueryOptions } from '../../apis/common';
+import { unaccent } from '../../utils/common';
 
 export function buildPopularNameListQueryOptions(plantId: number): QueryOptions<PopularNameReadData[]> {
   return {
@@ -20,7 +20,7 @@ export function buildPopularNameListQueryOptions(plantId: number): QueryOptions<
 
 export type PopularNameForm = ContentForm<PopularNameWriteRequestData>; 
 
-export const popularNameFormUniqueKey = [
+export const popularNameFormKeys = [
   'name',
 ] as (keyof PopularNameForm)[];
 
@@ -33,7 +33,7 @@ export function validatePopularNameFormToReadDataDiff(
     ...(formValues.name === readData.name && { name: errMsg }),
   };
 
-  if (Object.keys(matchErrors).length === popularNameFormUniqueKey.length)
+  if (Object.keys(matchErrors).length === popularNameFormKeys.length)
     return matchErrors;
 }
 
@@ -58,7 +58,7 @@ export function PopularNameHeader() {
   }
   
   return (
-    <Table.Th {...font} w={250}>Nome</Table.Th>
+    <Table.Th {...font} w={200}>Nome</Table.Th>
   );
 }
 
@@ -81,7 +81,7 @@ export function usePopularNameForm({ initialValues }: { initialValues?: { [key i
     validate: {
       name: (value) => {
         if (!value.trim().length) return 'Campo obrigatório';
-        if (!/^[-a-z]+$/.test(unidecode(value))) return 'Formato inválido';
+        if (!/^[-a-z]+$/.test(unaccent(value))) return 'Formato inválido';
       },
     },
     transformValues: (values) => ({

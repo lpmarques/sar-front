@@ -89,10 +89,8 @@ export default function SourceForm({ onSubmit }: { onSubmit: Function }) {
   return (
     <>
       {typeInputs}
-      <QueryLoader {...sourceSubtypesQueryOptions}>
-      {selectedType && (selectedSubtype || sourceSubtypeOptions.length === 0) &&
-        <SourceDataForm type={selectedType} subtype={selectedSubtype} onSubmit={onSubmit} />}
-      </QueryLoader>
+      {selectedType && (selectedSubtype || sourceSubtypes.data && sourceSubtypeOptions.length === 0) &&
+      <SourceDataForm type={selectedType} subtype={selectedSubtype} onSubmit={onSubmit} />}
     </>
   )
 }
@@ -208,7 +206,7 @@ function SourceDataForm({ type, subtype, onSubmit }: { type: SourceTypeReadData,
         label="Observações (opcional)"
         placeholder="Suas observações sobre essa fonte"
       />
-      <Button loading={sourceCreation.isPending} mt={10} type="submit" onClick={handleSubmit}>Cadastrar fonte</Button>
+      <Button mt={10} type="submit" onClick={handleSubmit} loading={sourceCreation.isPending}>Cadastrar fonte</Button>
     </>
   )
 }

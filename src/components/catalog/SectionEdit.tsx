@@ -39,19 +39,19 @@ export default function SectionEdit() {
         <SectionEditBody<TaxonReadData, TaxonWriteRequestData>
           plant={plant.data}
           sectionConfig={sectionConfig as SectionConfig<TaxonReadData, TaxonWriteRequestData>}
-          w={1000}
+          size={1000}
           /> : 
         sectionSlug === "popular-names" ? 
         <SectionEditBody<PopularNameReadData, PopularNameWriteRequestData>
           plant={plant.data}
           sectionConfig={sectionConfig as SectionConfig<PopularNameReadData, PopularNameWriteRequestData>}
-          w={700}
+          size={600}
           /> : 
         sectionSlug === "natural-occurrence-regions" ? 
         <SectionEditBody<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>
           plant={plant.data}
           sectionConfig={sectionConfig as SectionConfig<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>}
-          w={1000}
+          size={1000}
           /> : 
         <></>}
       </>}
@@ -89,11 +89,11 @@ function SectionEditBody<ReadT extends ContentReadData, WriteT extends ContentWr
       <AcceptedItems<ReadT, WriteT>
         plantId={plant.id}
         sectionConfig={sectionConfig}
-        />
+      />
       <SectionItemsProposalForm<ReadT, WriteT>
         plantId={plant.id}
         sectionConfig={sectionConfig}
-        />
+      />
     </Container>
   )
 }
@@ -132,7 +132,13 @@ export function AcceptedItems<ReadT extends ContentReadData, WriteT extends Cont
       {acceptedItems.length > 0 && <>
       <Paper withBorder p={15}>
         <Text fz="h5" fw={600} pb={10} ta="center">Itens aceitos</Text>
-        <StickyHeaderTable header={header} rows={rows} scrollWidth={500} scrollHeight={300} withRowBorders={false} />
+        <StickyHeaderTable
+          header={header}
+          rows={rows}
+          scrollWidth={sectionConfig.formKeys.length*125}
+          scrollHeight={300}
+          withRowBorders={false}
+        />
       </Paper>
       <Space h={15} />
       </>}

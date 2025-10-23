@@ -1,4 +1,4 @@
-import { PolymorphicComponentProps, Text, TextProps } from "@mantine/core";
+import { Text, TextProps } from "@mantine/core";
 import classes from '../common/Clickable.module.css';
 
 interface ClickableText extends TextProps {

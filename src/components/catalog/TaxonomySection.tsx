@@ -22,7 +22,7 @@ export function buildTaxonListQueryOptions(plantId: number): QueryOptions<TaxonR
 
 export type TaxonForm = ContentForm<TaxonWriteRequestData>;
 
-export const taxonFormUniqueKey = [
+export const taxonFormKeys = [
   'family',
   'species',
   'subspecies',
@@ -36,14 +36,14 @@ export function validateTaxonFormsDiff(
   errMsg: string = "Item duplicado"
 ): FormErrors | undefined {
 
-  const matchErrors = taxonFormUniqueKey.reduce((matchErrors: FormErrors, key) => {
+  const matchErrors = taxonFormKeys.reduce((matchErrors: FormErrors, key) => {
     if (a[key] === b[key])
       matchErrors[key as string] = errMsg;
 
     return matchErrors;
   }, {});
 
-  if (Object.keys(matchErrors).length === taxonFormUniqueKey.length)
+  if (Object.keys(matchErrors).length === taxonFormKeys.length)
     return matchErrors;
 
   if (a['taxonomicStatus'] === 'accepted' && 'taxonomicStatus' in matchErrors)
@@ -63,11 +63,8 @@ export function validateTaxonFormToReadDataDiff(
     ...(formValues.taxonomicStatus === readData.taxonomicStatus && { taxonomicStatus: errMsg }),
   };
   
-  if (Object.keys(matchErrors).length === taxonFormUniqueKey.length)
+  if (Object.keys(matchErrors).length === taxonFormKeys.length)
     return matchErrors;
-
-  if (formValues.species === readData.species)
-    return { 'species': errMsg };
 }
 
 export function buildTaxonWriteRequestData({
@@ -94,7 +91,7 @@ export function TaxonHeader() {
     <>
     <Table.Th {...font} w={80}>Status taxonômico</Table.Th>
     <Table.Th {...font} w={100}>Família</Table.Th>
-    <Table.Th {...font} w={170}>Espécie</Table.Th>
+    <Table.Th {...font} w={150}>Espécie</Table.Th>
     <Table.Th {...font} w={50}>Subespécie</Table.Th>
     <Table.Th {...font} w={50}>Variedade</Table.Th>
     </>

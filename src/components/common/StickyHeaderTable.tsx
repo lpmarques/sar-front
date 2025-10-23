@@ -23,7 +23,10 @@ export function StickyHeaderTable ({ header, rows, scrollWidth, scrollHeight, he
       onScrollEndCapture={() => setScrolled(false)}
     >
       <Table withRowBorders {...tableProps}>
-        <Table.Thead className={clsx(classes.header, { [classes.scrolled]: scrolled })} style={headerStyle}>
+        <Table.Thead 
+          className={clsx(classes.header, { [classes.scrolled]: scrolled })}
+          style={headerStyle}
+        >
           {header}
         </Table.Thead>
         <Table.Tbody>

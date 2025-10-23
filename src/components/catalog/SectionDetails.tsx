@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router';
-import { Alert, Button, Container, ContainerProps, Group, Paper, Space, Table, Text, Tooltip } from '@mantine/core';
+import { Alert, Button, Container, ContainerProps, Paper, Space, Table, Text, Tooltip } from '@mantine/core';
 import { modals } from '@mantine/modals';
-import { IconAlertHexagon, IconCircleDashedPlus, IconEyeQuestion, IconInfoCircle, IconTrash } from '@tabler/icons-react';
+import { IconAlertHexagon, IconEyeQuestion, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getPlant,
@@ -25,6 +25,7 @@ import { UserAvatar } from '../user';
 import { SectionConfig, getSectionConfig, SectionSlug } from './SectionConfigs';
 import { EndorsementCounter, SourceRef } from '.';
 import AddRow from '../common/AddRow';
+import LoaderRow from '../common/LoaderRow';
 
 export default function SectionDetails() {
   const { plantId, sectionSlug } = useParams();
@@ -45,19 +46,19 @@ export default function SectionDetails() {
         <SectionDetailsBody<TaxonReadData, TaxonWriteRequestData>
           plant={plant.data}
           sectionConfig={sectionConfig as SectionConfig<TaxonReadData, TaxonWriteRequestData>}
-          w={1000}
+          size={1000}
           /> : 
         sectionSlug === "popular-names" ? 
         <SectionDetailsBody<PopularNameReadData, PopularNameWriteRequestData>
           plant={plant.data}
           sectionConfig={sectionConfig as SectionConfig<PopularNameReadData, PopularNameWriteRequestData>}
-          w={700}
+          size={600}
           /> : 
         sectionSlug === "natural-occurrence-regions" ? 
         <SectionDetailsBody<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>
           plant={plant.data}
           sectionConfig={sectionConfig as SectionConfig<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>}
-          w={1000}
+          size={1000}
           /> : 
         <></>}
       </>}
@@ -79,31 +80,31 @@ function SectionDetailsBody<ReadT extends ContentReadData, WriteT extends Conten
 
   return (
     <Container {...containerProps}>
-    {/* TODO: adicionar descrição para cada traço e opções de valores
-      <Alert variant="light" color="blue" title="Ciclo de vida" icon={<IconInfoCircle />}>
-      <Text fz="md" pb={10}>Diz respeito ao tempo de vida da planta, podendo assumir uma das seguintes categorias:</Text>
-      <List>
-        <List.Item fz="sm">anual, quando dura em torno de um ano;</List.Item>
-        <List.Item fz="sm">bianual, quando dura em torno de dois anos;</List.Item>
-        <List.Item fz="sm">perene, quando dura mais de dois anos.</List.Item>
-      </List>
-    </Alert> */}
-    {/* <Space h={20} /> */}
-    <ClickableText fs="italic" fz="h3" pb={15} onClick={() => navigate(`/plants/${plant.id}`)}>
-      {plant.acceptedTaxonName}
-    </ClickableText>
-    <Text fz="h3" pb={15}>
-      <Text span inherit fw={600}>{sectionConfig.sectionName}</Text>
-    </Text>
-    <AcceptedItems<ReadT, WriteT>
-      plant={plant}
-      sectionConfig={sectionConfig}
-      />
-    <Space h={15} />
-    <ProposedItems<ReadT, WriteT>
-      plant={plant}
-      sectionConfig={sectionConfig}
-      />
+      {/* TODO: adicionar descrição para cada traço e opções de valores
+        <Alert variant="light" color="blue" title="Ciclo de vida" icon={<IconInfoCircle />}>
+        <Text fz="md" pb={10}>Diz respeito ao tempo de vida da planta, podendo assumir uma das seguintes categorias:</Text>
+        <List>
+          <List.Item fz="sm">anual, quando dura em torno de um ano;</List.Item>
+          <List.Item fz="sm">bianual, quando dura em torno de dois anos;</List.Item>
+          <List.Item fz="sm">perene, quando dura mais de dois anos.</List.Item>
+        </List>
+      </Alert> */}
+      {/* <Space h={20} /> */}
+      <ClickableText fs="italic" fz="h3" pb={15} onClick={() => navigate(`/plants/${plant.id}`)}>
+        {plant.acceptedTaxonName}
+      </ClickableText>
+      <Text fz="h3" pb={15}>
+        <Text span inherit fw={600}>{sectionConfig.sectionName}</Text>
+      </Text>
+      <AcceptedItems<ReadT, WriteT>
+        plant={plant}
+        sectionConfig={sectionConfig}
+        />
+      <Space h={15} />
+      <ProposedItems<ReadT, WriteT>
+        plant={plant}
+        sectionConfig={sectionConfig}
+        />
     </Container>
   )
 }
@@ -170,7 +171,13 @@ export function AcceptedItems<ReadT extends ContentReadData, WriteT extends Cont
       <>
       <Paper withBorder p={15}>
         <Text fz="h5" fw={600} pb={10}>Itens aceitos</Text>
-        <StickyHeaderTable header={header} rows={rows} scrollWidth={600} scrollHeight={220} withRowBorders={false} />
+        <StickyHeaderTable
+          header={header}
+          rows={rows}
+          scrollWidth={(sectionConfig.formKeys.length+2)*125}
+          scrollHeight={250}
+          withRowBorders={false}
+        />
       </Paper>
       <Space h={15} />
       <Alert variant="light" color="gray" icon={<IconEyeQuestion />}>
@@ -199,9 +206,9 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
   const queryClient = useQueryClient();
 
   const itemsQueryOptions = sectionConfig.buildQueryOptions(plant.id);
-  const { data } = useQuery(itemsQueryOptions);
+  const itemsQuery = useQuery(itemsQueryOptions);
 
-  const proposals = data ? data.filter(item => item.contentStatus === "proposed") : [];
+  const proposals = itemsQuery.data ? itemsQuery.data.filter(item => item.contentStatus === "proposed") : [];
 
   const sortedValues = proposals.sort((a, b) =>
     b.proposedAt!.localeCompare(a.proposedAt!)
@@ -242,7 +249,7 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
     labels: { confirm: 'Excluir', cancel: 'Cancelar exclusão' },
     confirmProps: { color: 'red' },
     onConfirm: () => proposalDeletion.mutate(proposal.contentId),
-  })
+  });
 
   const handleAddRowClick = () => {
     if (!user) {
@@ -264,7 +271,9 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
     </Table.Tr>
   );
   
-  const rows = sortedValues.map((item) => (
+  const rows = itemsQuery.isFetching || proposalDeletion.isPending ? [
+      <LoaderRow colSpan={sectionConfig.formKeys.length+5}/>
+    ] : sortedValues.map((item) => (
     <Table.Tr key={item.contentId}>
       <sectionConfig.DisplayRow data={item} />
       <Table.Td>
@@ -295,15 +304,20 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
 
   rows.push(
     <Tooltip key={0} withArrow label="Clique para adicionar uma nova proposta." position="bottom" >
-      <AddRow colSpan={10} onClick={() => handleAddRowClick()} />
+      <AddRow colSpan={sectionConfig.formKeys.length+5} onClick={() => handleAddRowClick()} />
     </Tooltip>
-  )
+  );
 
   return (
     <QueryLoader {...itemsQueryOptions}>
       <Paper withBorder p={15} mb={25}>
         <Text fz="h5" fw={600} pb={10}>Itens propostos</Text>
-        <StickyHeaderTable header={header} rows={rows} scrollWidth={500} scrollHeight={300} />
+        <StickyHeaderTable
+          header={header}
+          rows={rows}
+          scrollWidth={(sectionConfig.formKeys.length+2)*125}
+          scrollHeight={250}
+        />
       </Paper>
     </QueryLoader>
   )

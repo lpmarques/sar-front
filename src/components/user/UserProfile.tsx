@@ -4,7 +4,7 @@ import { modals } from '@mantine/modals';
 import { IconMail, IconBuildings, IconMapPin } from '@tabler/icons-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { showMutationError } from '../../apis/common';
-import { deleteUser, deleteUserToken, getUser } from "../../apis/core";
+import { deleteUser, deleteUserToken, getUser, UserReadData } from "../../apis/core";
 import { QueryLoader } from '../common/QueryLoader';
 import { useAuth } from "../../hooks/useAuth";
 import classes from './UserProfile.module.css';
@@ -26,14 +26,14 @@ export default function UserProfile() {
   return (
     <QueryLoader {...userQueryOptions}>
       <Container size={300}>
-        <UserDataCard data={data} />
+        <UserDataCard data={data!} />
         {userId === undefined && <UserOptions />}
       </Container>
     </QueryLoader>
   )
 }
 
-function UserDataCard({ data }: any) {
+function UserDataCard({ data }: { data: UserReadData }) {
 
   return (
     <Paper withBorder shadow="sm" p={25} mt={20} mb={30} radius="md">

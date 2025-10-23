@@ -1,6 +1,6 @@
 import { AppShell, Avatar, Group, rem, UnstyledButton } from '@mantine/core';
 import { useHeadroom } from '@mantine/hooks';
-import { Link, Navigate, useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
 import regeneraLogo from '/logo-lg-2.png'
 import classes from './Shell.module.css';

@@ -89,7 +89,7 @@ export default function Login() {
             Forgot password?
           </Anchor>
         </Group> */}
-        <Button fullWidth mt="xl" radius="md" type="submit" onClick={handleLogin}>
+        <Button fullWidth mt="xl" radius="md" type="submit" onClick={handleLogin} loading={userTokenCreation.isPending}>
           Entrar
         </Button>
       </Paper>

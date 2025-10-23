@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { useState } from 'react';
-import { Group, GroupProps, TextProps } from '@mantine/core';
+import { Group, GroupProps, Loader, TextProps } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { IconProps, IconThumbUp, IconThumbUpFilled } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -109,17 +109,23 @@ export default function EndorsementCounter<ReadT extends ContentReadData>({
     children: <EndorsementList contentId={content.contentId} />
   });
 
+  const isLoading = endorsementCreation.isPending || endorsementDeletion.isPending || endorsements.isFetching || userEndorsements.isFetching;
+
   return (
+    <>
+    {isLoading ? <Loader /> :
     <Group justify="center" gap={25} {...groupProps}>
       <ClickableText fz="h2" onClick={openEndorsementListModal} {...textProps}>
         {count}
       </ClickableText>
       <ThumbIcon 
-        size={25} 
-        onClick={handleThumbClick} 
-        className={clsx({ [classes.fillableIcon]: !userEndorsementId }, { [classes.icon]: userEndorsementId })} 
-        {...iconProps}
+      size={25} 
+      onClick={handleThumbClick} 
+      className={clsx({ [classes.fillableIcon]: !userEndorsementId }, { [classes.icon]: userEndorsementId })} 
+      {...iconProps}
       />
     </Group>
+    }
+    </>
   )
 }

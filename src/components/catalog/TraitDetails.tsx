@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router';
-import { Alert, Button, Container, Grid, Group, List, Paper, Space, Table, Text, Tooltip } from '@mantine/core';
+import { Alert, Button, Container, Grid, Paper, Space, Table, Text, Tooltip } from '@mantine/core';
 import { modals } from '@mantine/modals';
-import { IconAlertHexagon, IconEyeQuestion, IconInfoCircle, IconTrash } from '@tabler/icons-react';
+import { IconAlertHexagon, IconEyeQuestion, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   deleteTraitValue,
@@ -21,6 +21,7 @@ import { UserAvatar } from '../user/';
 import ClickableText from '../common/ClickableText';
 import { EndorsementCounter, SourceDetails, SourceRef, TraitValueDisplay } from '.';
 import AddRow from '../common/AddRow';
+import LoaderRow from '../common/LoaderRow';
 
 export default function TraitDetails() {
   const { plantId, traitSlug } = useParams();
@@ -196,6 +197,8 @@ function ProposedValues({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const proposalsQuery = useQuery(proposalsQueryOptions);
+
   const sortedValues = proposals.sort((a, b) =>
     b.proposedAt!.localeCompare(a.proposedAt!)
   );
@@ -248,7 +251,9 @@ function ProposedValues({
     </Table.Tr>
   );
   
-  const rows = sortedValues.map((item: TraitValueReadData) => (
+  const rows = proposalsQuery.isFetching || proposalDeletion.isPending ? [
+    <LoaderRow colSpan={6}/>
+  ] : sortedValues.map((item: TraitValueReadData) => (
     <Table.Tr key={item.contentId}>
       <Table.Td>
         <TraitValueDisplay data={item}/>

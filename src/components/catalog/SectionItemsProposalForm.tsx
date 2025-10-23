@@ -29,6 +29,7 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
     mutationFn: sectionConfig.createMutationFunction,
     onSuccess: (data) => {
       showSuccess(data.msg);
+      // TODO: implement multi-item posting endpoint so as to avoid redundant query refetching
       queryClient.invalidateQueries({ queryKey: itemsQueryOptions.queryKey });
       navigate("..", {relative: "path"});
     },
@@ -74,14 +75,14 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
 
   const defaultValidateFormsDiff = (a: ContentFormData, b: ContentFormData, errMsg: string) => {
 
-    const matchErrors = sectionConfig.formUniqueKey.reduce((matchErrors: FormErrors, key) => {
+    const matchErrors = sectionConfig.formKeys.reduce((matchErrors: FormErrors, key) => {
       if (a[key] === b[key])
         matchErrors[key as string] = errMsg;
 
       return matchErrors;
     }, {});
 
-    if (Object.keys(matchErrors).length === sectionConfig.formUniqueKey.length)
+    if (Object.keys(matchErrors).length === sectionConfig.formKeys.length)
       return matchErrors;
   }
 
@@ -191,7 +192,11 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
 
   const footer = (
     <Tooltip key={-1} withArrow label="Clique para adicionar um novo item a sua proposta." position="bottom">
-      <AddRow colSpan={10} onClick={() => handleAddRowClick()} style={{'--hover-color': 'var(--mantine-color-gray-2)'}} />
+      <AddRow
+        colSpan={sectionConfig.formKeys.length+1}
+        onClick={() => handleAddRowClick()}
+        style={{'--hover-color': 'var(--mantine-color-gray-2)'}}
+      />
     </Tooltip>
   );
 
@@ -203,7 +208,13 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
     <QueryLoader {...itemsQueryOptions}>
       <Paper withBorder style={style} ta="center" p={15} mb={20}>
         <Text fz="h5" fw={600} pb={10}>Proposta</Text>
-        <StickyHeaderTable header={header} rows={[...rows, footer]} scrollWidth={600} scrollHeight={500} headerStyle={style} />
+        <StickyHeaderTable
+          header={header}
+          rows={[...rows, footer]}
+          scrollWidth={sectionConfig.formKeys.length*125}
+          scrollHeight={500}
+          headerStyle={style}
+        />
         {divider}
         <Text fz="h5" fw={600} pb={10}>Fonte</Text>
         <SourceSelect field={sourceField} />

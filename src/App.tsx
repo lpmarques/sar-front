@@ -21,7 +21,7 @@ import { theme } from "./theme";
 
 export default function App() {
   const auth = useAuth();
-  axios.defaults.baseURL = 'http://127.0.0.1:8000';
+  axios.defaults.baseURL = import.meta.env.VITE_BACKEND_API_URL;
   axios.defaults.headers.common['Authorization'] = auth.token == null ? "" : `Token ${auth.token}`;
 
   const queryClient = new QueryClient({

@@ -1,11 +1,10 @@
-import { Center, Container, Group, MultiSelect, NativeSelect, NumberInput, RangeSlider, Select, Switch, Text, TextInput } from '@mantine/core';
+import { Center, Container, Group, MultiSelect, NumberInput, RangeSlider, Select, Switch, Text } from '@mantine/core';
 import { UseFieldReturnType } from '@mantine/form';
 import {
   Range,
   TraitReadData,
   TraitValue,
 } from "../../apis/catalog";
-import { useState } from 'react';
 
 interface TraitValueInputProps {
   trait: TraitReadData,

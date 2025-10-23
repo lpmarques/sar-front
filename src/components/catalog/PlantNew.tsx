@@ -7,8 +7,9 @@ import { showMutationError } from '../../apis/common';
 import { showError, showSuccess } from "../common/notifications";
 import { QueryLoader } from '../common/QueryLoader';
 import { usePopularNameForm } from "./PopularNamesSection";
-import { useTaxonForm, validateTaxonFormToReadDataDiff } from "./TaxonomySection";
+import { useTaxonForm } from "./TaxonomySection";
 import { CommentInput, SourceSelect } from '.';
+import { undefinedIfEmpty } from '../../utils/common';
 
 export default function PlantNew() {
   const navigate = useNavigate();
@@ -32,10 +33,19 @@ export default function PlantNew() {
     validate: isNotEmpty('Campo obrigatório')
   });
 
-  const validateTaxonUniqueness = (acceptedTaxa: TaxonReadData[]) => {
+  const validateTaxonNameUniqueness = (acceptedTaxa: TaxonReadData[]) => {
+    const formValues = taxonForm.getValues();
+    const errMsg = "Igual a nome ou sinônimo já cadastrado";
     for (const item of acceptedTaxa) {
-      let matchErrors = validateTaxonFormToReadDataDiff(taxonForm.getValues(), item, "Igual a nome ou sinônimo já cadastrado");
-      if (matchErrors) {
+
+      const matchErrors = {
+        ...(formValues.species === item.species && { species: errMsg }),
+        ...(formValues.subspecies === undefinedIfEmpty(item.subspecies) && { subspecies: errMsg }),
+        ...(formValues.variety === undefinedIfEmpty(item.variety) && { variety: errMsg }),
+        ...(formValues.taxonomicStatus === item.taxonomicStatus && { taxonomicStatus: errMsg }),
+      };
+      
+      if (Object.keys(matchErrors).length === 4) {
         taxonForm.setErrors(matchErrors);
         return matchErrors;
       }
@@ -131,14 +141,17 @@ export default function PlantNew() {
     popularNameForm.setValues(popularNameForm.getTransformedValues());
 
     const taxonValidation = taxonForm.validate();
-    const taxonErrors = (taxonValidation.hasErrors && taxonValidation.errors) || validateTaxonUniqueness(taxa.data!);
+    const taxonUniquenessErrors = validateTaxonNameUniqueness(taxa.data!);
+    const taxonErrors = taxonValidation.hasErrors ? { ...taxonValidation.errors, ...taxonUniquenessErrors } : taxonUniquenessErrors;
     const taxonSourceError = await taxonSourceField.validate();
 
     const popularNameValidation = popularNameForm.validate();
-    const popularNameErrors = (popularNameValidation.hasErrors && popularNameValidation.errors) || validateTaxonUniqueness(taxa.data!);
+    const popularNameErrors = popularNameValidation.hasErrors ? popularNameValidation.errors : undefined;
     const popularNameSourceError = await popularNameSourceField.validate();
 
     const commentError = await commentField.validate();
+
+    console.log(taxonErrors);
     
     if (taxonErrors ||
       taxonSourceError ||

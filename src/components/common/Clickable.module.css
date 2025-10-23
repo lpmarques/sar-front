@@ -1,4 +1,4 @@
-.icon:hover {
+.icon {
   cursor: pointer;
 }
 
@@ -7,7 +7,7 @@
   fill: var(--mantine-color-gray-4);
 }
 
-.row:hover {
+.row:hover td {
   cursor: pointer;
   background-color: var(--hover-color);
 }
@@ -15,4 +15,8 @@
 .text:hover {
   cursor: pointer;
   text-decoration: underline;
+}
+
+.url {
+  word-break: break-all;
 }

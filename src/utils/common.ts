@@ -50,6 +50,10 @@ export function convertStringToPrimitiveType(str: string, primitive: Primitive) 
     case "bigint":
       return BigInt(str);
     case "undefined":
-      return undefined
+      return undefined;
   }
+}
+
+export function unaccent(str: string) {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }

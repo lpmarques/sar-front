@@ -30,7 +30,7 @@ export function sortNaturalOccurrenceRegions(a: NaturalOccurrenceRegionReadData,
     (a.vegetationType?.name ?? "").localeCompare((b.vegetationType?.name ?? ""));
 }
 
-export const naturalOccurrenceRegionFormUniqueKey = [
+export const naturalOccurrenceRegionFormKeys = [
   'countryId',
   'stateId',
   'biomeId',
@@ -49,7 +49,7 @@ export function validateNaturalOccurrenceRegionFormToReadDataDiff(
     ...(formValues.vegetationTypeId === readData.vegetationType?.id && { vegetationTypeId: errMsg }),
   };
 
-  if (Object.keys(matchErrors).length === naturalOccurrenceRegionFormUniqueKey.length)
+  if (Object.keys(matchErrors).length === naturalOccurrenceRegionFormKeys.length)
     return matchErrors;
 }
 
@@ -130,7 +130,7 @@ function FormRowBody({ forms, setForms, countries }: FormRowBodyProps) {
   const form = useForm<ContentForm<NaturalOccurrenceRegionWriteRequestData>>({
     mode: 'controlled',
     initialValues: {
-      countryId: lastRowValues?.countryId ?? 0,
+      countryId: lastRowValues?.countryId ?? brazilId ?? 0,
       biomeId: lastRowValues?.biomeId ?? 0,
       stateId: lastRowValues?.stateId ?? 0,
       vegetationTypeId: 0,

@@ -44,7 +44,7 @@ function SourceValueDisplay({ value, schema }: { value: SourceValue, schema: Jso
   }
 
   if (schema.type === "string" && schema.format === "uri") {
-    return <Anchor onClick={() => window.open(value as string)} className={classes.text}>{value as string}</Anchor>;
+    return <Anchor onClick={() => window.open(value as string)} className={classes.url}>{value as string}</Anchor>;
   }
 
   if (schema.type === "string" && schema.format === "date") {

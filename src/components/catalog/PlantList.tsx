@@ -110,10 +110,10 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
   const header = (
     <Table.Tr>
       <Table.Th>Nome científico</Table.Th>
-      <Table.Th>Família</Table.Th>
       <Table.Th>Nomes populares</Table.Th>
+      <Table.Th>Família</Table.Th>
       <Table.Th>Formas de vida</Table.Th>
-      <Table.Th>Ciclo de vida</Table.Th>
+      <Table.Th visibleFrom='sm'>Ciclo de vida</Table.Th>
     </Table.Tr>
   );
 
@@ -123,26 +123,26 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
       onClick={() => handleRowClick(row)} 
       style={{'--hover-color': '#bef7ce'}}
     >
-      <Table.Td w={230}>{row.acceptedName}</Table.Td>
+      <Table.Td w={175}>{row.acceptedName}</Table.Td>
+      <Table.Td w={250}>{row.popularNames}</Table.Td>
       <Table.Td w={100}>{row.familyName}</Table.Td>
-      <Table.Td w={500}>{row.popularNames}</Table.Td>
       <Table.Td w={150}>{row.lifeForms && <TraitValueDisplay data={row.lifeForms} />}</Table.Td>
-      <Table.Td w={110}>{row.lifeCycle && <TraitValueDisplay data={row.lifeCycle} />}</Table.Td>
+      <Table.Td w={110} visibleFrom='sm'>{row.lifeCycle && <TraitValueDisplay data={row.lifeCycle} />}</Table.Td>
     </ClickableRow>
   ));
 
   rows.push(
     <Tooltip key={0} withArrow position="top" label="Clique para cadastrar uma nova planta.">
-      <AddRow colSpan={6} onClick={() => handleAddRowClick()} style={{'--hover-color': '#bef7ce'}}/>
+      <AddRow colSpan={5} onClick={() => handleAddRowClick()} style={{'--hover-color': '#bef7ce'}}/>
     </Tooltip>,
     <Table.Tr key={-1}>
       <Table.Td colSpan={5}>
         <Text c="dimmed" fw={500} ta="center">
-          {rows.length} resultado(s) encontrado(s)
+          {rows.length > 0 ? `${rows.length} resultado(s) encontrado(s)` : "Nenhum resultado encontrado"}
         </Text>
       </Table.Td>
     </Table.Tr>,
-  )
+  );
 
   return (
     <Container size={1200}>
@@ -157,7 +157,7 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
         <StickyHeaderTable
           header={header}
           rows={rows}
-          scrollWidth={800}
+          scrollWidth={600}
           scrollHeight={550}
           striped
           stripedColor="#f0f2f2"
