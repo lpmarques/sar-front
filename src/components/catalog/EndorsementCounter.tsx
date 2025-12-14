@@ -105,7 +105,7 @@ export default function EndorsementCounter<ReadT extends ContentReadData>({
   };
 
   const openEndorsementListModal = () => modals.open({
-    title: "Usuários que aprovaram a informação",
+    title: "Usuários que apoiaram a informação",
     children: <EndorsementList contentId={content.contentId} />
   });
 

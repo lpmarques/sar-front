@@ -131,7 +131,7 @@ function AcceptedValueEndorsements({ data }: { data: TraitValueReadData }) {
   return (
     <Tooltip withArrow label="Se concorda com essa versão, deixe o seu jóinha." position="bottom">
       <Paper withBorder ta="center" p={15}>
-        <Text fz="h5" fw={600} pb={10}>Aprovações</Text>
+        <Text fz="h5" fw={600} pb={10}>Apoios</Text>
         <EndorsementCounter<TraitValueReadData>
           content={data}
         />
@@ -246,7 +246,7 @@ function ProposedValues({
       <Table.Th fz="h6" fw={550}>Fonte</Table.Th>
       <Table.Th fz="h6" fw={550}>Proponente</Table.Th>
       <Table.Th fz="h6" fw={550}>Proposta em</Table.Th>
-      <Table.Th fz="h6" fw={550} w={170}>Aprovações</Table.Th>
+      <Table.Th fz="h6" fw={550} w={170}>Apoios</Table.Th>
       <Table.Th w={80}></Table.Th>
     </Table.Tr>
   );

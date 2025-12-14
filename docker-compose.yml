@@ -1,9 +1,8 @@
 services:
   react:
     build: .
-    image: front-react
     container_name: sar-front-react
     network_mode: host
     env_file:
-      - .env.local
+      - .env.development
       # - .env.staging

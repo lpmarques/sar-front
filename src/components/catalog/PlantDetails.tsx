@@ -312,8 +312,8 @@ function NaturalOccurrenceSection({ regions }: { regions: NaturalOccurrenceRegio
   const header = (
       <Table.Tr>
         <Table.Th fz="h5" fw={550}>País</Table.Th>
-        <Table.Th fz="h5" fw={550}>Estado</Table.Th>
         <Table.Th fz="h5" fw={550}>Bioma</Table.Th>
+        <Table.Th fz="h5" fw={550}>Estado</Table.Th>
         <Table.Th fz="h5" fw={550}>Tipo de Vegetação</Table.Th>
       </Table.Tr>
   );
@@ -321,8 +321,8 @@ function NaturalOccurrenceSection({ regions }: { regions: NaturalOccurrenceRegio
   const rows = sortedRegions.map((region: NaturalOccurrenceRegionReadData) => (
     <Table.Tr key={`${region.contentId}`}>
       <Table.Td fz="sm">{region.country.name}</Table.Td>
-      <Table.Td fz="sm">{region.state?.code ?? ""}</Table.Td>
       <Table.Td fz="sm">{region.biome?.name ?? ""}</Table.Td>
+      <Table.Td fz="sm">{region.state?.code ?? ""}</Table.Td>
       <Table.Td fz="sm">{region.vegetationType?.name ?? ""}</Table.Td>
     </Table.Tr>
   ));
