@@ -1,0 +1,3 @@
+map $host $backend_api_url {
+  default "$ENV_BACKEND_API_URL";
+}
