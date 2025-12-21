@@ -1,13 +1,23 @@
 import { useEffect } from 'react';
-import { Loader, NativeSelect, Table, TableTd } from '@mantine/core';
+import { Alert, Loader, NativeSelect, Table, TableTd, Text } from '@mantine/core';
 import { FormErrors, useForm } from '@mantine/form';
+import { IconInfoCircle } from '@tabler/icons-react';
+import { useQuery } from '@tanstack/react-query';
 import { getPlantNaturalOccurrenceRegionList, NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData } from '../../apis/catalog';
 import { QueryOptions } from '../../apis/common';
 import { BuildWriteRequestDataProps, ContentDisplayRowProps, ContentForm, ContentFormRowProps } from './SectionConfigs';
-import { useQuery } from '@tanstack/react-query';
 import { BiomeData, CountryData, getBiomeList, getCountryList, getStateList, getVegetationTypeList, StateData, VegetationTypeData } from '../../apis/geography';
 import { sortValueFirst } from '../../utils/common';
 import { QueryLoader } from '../common/QueryLoader';
+
+export function NaturalOccurrenceRegionSectionInfo() {
+  return (
+    <Alert variant="light" color="blue" title="Regiões de Ocorrência Natural" icon={<IconInfoCircle />}>
+      <Text fz="md" pb={10}>Regiões nas quais a planta é nativa.</Text>
+      <Text fz="md" pb={10}>Aqui, cada região é definida pela combinação de quatro recortes territoriais: país, estado, bioma e tipo de vegetação (fitofisionomia).</Text>
+    </Alert>
+  )
+}
 
 export function buildNaturalOccurrenceRegionListQueryOptions(plantId: number) {
   return {
@@ -113,7 +123,7 @@ export function NaturalOccurrenceRegionFormRow(props: ContentFormRowProps<Natura
     <>
       {countries.data ?
       <FormRowBody countries={countries.data} {...props} /> :
-      <QueryLoader Placeholder={FormRowPlaceholder} {...countriesQueryOptions}></QueryLoader>  }
+      <QueryLoader Placeholder={FormRowPlaceholder} {...countriesQueryOptions}></QueryLoader> }
     </>
   )
 }

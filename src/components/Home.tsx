@@ -1,19 +1,20 @@
-import { Card, Container, Image, SimpleGrid, Text } from '@mantine/core';
+import { Card, Container, Image, SimpleGrid, Text, Title } from '@mantine/core';
 import { Link } from 'react-router';
-import classes from './Home.module.css'
+import classes from './Home.module.css';
+import safUfrrj from '/rural.jpg';
 
 const tools = [
   {
     imageSource: "https://upload.wikimedia.org/wikipedia/commons/e/ec/Cariniana_Strelensis-_jequitiba_branco.jpg",
     name: "Catálogo de Plantas",
-    description: "No catálogo, você encontra dezenas de plantas que podem ser úteis para o seu sistema agroflorestal.",
+    description: "No catálogo, você encontra diversas plantas que podem ser úteis para o seu sistema agroflorestal.",
     path: "plants",
   },
   {
-    imageSource: "https://images.squarespace-cdn.com/content/v1/64d91702b4c77e2b69ddc49e/3a2dab88-20dd-4448-aa08-fcce23798264/urbanfarm2.jpg",
+    imageSource: safUfrrj,
     name: "Projeto Agroflorestal",
-    description: "O projeto te ajuda a planejar o sistema agroflorestal perfeito para o seu local.",
-    path: "/",
+    description: "O projeto te ajuda a planejar o sistema agroflorestal ideal para o seu local.",
+    path: "farms",
   }
 ]
 
@@ -47,6 +48,7 @@ export default function Home() {
 
   return (
     <Container py="xl">
+      <Title fz={36} fw={500} ta="center" mb={50}>Simulador Agroflorestal Regenera</Title>
       <SimpleGrid cols={{ base: 1, xs: 2 }}>
         {cards}
       </SimpleGrid>

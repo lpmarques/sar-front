@@ -141,17 +141,23 @@ export async function getPlantList({ queryKey: [_, ...params] }: QueryFnInput ):
   return data;
 }
 
+export interface TraitTextValueOptions {
+  value: string,
+  description: string,
+}
+
 export interface TraitReadData {
   id: number,
   slug: string,
   name: string,
   sectionSlug: string,
   sectionName: string,
+  description: string,
   type: TraitType,
   isNullable: boolean,
   numericValueMin: number,
   numericValueMax: number,
-  textValueOptions: string[],
+  textValueOptions: TraitTextValueOptions[],
 }
 
 export async function getTraitList({ queryKey: [_, ...params] }: QueryFnInput ): Promise<TraitReadData[]> {

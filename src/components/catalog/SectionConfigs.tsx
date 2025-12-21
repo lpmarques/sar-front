@@ -26,6 +26,7 @@ import {
   TaxonRow,
   validateTaxonFormsDiff,
   validateTaxonFormToReadDataDiff,
+  TaxonSectionInfo,
 } from './TaxonomySection';
 import {
   buildPopularNameListQueryOptions,
@@ -35,6 +36,7 @@ import {
   PopularNameHeader,
   PopularNameRow,
   validatePopularNameFormToReadDataDiff,
+  PopularNameSectionInfo,
 } from './PopularNamesSection';
 import {
   buildNaturalOccurrenceRegionListQueryOptions,
@@ -45,6 +47,7 @@ import {
   NaturalOccurrenceRegionRow,
   sortNaturalOccurrenceRegions,
   validateNaturalOccurrenceRegionFormToReadDataDiff,
+  NaturalOccurrenceRegionSectionInfo,
 } from './NaturalOccurrenceRegionsSection';
 
 export type SectionSlug = 'popular-names' | 'taxonomy' | 'natural-occurrence-regions';
@@ -70,6 +73,7 @@ export interface BuildWriteRequestDataProps<WriteT> {
 
 export interface SectionConfig<ReadT extends ContentReadData, WriteT extends ContentWriteRequestData> {
   sectionName: string,
+  SectionInfo?: ComponentType,
   buildQueryOptions: (plantId: number) => QueryOptions<ReadT[]>,
   sortReadData?: (a: ReadT, b: ReadT) => number,
   Header: ComponentType,
@@ -93,6 +97,7 @@ export const getSectionConfig = (sectionSlug: SectionSlug):
     case 'taxonomy':
       return {
         sectionName: 'Taxonomia',
+        SectionInfo: TaxonSectionInfo,
         buildQueryOptions: buildTaxonListQueryOptions,
         Header: TaxonHeader,
         DisplayRow: TaxonRow,
@@ -107,6 +112,7 @@ export const getSectionConfig = (sectionSlug: SectionSlug):
     case 'popular-names':
       return {
         sectionName: 'Nomes Populares',
+        SectionInfo: PopularNameSectionInfo,
         buildQueryOptions: buildPopularNameListQueryOptions,
         Header: PopularNameHeader,
         DisplayRow: PopularNameRow,
@@ -120,6 +126,7 @@ export const getSectionConfig = (sectionSlug: SectionSlug):
     case 'natural-occurrence-regions':
       return {
         sectionName: 'Regiões de Ocorrência Natural',
+        SectionInfo: NaturalOccurrenceRegionSectionInfo,
         buildQueryOptions: buildNaturalOccurrenceRegionListQueryOptions,
         sortReadData: sortNaturalOccurrenceRegions,
         Header: NaturalOccurrenceRegionHeader,

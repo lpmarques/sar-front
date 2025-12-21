@@ -1,10 +1,20 @@
 import { useEffect } from 'react';
-import { Table, TextInput } from '@mantine/core';
+import { Alert, Table, Text, TextInput } from '@mantine/core';
 import { getPlantPopularNameList, PopularNameReadData, PopularNameWriteRequestData } from '../../apis/catalog';
 import { BuildWriteRequestDataProps, ContentDisplayRowProps, ContentForm, ContentFormRowProps } from './SectionConfigs';
 import { FormErrors, useForm } from '@mantine/form';
 import { QueryOptions } from '../../apis/common';
 import { unaccent } from '../../utils/common';
+import { IconInfoCircle } from '@tabler/icons-react';
+
+export function PopularNameSectionInfo() {
+  return (
+    <Alert variant="light" color="blue" title="Nomes populares" icon={<IconInfoCircle />}>
+      <Text fz="md" pb={10}>Classificação popular da planta.</Text>
+      <Text fz="md" pb={10}>Uma mesma planta (espécie ou variedade) pode ter diversos nomes populares.</Text>
+    </Alert>
+  )
+}
 
 export function buildPopularNameListQueryOptions(plantId: number): QueryOptions<PopularNameReadData[]> {
   return {

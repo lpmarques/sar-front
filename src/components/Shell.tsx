@@ -2,7 +2,7 @@ import { AppShell, Avatar, Group, rem, UnstyledButton } from '@mantine/core';
 import { useHeadroom } from '@mantine/hooks';
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
-import regeneraLogo from '/logo-lg-2.png'
+import regeneraLogo from '/logo-lg-2.png';
 import classes from './Shell.module.css';
 import { UserAvatar } from './user';
 
@@ -26,7 +26,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             <Link to="/plants" className={classes.link}>
               Catálogo
             </Link>
-            <Link to="/" className={classes.link}>
+            <Link to="/farms" className={classes.link}>
               Projeto
             </Link>
           </Group>

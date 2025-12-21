@@ -1,5 +1,5 @@
 import { MantineStyleProp, Table, TableTrProps } from "@mantine/core";
-import classes from '../common/Clickable.module.css';
+import classes from './Clickable.module.css';
 
 export interface ClickableRowProps extends TableTrProps {
   children: React.ReactNode,

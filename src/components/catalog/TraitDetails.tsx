@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router';
-import { Alert, Button, Container, Grid, Paper, Space, Table, Text, Tooltip } from '@mantine/core';
+import { Accordion, Alert, Button, Container, Grid, List, Paper, Space, Table, Text, Tooltip } from '@mantine/core';
 import { modals } from '@mantine/modals';
-import { IconAlertHexagon, IconEyeQuestion, IconTrash } from '@tabler/icons-react';
+import { IconAlertHexagon, IconEyeQuestion, IconInfoCircle, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   deleteTraitValue,
@@ -9,6 +9,7 @@ import {
   getPlantTraitValueList,
   getTraitList,
   PlantReadData,
+  TraitReadData,
   TraitValueReadData,
 } from '../../apis/catalog';
 import { QueryOptions, showMutationError } from '../../apis/common';
@@ -22,6 +23,7 @@ import ClickableText from '../common/ClickableText';
 import { EndorsementCounter, SourceDetails, SourceRef, TraitValueDisplay } from '.';
 import AddRow from '../common/AddRow';
 import LoaderRow from '../common/LoaderRow';
+import classes from '../common/AccordionPlusChevron.module.css';
 
 export default function TraitDetails() {
   const { plantId, traitSlug } = useParams();
@@ -51,8 +53,8 @@ export default function TraitDetails() {
 
   const trait = traits.data ? traits.data[0] : undefined;
   const acceptedValue = traitValues.data?.find(item => item.contentStatus === "accepted");
-  const proposedValues = traitValues.data ? traitValues.data.filter(item => item.contentStatus === "proposed") : [];
-  const everAcceptedValues = traitValues.data ? traitValues.data.filter(item => item.acceptedAt) : [];
+  const proposedValues = traitValues.data?.filter(item => item.contentStatus === "proposed") ?? [];
+  const everAcceptedValues = traitValues.data?.filter(item => item.acceptedAt) ?? [];
   
   const callToActionMsg = proposedValues.length > 0 ?
     "Nos ajude adicionando sua proposta abaixo ou avaliando propostas de outros usuários." :
@@ -62,16 +64,8 @@ export default function TraitDetails() {
     <QueryLoader {...traitValuesQueryOptions}>
       {plant.data && trait &&
       <Container size={1000}>
-        {/* TODO: adicionar descrição para cada traço e opções de valores
-         <Alert variant="light" color="blue" title="Ciclo de vida" icon={<IconInfoCircle />}>
-          <Text fz="md" pb={10}>Diz respeito ao tempo de vida da planta, podendo assumir uma das seguintes categorias:</Text>
-          <List>
-            <List.Item fz="sm">anual, quando dura em torno de um ano;</List.Item>
-            <List.Item fz="sm">bianual, quando dura em torno de dois anos;</List.Item>
-            <List.Item fz="sm">perene, quando dura mais de dois anos.</List.Item>
-          </List>
-          </Alert> */}
-        {/* <Space h={20} /> */}
+        <TraitInfo trait={trait} />
+        <Space h={20} />
         <ClickableText fs="italic" fz="h3" pb={15} onClick={() => navigate(`/plants/${plantId}`)}>
           {plant.data.acceptedTaxonName}
         </ClickableText>
@@ -104,6 +98,35 @@ export default function TraitDetails() {
         <ProposedValues plant={plant.data} proposals={proposedValues} proposalsQueryOptions={traitValuesQueryOptions} />
       </Container>}
     </QueryLoader>
+  )
+}
+
+export function TraitInfo({ trait }: { trait: TraitReadData }) {
+
+  const traitDesc = trait?.description ? <Text fz="md" pb={10}>{trait.description}</Text> : <></>;
+  const textOptionDescItems = trait?.textValueOptions.map(opt => (
+    <List.Item fz="sm">
+      <Text span fz={13} fw={600}>{opt.value.toUpperCase()}</Text>{opt.description ? `: ${opt.description}` : ""}
+    </List.Item>
+  )) ?? [];
+  const textQuantityClause = trait.type === "string" ? "somente um" : "um ou mais";
+
+  return (
+    <Alert variant="light" color="blue" title={trait.name} icon={<IconInfoCircle />}>
+      { textOptionDescItems.length === 0 ? traitDesc : 
+      <Accordion
+        classNames={{ chevron: classes.chevron }}
+        chevron={<IconPlus size={16} />}
+      >
+        <Accordion.Item value="default">
+          <Accordion.Control>{traitDesc}</Accordion.Control>
+          <Accordion.Panel>
+            <Text fz="md" pb={10}>Cada planta no Catálogo pode apresentar <Text span fw={600}>{textQuantityClause}</Text> dos seguintes valores para esse traço:</Text>
+            <List>{textOptionDescItems}</List>
+          </Accordion.Panel>
+        </Accordion.Item>
+      </Accordion>}
+    </Alert>
   )
 }
 

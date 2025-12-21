@@ -30,8 +30,8 @@ export default function TraitValueInput({ trait, field, ...extraProps }: TraitVa
 
 function StringTraitSelect({ trait, field, ...extraSelectProps }: { trait: TraitReadData, field: UseFieldReturnType<string> }) {
   const options = trait.textValueOptions.map(opt => ({
-    value: opt,
-    label: opt.toUpperCase()
+    value: opt.value,
+    label: opt.value.toUpperCase()
   }))
 
   return (
@@ -92,8 +92,8 @@ function BooleanTraitSwitch({ field, ...extraSwitchProps }: { field: UseFieldRet
 
 function StringArrayTraitSelect({ trait, field, ...extraSelectProps }: { trait: TraitReadData, field: UseFieldReturnType<string[]>,  }) {
   const options = trait.textValueOptions.map(opt => ({
-    value: opt,
-    label: opt.toUpperCase()
+    value: opt.value,
+    label: opt.value.toUpperCase()
   }))
 
   return (
