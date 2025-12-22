@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router";
-import unidecode from "unidecode-plus";
-import { Anchor, Button, Container, Loader, Paper, PasswordInput, Select, Text, TextInput, Title } from '@mantine/core';
+import { Anchor, Button, Container, Fieldset, Loader, Paper, PasswordInput, Select, Text, TextInput, Title } from '@mantine/core';
 import { isNotEmpty, useForm } from '@mantine/form';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from "react-router";
@@ -11,6 +10,7 @@ import { showMutationError } from "../../apis/common";
 import { createUserToken, createUser, UserWriteRequestData } from "../../apis/core";
 import { getCountryList, getStateList, getMunicipalityList, MunicipalityData, CountryData, StateData } from "../../apis/geography";
 import { useAuth } from "../../hooks/useAuth";
+import { unaccent } from "../../utils/common";
 
 export default function Signup() {
   const { auth } = useAuth();
@@ -57,7 +57,7 @@ export default function Signup() {
     validate: {
       firstName: (value) => {
         if (!value.trim().length) return 'Campo obrigatório';
-        if (!/^[A-Z][a-z]+(\s[A-Z][a-z]+)?$/.test(unidecode(value))) return 'Nome inválido';
+        if (!/^[a-z]+(\s[a-z]+)?$/.test(unaccent(value).toLowerCase())) return 'Nome inválido';
         return null;
       },
       lastName: isNotEmpty('Campo obrigatório'),
@@ -141,88 +141,92 @@ export default function Signup() {
 
   const inputs = (
     <>
-      <TextInput
-        key={form.key('firstName')}
-        label="Nome"
-        placeholder="Seu nome"
-        required
-        {...form.getInputProps('firstName')}
-      />
-      <TextInput
-        key={form.key('lastName')}
-        label="Sobrenome"
-        placeholder="Seu sobrenome"
-        required
-        {...form.getInputProps('lastName')}
-      />
-      <TextInput
-        key={form.key('email')}
-        label="E-mail"
-        placeholder="seu@email.com"
-        required
-        leftSection={<InputTip label="Use um e-mail válido. Sujeito a confirmação." />}
-        {...form.getInputProps('email')}
-      />
-      <PasswordInput
-        key={form.key('password')}
-        label="Senha"
-        placeholder="Sua senha"
-        required
-        {...form.getInputProps('password')}
-      />
-      <PasswordInput
-        key={form.key('confirmPassword')}
-        label="Confirmação de senha"
-        placeholder="Repita sua senha"
-        required
-        {...form.getInputProps('confirmPassword')}
-      />
-      <TextInput
-        key={form.key('occupation')}
-        label="Ocupação"
-        placeholder="Atuação ou formação principal"
-        required
-        {...form.getInputProps('occupation')}
-      />
-      <TextInput
-        key={form.key('company')}
-        label="Empresa/Instituição (se houver)"
-        placeholder="Empresa/instituição onde trabalha"
-        {...form.getInputProps('company')}
-      />
-      <Select
-        key={form.key('countryId')}
-        label="País"
-        placeholder="País de residência"
-        data={countryOptions}
-        clearable
-        searchable
-        {...form.getInputProps('countryId')}
-      />
-      {states.isLoading ? <Loader size={25} mt={20}/> :
-      stateOptions.length > 0 &&
-      <Select
-        key={form.key('stateId')}
-        label="Estado"
-        placeholder="Estado de residência"
-        data={stateOptions}
-        clearable
-        searchable
-        {...form.getInputProps('stateId')}
-      />
-      }
-      {municipalities.isLoading ? <Loader size={25} mt={20}/> :
-      municipalityOptions.length > 0 &&
-      <Select
-        key={form.key('municipalityId')}
-        label="Município"
-        placeholder="Município de residência"
-        data={municipalityOptions}
-        clearable
-        searchable
-        {...form.getInputProps('municipalityId')}
-      />
-      }
+      <Fieldset key="identity" mb={10}>
+        <TextInput
+          key={form.key('firstName')}
+          label="Nome"
+          placeholder="Seu nome"
+          required
+          {...form.getInputProps('firstName')}
+        />
+        <TextInput
+          key={form.key('lastName')}
+          label="Sobrenome"
+          placeholder="Seu sobrenome"
+          required
+          {...form.getInputProps('lastName')}
+        />
+        <TextInput
+          key={form.key('email')}
+          label="E-mail"
+          placeholder="seu@email.com"
+          required
+          leftSection={<InputTip label="Use um e-mail válido. Sujeito a confirmação." />}
+          {...form.getInputProps('email')}
+        />
+        <PasswordInput
+          key={form.key('password')}
+          label="Senha"
+          placeholder="Sua senha"
+          required
+          {...form.getInputProps('password')}
+        />
+        <PasswordInput
+          key={form.key('confirmPassword')}
+          label="Confirmação de senha"
+          placeholder="Repita sua senha"
+          required
+          {...form.getInputProps('confirmPassword')}
+        />
+      </Fieldset>
+      <Fieldset key="work" mb={10}>
+        <TextInput
+          key={form.key('occupation')}
+          label="Ocupação"
+          placeholder="Atuação ou formação principal"
+          required
+          {...form.getInputProps('occupation')}
+        />
+        <TextInput
+          key={form.key('company')}
+          label="Empresa/Instituição (se houver)"
+          placeholder="Empresa/instituição onde atua"
+          {...form.getInputProps('company')}
+        />
+        <Select
+          key={form.key('countryId')}
+          label="País"
+          placeholder="País onde atua"
+          data={countryOptions}
+          clearable
+          searchable
+          {...form.getInputProps('countryId')}
+        />
+        {form.getDirty().countryId && states.isLoading ? <Loader size={25} mt={20}/> :
+        stateOptions.length > 0 &&
+        <Select
+          key={form.key('stateId')}
+          label="Estado"
+          placeholder="Estado onde atua"
+          data={stateOptions}
+          clearable
+          searchable
+          {...form.getInputProps('stateId')}
+        />
+        }
+        {form.getDirty().stateId && municipalities.isLoading ? <Loader size={25} mt={20}/> :
+        municipalityOptions.length > 0 &&
+        <Select
+          key={form.key('municipalityId')}
+          label="Município"
+          placeholder="Município onde atua"
+          data={municipalityOptions}
+          clearable
+          searchable
+          {...form.getInputProps('municipalityId')}
+        />
+        }
+      </Fieldset>
     </>
   )
 
