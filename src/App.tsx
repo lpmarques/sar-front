@@ -58,7 +58,7 @@ export default function App() {
                   <Route path="login" element={<UnloggedOnlyRoute><Login /></UnloggedOnlyRoute>}/>
                   <Route path="signup" element={<UnloggedOnlyRoute><Signup /></UnloggedOnlyRoute>}/>
                   <Route path="user" element={<LoggedOnlyRoute><UserProfile /></LoggedOnlyRoute>}/>
-                  <Route path="users/:userId" element={<LoggedOnlyRoute><UserProfile /></LoggedOnlyRoute>}/>
+                  <Route path="users/:userEmail" element={<LoggedOnlyRoute><UserProfile /></LoggedOnlyRoute>}/>
                   <Route path="plants" element={<PlantList />} />
                   <Route path="plants/new" element={<LoggedOnlyRoute><PlantNew /></LoggedOnlyRoute>} />
                   <Route path="plants/:plantId" element={<PlantDetails />} />
