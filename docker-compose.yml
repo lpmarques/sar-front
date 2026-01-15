@@ -1,8 +1,9 @@
 services:
   react:
     build: .
+    # image: us-east1-docker.pkg.dev/perma-287515/sar/front-react:0.2.6
     container_name: sar-front-react
     network_mode: host
     env_file:
-      - .env.development
-      # - .env.staging
+      # - .env.development
+      - .env.staging

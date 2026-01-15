@@ -71,15 +71,16 @@ export default function TraitValueProposalForm({
     if (proposedValues.some((item) => valueRep === JSON.stringify(item.value)))
       return 'A proposta não pode ser igual a outra proposta já feita';
 
+    const textOptions = trait.textValueOptions.map(opt => opt.value)
     switch (trait.type) {
       case "string":
         let str = value as string;
         if (str.trim().length == 0) return 'Campo obrigatório';
-        return trait.textValueOptions.includes(value as string) ? null : 'Item inválido';
+        return textOptions.includes(value as string) ? null : 'Item inválido';
       case "string[]":
         let list = value as string[];
         if (list.length == 0) return 'Campo obrigatório';
-        return list.every((item) => trait.textValueOptions.includes(item)) ? null : 'Um ou mais itens estão inválidos';
+        return list.every((item) => textOptions.includes(item)) ? null : 'Um ou mais itens estão inválidos';
       case "number":
         let num = value as number;
         return (num >= trait.numericValueMin && num <= trait.numericValueMax) ? null : 'Valor fora dos limites permitidos';

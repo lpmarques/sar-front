@@ -9,7 +9,7 @@ export interface UserAvatarProps extends AvatarProps {
 export default function UserAvatar({ user, ...avatarProps }: UserAvatarProps) {
   const auth = useAuth();
 
-  const path = auth.user && auth.user.id === user.id ? "/user" : `/users/${user.id}`;
+  const path = auth.user && auth.user.id === user.id ? "/user" : `/users/${user.email}`;
   const name = `${user.firstName} ${user.lastName}`;
 
   return (

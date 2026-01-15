@@ -80,16 +80,10 @@ function SectionDetailsBody<ReadT extends ContentReadData, WriteT extends Conten
 
   return (
     <Container {...containerProps}>
-      {/* TODO: adicionar descrição para cada traço e opções de valores
-        <Alert variant="light" color="blue" title="Ciclo de vida" icon={<IconInfoCircle />}>
-        <Text fz="md" pb={10}>Diz respeito ao tempo de vida da planta, podendo assumir uma das seguintes categorias:</Text>
-        <List>
-          <List.Item fz="sm">anual, quando dura em torno de um ano;</List.Item>
-          <List.Item fz="sm">bianual, quando dura em torno de dois anos;</List.Item>
-          <List.Item fz="sm">perene, quando dura mais de dois anos.</List.Item>
-        </List>
-      </Alert> */}
-      {/* <Space h={20} /> */}
+      {sectionConfig.SectionInfo && <>
+      <sectionConfig.SectionInfo/>
+      <Space h={20} />
+      </>}
       <ClickableText fs="italic" fz="h3" pb={15} onClick={() => navigate(`/plants/${plant.id}`)}>
         {plant.acceptedTaxonName}
       </ClickableText>

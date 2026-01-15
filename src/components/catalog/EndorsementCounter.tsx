@@ -119,10 +119,10 @@ export default function EndorsementCounter<ReadT extends ContentReadData>({
         {count}
       </ClickableText>
       <ThumbIcon 
-      size={25} 
-      onClick={handleThumbClick} 
-      className={clsx({ [classes.fillableIcon]: !userEndorsementId }, { [classes.icon]: userEndorsementId })} 
-      {...iconProps}
+        size={25}
+        onClick={handleThumbClick}
+        className={clsx({ [classes.fillableIcon]: !userEndorsementId }, { [classes.icon]: userEndorsementId })}
+        {...iconProps}
       />
     </Group>
     }

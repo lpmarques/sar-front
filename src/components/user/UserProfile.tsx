@@ -10,11 +10,11 @@ import { useAuth } from "../../hooks/useAuth";
 import classes from './UserProfile.module.css';
 
 export default function UserProfile() {
-  let { userId } = useParams();
+  let { userEmail } = useParams();
 
   let queryKey = ['user'];
-  if (userId !== undefined)
-    queryKey.push(userId);
+  if (userEmail !== undefined)
+    queryKey.push(`email=${userEmail}`);
 
   const userQueryOptions = {
     queryKey,
@@ -27,7 +27,7 @@ export default function UserProfile() {
     <QueryLoader {...userQueryOptions}>
       <Container size={300}>
         <UserDataCard data={data!} />
-        {userId === undefined && <UserOptions />}
+        {userEmail === undefined && <UserOptions />}
       </Container>
     </QueryLoader>
   )

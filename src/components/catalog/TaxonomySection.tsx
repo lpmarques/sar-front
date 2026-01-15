@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { NativeSelect, Table, TextInput } from '@mantine/core';
+import { Alert, List, NativeSelect, Table, Text, TextInput } from '@mantine/core';
 import { FormErrors, isNotEmpty, useForm } from '@mantine/form';
 import { useQuery } from '@tanstack/react-query';
 import { getPlantTaxonList, TaxonReadData, TaxonWriteRequestData } from '../../apis/catalog';
@@ -7,6 +7,20 @@ import { QueryOptions } from '../../apis/common';
 import { useLanguage } from '../../hooks/useLanguage';
 import { capitalize, undefinedIfEmpty } from '../../utils/common';
 import { BuildWriteRequestDataProps, ContentDisplayRowProps, ContentForm, ContentFormRowProps } from './SectionConfigs';
+import { IconInfoCircle } from '@tabler/icons-react';
+
+export function TaxonSectionInfo() {
+  return (
+    <Alert variant="light" color="blue" title="Taxonomia" icon={<IconInfoCircle />}>
+      <Text fz="md" pb={10}>Classificação taxonômica (científica) da planta.</Text>
+      <Text fz="md" pb={10}>Cada planta (espécie ou variedade) pode ter mais de um nome científico, respeitada a quantidade máxima por status taxonômico:</Text>
+      <List>
+        <List.Item>NOME ACEITO: um e apenas um</List.Item>
+        <List.Item>SINÔNIMO: um ou mais</List.Item>
+      </List>
+    </Alert>
+  )
+}
 
 export function buildTaxonListQueryOptions(plantId: number): QueryOptions<TaxonReadData[]> {
   return {

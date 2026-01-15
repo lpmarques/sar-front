@@ -223,8 +223,10 @@ export interface UserReadData {
   municipality?: string,
 };
 
-export async function getUser({ queryKey: [_, userId] }: QueryFnInput): Promise<UserReadData> {
-  const endpoint = userId ? `/core/users/${userId}` : "/core/user";
+export async function getUser({ queryKey: [_, ...params] }: QueryFnInput): Promise<UserReadData> {
+  console.log(params)
+  const endpoint = params.length > 0 ? "/core/users" + (params && `?${params.join('&')}`) : "/core/user";
+  console.log(endpoint)
 
   let res = await axios.get(endpoint);
 

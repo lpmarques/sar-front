@@ -141,17 +141,23 @@ export async function getPlantList({ queryKey: [_, ...params] }: QueryFnInput ):
   return data;
 }
 
+export interface TraitTextValueOptions {
+  value: string,
+  description: string,
+}
+
 export interface TraitReadData {
   id: number,
   slug: string,
   name: string,
   sectionSlug: string,
   sectionName: string,
+  description: string,
   type: TraitType,
   isNullable: boolean,
   numericValueMin: number,
   numericValueMax: number,
-  textValueOptions: string[],
+  textValueOptions: TraitTextValueOptions[],
 }
 
 export async function getTraitList({ queryKey: [_, ...params] }: QueryFnInput ): Promise<TraitReadData[]> {
@@ -194,8 +200,8 @@ export function getTaxonName({ species, subspecies, variety }: TaxonReadData): s
   return `${species}` + (subspecies ? `subsp. ${subspecies}` : '') + (variety ? `var. ${variety}` : '');
 }
 
-export async function getTaxonList(): Promise<TaxonReadData[]> {
-  let res = await axios.get('/catalog/taxa');
+export async function getTaxonList({ queryKey: [_, ...params] }: QueryFnInput ): Promise<TaxonReadData[]> {
+  let res = await axios.get('/catalog/taxa' + (params && `?${params.join('&')}`));
 
   let data = snakeToCamelCase(res.data);
 
