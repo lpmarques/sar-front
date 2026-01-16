@@ -19,6 +19,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
+  "include": ["src", "../FarmNew copy.tsx", "../FarmNew copy 2.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

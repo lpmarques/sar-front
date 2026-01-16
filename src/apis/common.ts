@@ -2,7 +2,20 @@ import axios, { AxiosError } from 'axios';
 import { showError } from '../components/common/notifications';
 import { UseQueryOptions } from '@tanstack/react-query';
 
+export type MonthNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+
+export type EmptyObject = Record<PropertyKey, never>;
+
 export interface QueryOptions<DataType> extends UseQueryOptions<DataType, Error, DataType, string[]> {};
+
+export interface QueryFnInput {
+  queryKey: string[]
+}
+
+export interface WriteFnInput<WriteRequestData> {
+  id?: number
+  data: WriteRequestData
+}
 
 export interface GenericResponse {
   msg: string
@@ -43,22 +56,42 @@ export function defaultRequestRetry(failureCount: number, error: Error) {
   return true;
 }
 
-export interface MutationFnInput {
-  mutationKey: string[]
+interface DefaultHTTPRequestFnInput {
+  endpoint: string,
 }
 
-export async function defaultMutationFn({ mutationKey: [endpoint] }: MutationFnInput) {
-
-  return await axios.post(endpoint.toLowerCase());
+interface DefaultMutationFnInput extends DefaultHTTPRequestFnInput {
+  data: Object,
 }
 
-export interface QueryFnInput {
-  queryKey: string[]
+export async function defaultPostFn({ endpoint, data }: DefaultMutationFnInput): Promise<any> {
+  const body = camelToSnakeCase(data);
+  const res = await axios.post(endpoint.toLowerCase(), body);
+  
+  return snakeToCamelCase(res.data);
 }
 
-export async function defaultQueryFn({ queryKey: [endpoint] }: QueryFnInput) {
+export async function defaultPutFn({ endpoint, data }: DefaultMutationFnInput): Promise<any> {
+  const body = camelToSnakeCase(data);
+  const res = await axios.put(endpoint.toLowerCase(), body);
+  
+  return snakeToCamelCase(res.data);
+}
 
-  return await axios.get(endpoint.toLowerCase());
+export async function defaultDeleteFn({ endpoint }: DefaultHTTPRequestFnInput): Promise<any> {
+  const res = await axios.delete(endpoint.toLowerCase());
+  
+  return snakeToCamelCase(res.data);
+}
+
+interface DefaultQueryFnInput extends DefaultHTTPRequestFnInput {
+  params?: string[]
+}
+
+export async function defaultQueryFn({ endpoint, params = [] }: DefaultQueryFnInput): Promise<any> {
+  let res = await axios.get(endpoint.toLowerCase() + (params && `?${params.join('&')}`));
+
+  return snakeToCamelCase(res.data);
 }
 
 export async function showMutationError(error: Error){

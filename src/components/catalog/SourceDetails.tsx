@@ -5,6 +5,7 @@ import classes from '../common/Clickable.module.css';
 import { useLanguage } from '../../hooks/useLanguage';
 import { useQuery } from '@tanstack/react-query';
 import { QueryLoader } from '../common/QueryLoader';
+import FieldView from '../common/FieldView';
 
 export default function SourceDetails({ sourceId, sourceData }: { sourceId?: number, sourceData?: SourceReadData }) {
   const sourceQueryOptions = {
@@ -17,18 +18,16 @@ export default function SourceDetails({ sourceId, sourceData }: { sourceId?: num
 
   const fields = data ? data.fieldValues.sort((a, b) => a.position - b.position) : [];
   const lines = fields.map((item) => (
-    <Text key={item.field} pb={10}>
-      <Text span c="dimmed">{item.field}:</Text> <SourceValueDisplay value={item.value} schema={item.schema}/>
-    </Text>
+    <FieldView key={item.field} label={item.field}>
+      <SourceValueDisplay value={item.value} schema={item.schema}/>
+    </FieldView>
   ));
   
   return (
     <QueryLoader {...sourceQueryOptions}>
       { data &&
       <>
-        <Text pb={10}>
-          <Text span c="dimmed">Tipo:</Text> {data.type}
-        </Text>
+        <FieldView label="Tipo">{data.type}</FieldView>
         {lines}
       </>}
     </QueryLoader>

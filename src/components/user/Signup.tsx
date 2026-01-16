@@ -8,7 +8,7 @@ import InputTip from '../common/InputTip';
 import { showError, showSuccess } from '../common/notifications';
 import { showMutationError } from "../../apis/common";
 import { createUserToken, createUser, UserWriteRequestData } from "../../apis/core";
-import { getCountryList, getStateList, getMunicipalityList, MunicipalityData, CountryData, StateData } from "../../apis/geography";
+import { getCountryList, getStateList, getMunicipalityList, MunicipalityData, CountryData, StateData, geoDataToOptions } from "../../apis/geography";
 import { useAuth } from "../../hooks/useAuth";
 import { unaccent } from "../../utils/common";
 
@@ -111,15 +111,6 @@ export default function Signup() {
     queryFn: getMunicipalityList,
     enabled: form.getDirty().stateId,
   });
-
-  const geoDataToOptions = (data: CountryData[] | StateData[] | MunicipalityData[]) => {
-    return data.map(
-      item => ({
-        value: item.id.toString(),
-        label: item.name
-      })
-    ).sort((a, b) => a.label.localeCompare(b.label));
-  }
 
   const countryOptions = countries.data ? geoDataToOptions(countries.data) : [];
   const stateOptions = states.data ? geoDataToOptions(states.data) : [];

@@ -32,7 +32,7 @@ function StringTraitSelect({ trait, field, ...extraSelectProps }: { trait: Trait
   const options = trait.textValueOptions.map(opt => ({
     value: opt.value,
     label: opt.value.toUpperCase()
-  }))
+  }));
 
   return (
     <Container size={containerSize}>
@@ -115,7 +115,6 @@ function RangeTraitSlider({ trait, field, ...extraSliderProps }: { trait: TraitR
   const initialMax = field.getValue()[1];
   const step = Number.isInteger(initialMin) ? 1 : 0.1; // TODO: somehow get this info from backend
   const minRangeLength = 0;
-  console.log(initialMin)
 
   const changeRangeMin = (value: number) => {
     if (!Number.isNaN(value)) {
@@ -139,7 +138,6 @@ function RangeTraitSlider({ trait, field, ...extraSliderProps }: { trait: TraitR
     const currMin = field.getValue()[0];
     if (value-currMin < minRangeLength)
       field.setValue([currMin, currMin+minRangeLength]);
-    console.log(field.getValue())
   }
 
   return (
