@@ -1,5 +1,14 @@
 import axios from 'axios';
-import { QueryFnInput, snakeToCamelCase } from './common';
+import { defaultQueryFn, EmptyObject, MonthNumber, QueryFnInput, snakeToCamelCase } from './common';
+
+export const geoDataToOptions = (data: CountryData[] | StateData[] | MunicipalityData[]) => {
+  return data.map(
+    item => ({
+      value: item.id.toString(),
+      label: item.name
+    })
+  ).sort((a, b) => a.label.localeCompare(b.label));
+}
 
 export interface CountryData {
   id: number,
@@ -36,7 +45,8 @@ export async function getState({ queryKey: [_, stateId] }: QueryFnInput): Promis
 export interface MunicipalityData {
   id: number,
   name: string,
-  state_id: number,
+  stateId: number,
+  fiscalModuleSizeM2: number,
 }
 
 export async function getMunicipalityList({ queryKey: [_, stateId] }: QueryFnInput): Promise<MunicipalityData[]> {
@@ -73,4 +83,143 @@ export async function getVegetationTypeList({ queryKey: [_, countryId, ...params
   const res = await axios.get(`/geography/land/countries/${countryId}/vegetation-types` + (params && `?${params.join('&')}`));
   
   return snakeToCamelCase(res.data);
+}
+
+export interface LandSummaryData {
+  country: CountryData | EmptyObject,
+  state: StateData | EmptyObject,
+  biome: BiomeData | EmptyObject,
+  vegetationType: VegetationTypeData | EmptyObject,
+}
+
+export async function getLandSummary({ queryKey: [_, latlong, ...params] }: QueryFnInput): Promise<LandSummaryData> {
+  params.push(latlong);
+
+  return defaultQueryFn({ endpoint: "/geography/land", params });
+}
+
+export interface DroughtData {
+  year: number,
+  month: number,
+  droughtLevel: number,
+  droughtLevelCode: "si" | "s0" | "s1" | "s2" | "s3" | "s4",
+  countryId: number,
+}
+
+export async function getDroughtList({ queryKey: [_, latlong, ...params] }: QueryFnInput): Promise<DroughtData[]> {
+  params.push(latlong);
+
+  return defaultQueryFn({ endpoint: "/geography/climate/droughts", params });
+}
+
+export interface ClimateNormalData {
+  countryId: number,
+  stateId: number,
+  stationCode: number,
+  stationElevationM: number,
+  periodFirstYear: number,
+  periodLastYear: number,
+  month: number,
+  precipitationMm: number | null,
+  temperatureCMinimum: number | null,
+  temperatureCAverage: number | null,
+  temperatureCMaximum: number | null,
+}
+
+export async function getClimateNormalList({ queryKey: [_, latlong, ...params] }: QueryFnInput): Promise<ClimateNormalData[]> {
+  params.push(latlong);
+
+  return defaultQueryFn({ endpoint: "/geography/climate/normals", params });
+}
+
+export interface ElevationData {
+  elevationM: number,
+}
+
+export async function getElevation({ queryKey: [_, latlong, ...params] }: QueryFnInput): Promise<ElevationData> {
+  params.push(latlong);
+
+  return defaultQueryFn({ endpoint: "/geography/climate/elevation", params });
+}
+
+export interface DroughtsSummaryData {
+  firstYear: number,
+  firstMonth: MonthNumber,
+  lastYear: number,
+  lastMonth: MonthNumber,
+  periodMonths: number,
+  s0DroughtMonths: number,
+  s1DroughtMonths: number,
+  s2DroughtMonths: number,
+  s3DroughtMonths: number,
+  s4DroughtMonths: number,
+}
+
+export interface ClimateNormalsSummaryData {
+  stationCode: number,
+  stationElevationM: number,
+  stationDistance: number,
+  firstYear: number,
+  lastYear: number,
+  annualPrecipitationMm: number | null,
+  coldestMonthTempCMin: number | null,
+  coldestMonthTempCAvg: number | null,
+  coldestMonthTempCMax: number | null,
+  hottestMonthTempCMin: number | null,
+  hottestMonthTempCAvg: number | null,
+  hottestMonthTempCMax: number | null,
+}
+
+export interface ClimateSummaryData {
+  elevation: ElevationData | EmptyObject,
+  normals: ClimateNormalsSummaryData | EmptyObject,
+  droughts: DroughtsSummaryData | EmptyObject,
+}
+
+export async function getClimateSummary({ queryKey: [_, latlong, ...params] }: QueryFnInput): Promise<ClimateSummaryData> {
+  params.push(latlong);
+
+  return defaultQueryFn({ endpoint: "/geography/climate", params });
+}
+
+export interface SoilAcidityLevel {
+  id: number,
+  name: string,
+  phMin: number,
+  phMax: number,
+}
+
+export async function getSoilAcidityLevelList({ queryKey: [_, ...params] }: QueryFnInput): Promise<SoilAcidityLevel[]> {
+  return defaultQueryFn({ endpoint: "/geography/soil/acidity-levels", params });
+}
+
+export interface SoilPhData {
+  ph: number,
+  acidityLevel: SoilAcidityLevel,
+}
+
+export async function getSoilPh({ queryKey: [_, latlong, ...params] }: QueryFnInput): Promise<SoilPhData> {
+  params.push(latlong);
+
+  return defaultQueryFn({ endpoint: "/geography/soil/ph", params });
+}
+
+export interface SoilTextureTypeData {
+  id: number,
+  name: string,
+}
+
+export async function getSoilTextureTypeList({ queryKey: [_, ...params] }: QueryFnInput): Promise<SoilTextureTypeData[]> {
+  return defaultQueryFn({ endpoint: "/geography/soil/texture-types", params });
+}
+
+export interface SoilSummaryData {
+  acidity: SoilPhData | EmptyObject,
+  texture: SoilTextureTypeData | EmptyObject,
+}
+
+export async function getSoilSummary({ queryKey: [_, latlong, ...params] }: QueryFnInput): Promise<SoilSummaryData> {
+  params.push(latlong);
+
+  return defaultQueryFn({ endpoint: "/geography/soil", params });
 }
