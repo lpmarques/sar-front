@@ -71,12 +71,12 @@ export default function TraitValueProposalForm({
     if (proposedValues.some((item) => valueRep === JSON.stringify(item.value)))
       return 'A proposta não pode ser igual a outra proposta já feita';
 
-    const textOptions = trait.textValueOptions.map(opt => opt.value)
+    const textOptions = trait.textValueOptions.map(opt => opt.value);
     switch (trait.type) {
       case "string":
         let str = value as string;
         if (str.trim().length == 0) return 'Campo obrigatório';
-        return textOptions.includes(value as string) ? null : 'Item inválido';
+        return textOptions.includes(str) ? null : 'Item inválido';
       case "string[]":
         let list = value as string[];
         if (list.length == 0) return 'Campo obrigatório';

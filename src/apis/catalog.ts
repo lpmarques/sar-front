@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { camelToSnakeCase, GenericResponse, QueryFnInput, snakeToCamelCase } from './common';
+import { camelToSnakeCase, defaultQueryFn, GenericResponse, QueryFnInput, snakeToCamelCase } from './common';
 import { ContentReadData, ContentWriteRequestData, ContentWriteResponseData } from './core';
 import { BiomeData, CountryData, StateData, VegetationTypeData } from './geography';
 
@@ -27,7 +27,7 @@ export async function createPlant(data: PlantWriteRequestData): Promise<PlantWri
   return snakeToCamelCase(res.data);
 }
 
-export async function deletePlant(contentId: number): Promise<ContentWriteResponseData> {
+export async function deletePlant(contentId: number): Promise<GenericResponse> {
   const res = await axios.delete(`/catalog/plant/${contentId}`);
   
   return res.data;
@@ -126,11 +126,7 @@ export interface PlantReadData extends ContentReadData {
 }
 
 export async function getPlant({ queryKey: [_, plantId, ...params] }: QueryFnInput ): Promise<PlantReadData> {
-  let res = await axios.get(`/catalog/plants/${plantId}` + (params && `?${params.join('&')}`));
-
-  let data = snakeToCamelCase(res.data);
-
-  return data;
+  return defaultQueryFn({ endpoint: `/catalog/plants/${plantId}`, params });
 }
 
 export async function getPlantList({ queryKey: [_, ...params] }: QueryFnInput ): Promise<PlantReadData[]> {
@@ -141,7 +137,7 @@ export async function getPlantList({ queryKey: [_, ...params] }: QueryFnInput ):
   return data;
 }
 
-export interface TraitTextValueOptions {
+interface TraitTextValueOption {
   value: string,
   description: string,
 }
@@ -157,7 +153,7 @@ export interface TraitReadData {
   isNullable: boolean,
   numericValueMin: number,
   numericValueMax: number,
-  textValueOptions: TraitTextValueOptions[],
+  textValueOptions: TraitTextValueOption[],
 }
 
 export async function getTraitList({ queryKey: [_, ...params] }: QueryFnInput ): Promise<TraitReadData[]> {
