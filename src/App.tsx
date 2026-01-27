@@ -8,15 +8,20 @@ import { BrowserRouter, Routes, Route } from "react-router";
 import { MantineProvider } from "@mantine/core";
 import { ModalsProvider } from '@mantine/modals';
 import { Notifications } from '@mantine/notifications';
+import drawLocales from 'leaflet-draw-locales';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet-draw/dist/leaflet.draw.css';
 import "@mantine/core/styles.css";
 import '@mantine/dates/styles.css';
 import '@mantine/notifications/styles.css';
+import * as maptilersdk from '@maptiler/sdk';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { defaultRequestRetry } from './apis/common';
 import { Home, LoggedOnlyRoute, Shell, UnloggedOnlyRoute } from './components';
-import { FarmList } from "./components/agroforestry";
+import { FarmDetails, FarmEdit, FarmList, FarmNew, ProjectDetails } from "./components/agroforestry";
 import { PlantDetails, PlantList, PlantNew, SectionDetails, SectionEdit, TraitDetails, TraitEdit } from './components/catalog';
 import { HttpError } from './components/common/HttpError';
+import ScrollToTop from "./components/common/ScrollToTop";
 import { Login, UserProfile, Signup } from './components/user';
 import { LanguageProvider } from './hooks/useLanguage';
 import { useAuth } from './hooks/useAuth';
@@ -45,8 +50,12 @@ export default function App() {
   dayjs.extend(customParseFormat);
   dayjs.extend(LocalizedFormat);
 
+  maptilersdk.config.apiKey = "ySNElyovuaMoY8g0Bgmc";
+  drawLocales('pt');
+
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <QueryClientProvider client={queryClient}>
         <MantineProvider theme={theme}>
           <LanguageProvider>
@@ -67,6 +76,10 @@ export default function App() {
                   <Route path="plants/:plantId/trait/:traitSlug" element={<TraitDetails />} />
                   <Route path="plants/:plantId/trait/:traitSlug/edit" element={<LoggedOnlyRoute><TraitEdit /></LoggedOnlyRoute>} />
                   <Route path="farms" element={<FarmList />} />
+                  <Route path="farms/new" element={<LoggedOnlyRoute><FarmNew /></LoggedOnlyRoute>} />
+                  <Route path="farms/:farmId" element={<LoggedOnlyRoute><FarmDetails /></LoggedOnlyRoute>} />
+                  <Route path="farms/:farmId/edit" element={<LoggedOnlyRoute><FarmEdit /></LoggedOnlyRoute>} />
+                  <Route path="farms/:farmId/project" element={<LoggedOnlyRoute><ProjectDetails /></LoggedOnlyRoute>} />
                   <Route path='*' element={<HttpError status={404} statusText="Página inexistente"/>} />
                 </Routes>
               </Shell>

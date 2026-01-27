@@ -15,13 +15,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     <AppShell header={{height: 80, collapsed: !pinned, offset: false}}>
       <AppShell.Header p={10}>
         <Group justify="space-between" h="100%">
-
           <Group h="100%">
             <Link to="/">
               <img src={regeneraLogo} className={classes.logo} alt="Regenera logo" />
             </Link>
           </Group>
-
           <Group h="100%" gap={0} visibleFrom="sm">
             <Link to="/plants" className={classes.link}>
               Catálogo
@@ -30,7 +28,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               Projeto
             </Link>
           </Group>
-
           <Group h="100%">
             { user ? 
             <UserAvatar user={user} /> :
@@ -41,7 +38,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           </Group>
         </Group>
       </AppShell.Header>
-
       <AppShell.Main pt={`calc(${rem(100)} + var(--mantine-spacing-md))`}>
         {children}
       </AppShell.Main>
