@@ -1,16 +1,17 @@
 import { useParams, useNavigate } from 'react-router';
 import { Accordion, Alert, Button, Container, Grid, List, Paper, Space, Table, Text, Tooltip } from '@mantine/core';
 import { modals } from '@mantine/modals';
-import { IconAlertHexagon, IconEyeQuestion, IconInfoCircle, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconAlertHexagon, IconCheckbox, IconEyeQuestion, IconInfoCircle, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  deleteTraitValue,
+  rejectTraitValue,
   getPlant,
   getPlantTraitValueList,
   getTraitList,
   PlantReadData,
   TraitReadData,
   TraitValueReadData,
+  acceptTraitValue,
 } from '../../apis/catalog';
 import { QueryOptions, showMutationError } from '../../apis/common';
 import { showError, showSuccess } from '../common/notifications';
@@ -226,8 +227,8 @@ function ProposedValues({
     b.proposedAt!.localeCompare(a.proposedAt!)
   );
 
-  const proposalDeletion = useMutation({
-    mutationFn: deleteTraitValue,
+  const proposalRejection = useMutation({
+    mutationFn: rejectTraitValue,
     onSuccess: (data) => {
       showSuccess(data.msg);
       queryClient.invalidateQueries({ queryKey: proposalsQueryOptions.queryKey });
@@ -235,7 +236,16 @@ function ProposedValues({
     onError: showMutationError
   });
 
-  const openProposalDeleteConfirmModal = (proposal: TraitValueReadData) => modals.openConfirmModal({
+  const proposalAcceptance = useMutation({
+    mutationFn: acceptTraitValue,
+    onSuccess: (data) => {
+      showSuccess(data.msg);
+      queryClient.invalidateQueries({ queryKey: proposalsQueryOptions.queryKey });
+    },
+    onError: showMutationError
+  });
+
+  const openProposalRejectConfirmModal = (proposal: TraitValueReadData) => modals.openConfirmModal({
     title: 'Deseja mesmo excluir essa proposta?',
     children: (
       <>
@@ -251,7 +261,26 @@ function ProposedValues({
     ),
     labels: { confirm: 'Excluir', cancel: 'Cancelar exclusão' },
     confirmProps: { color: 'red' },
-    onConfirm: () => proposalDeletion.mutate(proposal.contentId),
+    onConfirm: () => proposalRejection.mutate(proposal.contentId),
+  });
+
+  const openProposalAcceptConfirmModal = (proposal: TraitValueReadData) => modals.openConfirmModal({
+    title: 'Deseja mesmo aceitar essa proposta?',
+    children: (
+      <>
+      <Text size="sm" mb={20}>
+          Ao confirmar, você <strong>aceitará</strong> a seguinte proposta para 
+          o traço <Text span fw={600}>{proposal.traitName}</Text>
+          &nbsp;da planta <Text span fs="italic" fw={600}>{plant.acceptedTaxonName}:</Text>
+      </Text>
+      <Container ta="center" px={0} mb={40}>
+        <TraitValueDisplay data={proposal}/>
+      </Container>
+      </>
+    ),
+    labels: { confirm: 'Aceitar', cancel: 'Cancelar aceite' },
+    confirmProps: { color: 'green' },
+    onConfirm: () => proposalAcceptance.mutate(proposal.contentId),
   });
 
   const handleAddRowClick = () => {
@@ -274,7 +303,7 @@ function ProposedValues({
     </Table.Tr>
   );
   
-  const rows = proposalsQuery.isFetching || proposalDeletion.isPending ? [
+  const rows = proposalsQuery.isFetching || proposalRejection.isPending ? [
     <LoaderRow colSpan={6}/>
   ] : sortedValues.map((item: TraitValueReadData) => (
     <Table.Tr key={item.contentId}>
@@ -299,9 +328,15 @@ function ProposedValues({
         </Tooltip>
       </Table.Td>
       <Table.Td>
-        { user?.id === item.contentProposer?.id &&
-        <Button variant="outline" size="compact-xs" color="red" onClick={() => openProposalDeleteConfirmModal(item)}>
+        { (user?.isStaff || user?.id === item.contentProposer?.id) &&
+        <Button title="Rejeitar proposta" variant="outline" size="compact-xs" color="red" onClick={() => openProposalRejectConfirmModal(item)}>
           <IconTrash size={15} />
+        </Button>}
+      </Table.Td>
+      <Table.Td>
+        { user?.isStaff &&
+        <Button title="Aceitar proposta" variant="outline" size="compact-xs" color="green" onClick={() => openProposalAcceptConfirmModal(item)}>
+          <IconCheckbox size={15} />
         </Button>}
       </Table.Td>
     </Table.Tr>

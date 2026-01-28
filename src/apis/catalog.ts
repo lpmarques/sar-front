@@ -20,15 +20,21 @@ export interface PlantWriteResponseData extends ContentWriteResponseData {
   plantId: number,
 }
 
-export async function createPlant(data: PlantWriteRequestData): Promise<PlantWriteResponseData> {
+export async function proposePlant(data: PlantWriteRequestData): Promise<PlantWriteResponseData> {
   const body = camelToSnakeCase(data);
-  const res = await axios.post("/catalog/plant", body);
+  const res = await axios.post("/catalog/plants", body);
   
   return snakeToCamelCase(res.data);
 }
 
-export async function deletePlant(contentId: number): Promise<ContentWriteResponseData> {
-  const res = await axios.delete(`/catalog/plant/${contentId}`);
+export async function acceptPlant(plantId: number): Promise<GenericResponse> {
+  const res = await axios.patch(`/catalog/plants/${plantId}`);
+  
+  return snakeToCamelCase(res.data);
+}
+
+export async function rejectPlant(plantId: number): Promise<GenericResponse> {
+  const res = await axios.delete(`/catalog/plants/${plantId}`);
   
   return res.data;
 }
@@ -39,15 +45,21 @@ export interface TraitValueWriteRequestData extends ContentWriteRequestData {
   value: TraitValue,
 }
 
-export async function createTraitValue(data: TraitValueWriteRequestData): Promise<ContentWriteResponseData> {
+export async function proposeTraitValue(data: TraitValueWriteRequestData): Promise<ContentWriteResponseData> {
   const body = camelToSnakeCase(data);
-  const res = await axios.post("/catalog/trait-value", body);
+  const res = await axios.post("/catalog/trait-values", body);
   
   return snakeToCamelCase(res.data);
 }
 
-export async function deleteTraitValue(contentId: number): Promise<GenericResponse> {
-  const res = await axios.delete(`/catalog/trait-value/${contentId}`);
+export async function acceptTraitValue(contentId: number): Promise<GenericResponse> {
+  const res = await axios.patch(`/catalog/trait-values/${contentId}`);
+  
+  return snakeToCamelCase(res.data);
+}
+
+export async function rejectTraitValue(contentId: number): Promise<GenericResponse> {
+  const res = await axios.delete(`/catalog/trait-values/${contentId}`);
   
   return res.data;
 }
@@ -61,15 +73,21 @@ export interface TaxonWriteRequestData extends ContentWriteRequestData {
   plantId: number,
 }
 
-export async function createTaxon(data: TaxonWriteRequestData): Promise<ContentWriteResponseData> {
+export async function proposeTaxon(data: TaxonWriteRequestData): Promise<ContentWriteResponseData> {
   const body = camelToSnakeCase(data);
   const res = await axios.post("/catalog/taxon", body);
   
   return snakeToCamelCase(res.data);
 }
 
-export async function deleteTaxon(contentId: number): Promise<GenericResponse> {
-  const res = await axios.delete(`/catalog/taxon/${contentId}`);
+export async function acceptTaxon(contentId: number): Promise<GenericResponse> {
+  const res = await axios.patch(`/catalog/taxa/${contentId}`);
+  
+  return snakeToCamelCase(res.data);
+}
+
+export async function rejectTaxon(contentId: number): Promise<GenericResponse> {
+  const res = await axios.delete(`/catalog/taxa/${contentId}`);
   
   return res.data;
 }
@@ -79,15 +97,21 @@ export interface PopularNameWriteRequestData extends ContentWriteRequestData {
   plantId: number,
 }
 
-export async function createPopularName(data: PopularNameWriteRequestData): Promise<ContentWriteResponseData> {
+export async function proposePopularName(data: PopularNameWriteRequestData): Promise<ContentWriteResponseData> {
   const body = camelToSnakeCase(data);
-  const res = await axios.post("/catalog/popular-name", body);
+  const res = await axios.post("/catalog/popular-names", body);
   
   return snakeToCamelCase(res.data);
 }
 
-export async function deletePopularName(contentId: number): Promise<GenericResponse> {
-  const res = await axios.delete(`/catalog/popular-name/${contentId}`);
+export async function acceptPopularName(contentId: number): Promise<GenericResponse> {
+  const res = await axios.patch(`/catalog/popular-names/${contentId}`);
+  
+  return snakeToCamelCase(res.data);
+}
+
+export async function rejectPopularName(contentId: number): Promise<GenericResponse> {
+  const res = await axios.delete(`/catalog/popular-names/${contentId}`);
   
   return res.data;
 }
@@ -100,15 +124,21 @@ export interface NaturalOccurrenceRegionWriteRequestData extends ContentWriteReq
   plantId: number,
 }
 
-export async function createNaturalOccurrenceRegion(data: NaturalOccurrenceRegionWriteRequestData): Promise<ContentWriteResponseData> {
+export async function proposeNaturalOccurrenceRegion(data: NaturalOccurrenceRegionWriteRequestData): Promise<ContentWriteResponseData> {
   const body = camelToSnakeCase(data);
-  const res = await axios.post("/catalog/natural-occurrence-region", body);
+  const res = await axios.post("/catalog/natural-occurrence-regions", body);
   
   return snakeToCamelCase(res.data);
 }
 
-export async function deleteNaturalOccurrenceRegion(contentId: number): Promise<GenericResponse> {
-  const res = await axios.delete(`/catalog/natural-occurrence-region/${contentId}`);
+export async function acceptNaturalOccurrenceRegion(contentId: number): Promise<GenericResponse> {
+  const res = await axios.patch(`/catalog/natural-occurrence-regions/${contentId}`);
+  
+  return snakeToCamelCase(res.data);
+}
+
+export async function rejectNaturalOccurrenceRegion(contentId: number): Promise<GenericResponse> {
+  const res = await axios.delete(`/catalog/natural-occurrence-regions/${contentId}`);
   
   return res.data;
 }

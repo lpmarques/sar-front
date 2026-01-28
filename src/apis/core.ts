@@ -216,6 +216,7 @@ export interface UserReadData {
   firstName: string,
   lastName: string,
   email: string,
+  isStaff: boolean,
   occupation?: string,
   company?: string,
   country?: string,
@@ -224,9 +225,7 @@ export interface UserReadData {
 };
 
 export async function getUser({ queryKey: [_, ...params] }: QueryFnInput): Promise<UserReadData> {
-  console.log(params)
   const endpoint = params.length > 0 ? "/core/users" + (params && `?${params.join('&')}`) : "/core/user";
-  console.log(endpoint)
 
   let res = await axios.get(endpoint);
 

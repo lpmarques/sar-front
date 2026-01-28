@@ -1,18 +1,21 @@
 import { ComponentType } from 'react';
 import { TableTdProps } from '@mantine/core';
 import {
-  createNaturalOccurrenceRegion,
-  createPopularName,
-  createTaxon,
-  deleteNaturalOccurrenceRegion,
-  deletePopularName,
-  deleteTaxon,
+  proposeNaturalOccurrenceRegion,
+  proposePopularName,
+  proposeTaxon,
+  rejectNaturalOccurrenceRegion,
+  rejectPopularName,
+  rejectTaxon,
   NaturalOccurrenceRegionReadData,
   NaturalOccurrenceRegionWriteRequestData,
   PopularNameReadData,
   PopularNameWriteRequestData,
   TaxonReadData,
   TaxonWriteRequestData,
+  acceptTaxon,
+  acceptPopularName,
+  acceptNaturalOccurrenceRegion,
 } from '../../apis/catalog';
 import { GenericResponse, QueryOptions } from '../../apis/common';
 import { ContentReadData, ContentWriteRequestData, ContentWriteResponseData } from '../../apis/core';
@@ -83,8 +86,9 @@ export interface SectionConfig<ReadT extends ContentReadData, WriteT extends Con
   validateFormsDiff?: (a: ContentForm<WriteT>, b: ContentForm<WriteT>, errMsg: string) => FormErrors | undefined,
   validateFormToReadDataDiff: (formValues: ContentForm<WriteT>, readData: ReadT, errMsg: string) => FormErrors | undefined,
   buildWriteRequestData: (props: BuildWriteRequestDataProps<WriteT>) => WriteT,
-  createMutationFunction: (data: WriteT) => Promise<ContentWriteResponseData>,
-  deleteMutationFunction: (contentId: number) => Promise<GenericResponse>,
+  proposeMutationFunction: (data: WriteT) => Promise<ContentWriteResponseData>,
+  acceptMutationFunction: (contentId: number) => Promise<GenericResponse>,
+  rejectMutationFunction: (contentId: number) => Promise<GenericResponse>,
 }
 
 // TODO: convert into a hook
@@ -106,8 +110,9 @@ export const getSectionConfig = (sectionSlug: SectionSlug):
         validateFormsDiff: validateTaxonFormsDiff,
         validateFormToReadDataDiff: validateTaxonFormToReadDataDiff,
         buildWriteRequestData: buildTaxonWriteRequestData,
-        createMutationFunction: createTaxon,
-        deleteMutationFunction: deleteTaxon,
+        proposeMutationFunction: proposeTaxon,
+        acceptMutationFunction: acceptTaxon,
+        rejectMutationFunction: rejectTaxon,
       } as SectionConfig<TaxonReadData, TaxonWriteRequestData>;
     case 'popular-names':
       return {
@@ -120,8 +125,9 @@ export const getSectionConfig = (sectionSlug: SectionSlug):
         formKeys: popularNameFormKeys,
         validateFormToReadDataDiff: validatePopularNameFormToReadDataDiff,
         buildWriteRequestData: buildPopularNameWriteRequestData,
-        createMutationFunction: createPopularName,
-        deleteMutationFunction: deletePopularName,
+        proposeMutationFunction: proposePopularName,
+        acceptMutationFunction: acceptPopularName,
+        rejectMutationFunction: rejectPopularName,
       } as SectionConfig<PopularNameReadData, PopularNameWriteRequestData>;
     case 'natural-occurrence-regions':
       return {
@@ -135,8 +141,9 @@ export const getSectionConfig = (sectionSlug: SectionSlug):
         formKeys: naturalOccurrenceRegionFormKeys,
         validateFormToReadDataDiff: validateNaturalOccurrenceRegionFormToReadDataDiff,
         buildWriteRequestData: buildNaturalOccurrenceRegionWriteRequestData,
-        createMutationFunction: createNaturalOccurrenceRegion,
-        deleteMutationFunction: deleteNaturalOccurrenceRegion,
+        proposeMutationFunction: proposeNaturalOccurrenceRegion,
+        acceptMutationFunction: acceptNaturalOccurrenceRegion,
+        rejectMutationFunction: rejectNaturalOccurrenceRegion,
       } as SectionConfig<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>;
   }
 }

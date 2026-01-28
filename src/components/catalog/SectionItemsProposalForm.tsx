@@ -26,7 +26,7 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
   const itemsQueryOptions = sectionConfig.buildQueryOptions(plantId);
 
   const proposalCreation = useMutation({
-    mutationFn: sectionConfig.createMutationFunction,
+    mutationFn: sectionConfig.proposeMutationFunction,
     onSuccess: (data) => {
       showSuccess(data.msg);
       // TODO: implement multi-item posting endpoint so as to avoid redundant query refetching
