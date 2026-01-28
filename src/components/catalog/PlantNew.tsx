@@ -134,8 +134,6 @@ export default function PlantNew() {
     onError: showMutationError
   });
 
-  console.log(taxa.data?.length);
-
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.preventDefault();
     

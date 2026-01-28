@@ -17,7 +17,7 @@ import { Home, LoggedOnlyRoute, Shell, UnloggedOnlyRoute } from './components';
 import { FarmList } from "./components/agroforestry";
 import { PlantDetails, PlantList, PlantNew, SectionDetails, SectionEdit, TraitDetails, TraitEdit } from './components/catalog';
 import { HttpError } from './components/common/HttpError';
-import { Login, UserProfile, Signup } from './components/user';
+import { Login, UserContents, UserProfile, Signup } from './components/user';
 import { LanguageProvider } from './hooks/useLanguage';
 import { useAuth } from './hooks/useAuth';
 import { theme } from "./theme";
@@ -58,7 +58,9 @@ export default function App() {
                   <Route path="login" element={<UnloggedOnlyRoute><Login /></UnloggedOnlyRoute>}/>
                   <Route path="signup" element={<UnloggedOnlyRoute><Signup /></UnloggedOnlyRoute>}/>
                   <Route path="user" element={<LoggedOnlyRoute><UserProfile /></LoggedOnlyRoute>}/>
+                  <Route path="user/contents" element={<LoggedOnlyRoute><UserContents /></LoggedOnlyRoute>}/>
                   <Route path="users/:userEmail" element={<LoggedOnlyRoute><UserProfile /></LoggedOnlyRoute>}/>
+                  <Route path="users/:userEmail/contents" element={<LoggedOnlyRoute><UserContents /></LoggedOnlyRoute>}/>
                   <Route path="plants" element={<PlantList />} />
                   <Route path="plants/new" element={<LoggedOnlyRoute><PlantNew /></LoggedOnlyRoute>} />
                   <Route path="plants/:plantId" element={<PlantDetails />} />

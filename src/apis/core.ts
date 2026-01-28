@@ -152,6 +152,31 @@ export interface ContentReadData {
   rejectedAt?: string,
 }
 
+export interface ContentPreviewReadData {
+  id: number,
+  type: string,
+  status: string,
+  proposer: UserReadData,
+  proposerComment: string,
+  acceptor: UserReadData,
+  rejector: UserReadData,
+  proposedAt: string,
+  acceptedAt: string | null,
+  rejectedAt: string | null,
+}
+
+export async function getContentPreview({ queryKey: [_, contentId] }: QueryFnInput): Promise<ContentPreviewReadData> {
+  const res = await axios.get(`/core/contents/${contentId}`);
+
+  return snakeToCamelCase(res.data);
+}
+
+export async function getContentPreviewList({ queryKey: [_, ...params] }: QueryFnInput): Promise<ContentPreviewReadData[]> {
+  const res = await axios.get(`/core/contents` + (params && `?${params.join('&')}`));
+
+  return snakeToCamelCase(res.data);
+}
+
 interface SourceFieldValueReadData {
   field: string,
   value: SourceValue,
