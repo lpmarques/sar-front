@@ -19,9 +19,9 @@ import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { useAuth } from '../../hooks/useAuth';
 import { useLanguage } from '../../hooks/useLanguage';
-import { UserAvatar } from '../user/';
+import { EndorsementCounter, UserAvatar } from '../user/';
 import ClickableText from '../common/ClickableText';
-import { EndorsementCounter, SourceDetails, SourceRef, TraitValueDisplay } from '.';
+import { SourceDetails, SourceRef, TraitValueDisplay } from '.';
 import AddRow from '../common/AddRow';
 import LoaderRow from '../common/LoaderRow';
 import classes from '../common/AccordionPlusChevron.module.css';
@@ -280,7 +280,7 @@ function ProposedValues({
     ),
     labels: { confirm: 'Aceitar', cancel: 'Cancelar aceite' },
     confirmProps: { color: 'green' },
-    onConfirm: () => proposalAcceptance.mutate(proposal.contentId),
+    onConfirm: () => proposalAcceptance.mutate(proposal.id),
   });
 
   const handleAddRowClick = () => {

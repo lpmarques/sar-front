@@ -21,12 +21,11 @@ import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { useAuth } from '../../hooks/useAuth';
 import { useLanguage } from '../../hooks/useLanguage';
-import { UserAvatar } from '../user';
+import { EndorsementCounter, UserAvatar } from '../user';
 import { SectionConfig, getSectionConfig, SectionSlug } from './SectionConfigs';
-import { EndorsementCounter, SourceRef } from '.';
+import { SourceRef } from '.';
 import AddRow from '../common/AddRow';
 import LoaderRow from '../common/LoaderRow';
-import { PropsWithChildren } from 'react';
 
 export default function SectionDetails() {
   const { plantId, sectionSlug } = useParams();
@@ -238,7 +237,7 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
     ),
     labels: { confirm: 'Excluir', cancel: 'Cancelar exclusão' },
     confirmProps: { color: 'red' },
-    onConfirm: () => proposalRejection.mutate(proposal.contentId),
+    onConfirm: () => proposalRejection.mutate(proposal.id),
   });
 
   const openProposalAcceptConfirmModal = (proposal: ReadT) => modals.openConfirmModal({
@@ -252,7 +251,7 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
     ),
     labels: { confirm: 'Aceitar', cancel: 'Cancelar aceite' },
     confirmProps: { color: 'green' },
-    onConfirm: () => proposalAcceptance.mutate(proposal.contentId),
+    onConfirm: () => proposalAcceptance.mutate(proposal.id),
   });
 
   const handleAddRowClick = () => {
