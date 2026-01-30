@@ -40,7 +40,7 @@ export default function App() {
         retry: defaultRequestRetry
       }
     }
-  })
+  });
 
   dayjs.extend(customParseFormat);
   dayjs.extend(LocalizedFormat);

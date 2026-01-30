@@ -1,19 +1,17 @@
-import { useNavigate, useParams } from "react-router";
-import { ContentPreviewReadData, getContentPreviewList, getUser, UserReadData } from "../../apis/core";
-import { useQuery } from "@tanstack/react-query";
-import { StickyHeaderTable } from "../common/StickyHeaderTable";
-import { Badge, Container, Paper, Table } from "@mantine/core";
-import UserAvatar from "./UserAvatar";
-import { useLanguage } from "../../hooks";
-import { QueryLoader } from "../common/QueryLoader";
-import ClickableRow from "../common/ClickableRow";
 import { useEffect, useState } from "react";
-import { getPlant, getPlantList, getTraitValue } from "../../apis/catalog";
+import { useParams } from "react-router";
+import { Badge, Container, Paper, Table } from "@mantine/core";
+import { useQuery } from "@tanstack/react-query";
+import { getNaturalOccurrenceRegionList, getPlantList, getPopularNameList, getTaxonList, getTraitValueList } from "../../apis/catalog";
+import { ContentPreviewReadData, getContentPreviewList, getUser } from "../../apis/core";
+import ClickableRow from "../common/ClickableRow";
+import { QueryLoader } from "../common/QueryLoader";
+import { StickyHeaderTable } from "../common/StickyHeaderTable";
+import { useLanguage } from "../../hooks";
+import { UserAvatar } from ".";
 
 export default function UserContents() {
   const { userEmail } = useParams();
-  const { lang } = useLanguage();
-  const [clickedContent, setClickedContent] = useState<ContentPreviewReadData | undefined>(undefined);
 
   let queryKey = ['user'];
   if (userEmail !== undefined)
@@ -40,62 +38,23 @@ export default function UserContents() {
     b.proposedAt!.localeCompare(a.proposedAt!)
   ) : [];
 
-  const contentTypeLabels: {[ key: string ]: string } = {
-    'plant': 'Planta',
-    'trait_value': 'Traço',
-    'taxon': 'Taxonomia',
-    'popular_name': 'Nome Popular',
-    'natural_occurrence_region': 'Região de Ocorrência Natural',
-  }
-
-  const statusLabels: {[ key: string ]: React.ReactElement } = {
-    'proposed': <Badge color="gray">Proposto</Badge>,
-    'accepted': <Badge color="green">Aceito</Badge>,
-    'rejected': <Badge color="orange">Descartado</Badge>,
-  }
-
   const header = (
     <Table.Tr>
       <Table.Th>Tipo de conteúdo</Table.Th>
       <Table.Th>Status</Table.Th>
+      <Table.Th>Apoios</Table.Th>
+      <Table.Th>Proposto por</Table.Th>
       <Table.Th>Proposto em</Table.Th>
-      <Table.Th>Autor do aceite</Table.Th>
+      <Table.Th>Aceito por</Table.Th>
       <Table.Th>Aceito em</Table.Th>
-      <Table.Th>Autor do descarte</Table.Th>
+      <Table.Th>Descartado por</Table.Th>
       <Table.Th>Descartado em</Table.Th>
     </Table.Tr>
   );
 
-  const rows = sortedContents.map((item) => (
-    <ClickableRow 
-      key={item.id} 
-      onClick={() => setClickedContent(item)} 
-      style={{'--hover-color': '#bef7ce'}}
-    >
-      <Table.Td h={50}>{contentTypeLabels[item.type]}</Table.Td>
-      <Table.Td h={50}>{statusLabels[item.status]}</Table.Td>
-      <Table.Td h={50}>{new Date(item.proposedAt).toLocaleString(lang)}</Table.Td>
-      <Table.Td h={50}>
-        {item.acceptor && 
-        <UserAvatar user={item.acceptor} size={40} />}
-      </Table.Td>
-      <Table.Td h={50}>
-        {item.acceptedAt && 
-        new Date(item.acceptedAt).toLocaleString(lang)}
-      </Table.Td>
-      <Table.Td h={50}>
-        {item.rejector && 
-        <UserAvatar user={item.rejector} size={40} />}
-      </Table.Td>
-      <Table.Td h={50}>
-        {item.rejectedAt && 
-        new Date(item.rejectedAt).toLocaleString(lang)}
-      </Table.Td>
-    </ClickableRow>
-  ));
+  const rows = sortedContents.map((content) => <ContentRow content={content} />);
 
   return (
-    // <FuturePageInfo pageName="Contribuições do usuário"/>
     <QueryLoader {...contentsQueryOptions}>
       <Container size={1200}>
         <Paper withBorder>
@@ -107,57 +66,193 @@ export default function UserContents() {
             />
         </Paper>
       </Container>
-      <ContentClickNavigation content={clickedContent} />
     </QueryLoader>
   )
 }
 
-function ContentClickNavigation({ content }: { content: ContentPreviewReadData | undefined }) {
-  if (!content || content.rejectedAt)
-    return null;
+function ContentRow({ content }: { content: ContentPreviewReadData }) {
+  const { lang } = useLanguage();
+  const [clicked, setClicked] = useState<boolean>(false);
 
-  if (content.type == 'plant') {
-    return <PlantNavigation content={content} />;
+  const getContentConfig = () => {
+    switch (content.type) {
+      case 'plant':
+        return {
+          label: 'Planta',
+          PageOpening: PlantPageOpening,
+        };
+      case 'trait_value':
+        return {
+          label: 'Traço',
+          PageOpening: TraitValuePageOpening,
+        };
+      case 'taxon':
+        return {
+          label: 'Taxonomia',
+          PageOpening: TaxonPageOpening,
+        };
+      case 'popular_name':
+        return {
+          label: 'Nome Popular',
+          PageOpening: PopularNamePageOpening,
+        };
+      case 'natural_occurrence_region':
+        return {
+          label: 'Regiões de Ocorrência Natural',
+          PageOpening: NaturalOccurrenceRegionPageOpening,
+        };
+    }
   }
-  // if (content.type == 'trait_value') {
-  //   return <TraitValueNavigation content={content} />;
-  // }
 
-  return null
+  const statusLabels: {[ key: string ]: React.ReactElement } = {
+    'proposed': <Badge w={100} color="yellow.5">Proposto</Badge>,
+    'accepted': <Badge w={100} color="green">Aceito</Badge>,
+    'rejected': <Badge w={100} color="gray">Descartado</Badge>,
+  }
+
+  const config = getContentConfig();
+
+  return (
+    <ClickableRow 
+      key={content.id} 
+      onClick={() => setClicked(true)}
+      style={{'--hover-color': '#bef7ce'}}
+    >
+      <Table.Td h={50}>{config?.label}</Table.Td>
+      <Table.Td h={50}>{statusLabels[content.status]}</Table.Td>
+      <Table.Td h={50}>{content.endorsementsCount}</Table.Td>
+      <Table.Td h={50}>
+        {content.proposer && 
+        <UserAvatar user={content.proposer} size={40} />}
+      </Table.Td>
+      <Table.Td h={50}>{new Date(content.proposedAt).toLocaleString(lang)}</Table.Td>
+      <Table.Td h={50}>
+        {content.acceptor && 
+        <UserAvatar user={content.acceptor} size={40} />}
+      </Table.Td>
+      <Table.Td h={50}>
+        {content.acceptedAt && 
+        new Date(content.acceptedAt).toLocaleString(lang)}
+      </Table.Td>
+      <Table.Td h={50}>
+        {content.rejector && 
+        <UserAvatar user={content.rejector} size={40} />}
+      </Table.Td>
+      <Table.Td h={50}>
+        {content.rejectedAt && 
+        new Date(content.rejectedAt).toLocaleString(lang)}
+      </Table.Td>
+      <Table.Td h={50}>
+        {config &&
+        <config.PageOpening content={content} clicked={clicked} onOpen={() => setClicked(false)} />}
+      </Table.Td>
+    </ClickableRow>
+  )
 }
 
-function PlantNavigation({ content }: { content: ContentPreviewReadData }) {
-  const plant = useQuery({
+interface PageOpeningProps {
+  content: ContentPreviewReadData,
+  clicked: boolean,
+  onOpen: () => void
+}
+
+function PlantPageOpening({ content, clicked, onOpen }: PageOpeningProps) {
+  const query = useQuery({
     queryKey: ['plantList', `content_id=${content.id}`],
-    queryFn: getPlantList
+    queryFn: getPlantList,
+    enabled: clicked,
   });
 
+  const plant = query.data && query.data.length > 0 ? query.data[0] : undefined;
   useEffect(
     () => {
-      if (plant.data) {
-        window.open(`/plants/${plant.data[0].id}`);
+      if (clicked && plant) {
+        window.open(`/plants/${plant.id}`);
+        onOpen();
       }
     },
-    [plant.data]
+    [clicked, plant]
   );
 
   return null;
 }
+function TraitValuePageOpening({ content, clicked, onOpen }: PageOpeningProps) {
+  const query = useQuery({
+    queryKey: ['traitValueList', `content_id=${content.id}`],
+    queryFn: getTraitValueList,
+    enabled: clicked,
+  });
 
-// function TraitValueNavigation({ content }: { content: ContentPreviewReadData }) {
-//   const instance = useQuery({
-//     queryKey: ['traitValue', `${content.id}`],
-//     queryFn: getTraitValue
-//   });
+  const traitValue = query.data && query.data.length > 0 ? query.data[0] : undefined;
+  useEffect(
+    () => {
+      if (clicked && traitValue) {
+        window.open(`/plants/${traitValue.plantId}/trait/${traitValue.traitSlug}`);
+        onOpen();
+      }
+    },
+    [clicked, traitValue]
+  );
 
-//   useEffect(
-//     () => {
-//       if (instance.data) {
-//         window.open(`/plants/${instance.data.plantId}/trait/${instance.data.traitSlug}`);
-//       }
-//     },
-//     [instance.data]
-//   );
+  return null;
+}
+function TaxonPageOpening({ content, clicked, onOpen }: PageOpeningProps) {
+  const query = useQuery({
+    queryKey: ['taxonList', `content_id=${content.id}`],
+    queryFn: getTaxonList,
+    enabled: clicked,
+  });
 
-//   return null;
-// }
+  const taxon = query.data && query.data.length > 0 ? query.data[0] : undefined;
+  useEffect(
+    () => {
+      if (clicked && taxon) {
+        window.open(`/plants/${taxon.plantId}/taxonomy`);
+        onOpen();
+      }
+    },
+    [clicked, taxon]
+  );
+
+  return null;
+}
+function PopularNamePageOpening({ content, clicked, onOpen }: PageOpeningProps) {
+  const query = useQuery({
+    queryKey: ['popularNameList', `content_id=${content.id}`],
+    queryFn: getPopularNameList,
+    enabled: clicked,
+  });
+
+  const popularName = query.data && query.data.length > 0 ? query.data[0] : undefined;
+  useEffect(
+    () => {
+      if (clicked && popularName) {
+        window.open(`/plants/${popularName.plantId}/popular-names`);
+        onOpen();
+      }
+    },
+    [clicked, popularName]
+  );
+
+  return null;
+}
+function NaturalOccurrenceRegionPageOpening({ content, clicked, onOpen }: PageOpeningProps) {
+  const query = useQuery({
+    queryKey: ['naturalOccurrenceRegionList', `content_id=${content.id}`],
+    queryFn: getNaturalOccurrenceRegionList,
+    enabled: clicked,
+  });
+
+  const occurrenceRegion = query.data && query.data.length > 0 ? query.data[0] : undefined;
+  useEffect(
+    () => {
+      if (clicked && occurrenceRegion) {
+        window.open(`/plants/${occurrenceRegion.plantId}/natural-occurrence-regions`);
+        onOpen();
+      }
+    },
+    [clicked, occurrenceRegion]
+  );
+
+  return null;
+}
