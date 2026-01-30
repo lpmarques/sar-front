@@ -363,7 +363,7 @@ function NaturalOccurrenceSection({ regions }: { regions: NaturalOccurrenceRegio
   );
   
   const rows = sortedRegions.map((region: NaturalOccurrenceRegionReadData) => (
-    <Table.Tr key={`${region.contentId}`}>
+    <Table.Tr key={`${region.id}`}>
       <Table.Td fz="sm">{region.country.name}</Table.Td>
       <Table.Td fz="sm">{region.biome?.name ?? ""}</Table.Td>
       <Table.Td fz="sm">{region.state?.code ?? ""}</Table.Td>

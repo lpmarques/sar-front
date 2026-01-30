@@ -87,13 +87,13 @@ export interface SectionConfig<ReadT extends ContentReadData, WriteT extends Con
   validateFormToReadDataDiff: (formValues: ContentForm<WriteT>, readData: ReadT, errMsg: string) => FormErrors | undefined,
   buildWriteRequestData: (props: BuildWriteRequestDataProps<WriteT>) => WriteT,
   proposeMutationFunction: (data: WriteT) => Promise<ContentWriteResponseData>,
-  acceptMutationFunction: (contentId: number) => Promise<GenericResponse>,
-  rejectMutationFunction: (contentId: number) => Promise<GenericResponse>,
+  acceptMutationFunction: (id: number) => Promise<GenericResponse>,
+  rejectMutationFunction: (id: number) => Promise<GenericResponse>,
 }
 
 // TODO: convert into a hook
-export const getSectionConfig = (sectionSlug: SectionSlug): 
-  SectionConfig<TaxonReadData, TaxonWriteRequestData> | 
+export const getSectionConfig = (sectionSlug: SectionSlug):
+  SectionConfig<TaxonReadData, TaxonWriteRequestData> |
   SectionConfig<PopularNameReadData, PopularNameWriteRequestData> |
   SectionConfig<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData> |
   undefined => {

@@ -140,6 +140,7 @@ export async function createSource(data: SourceWriteRequestData): Promise<Source
 // QUERIES
 
 export interface ContentReadData {
+  id: number,
   contentId: number,
   contentStatus: string,
   contentProposer?: UserReadData,
@@ -156,6 +157,7 @@ export interface ContentPreviewReadData {
   id: number,
   type: string,
   status: string,
+  endorsementsCount: number,
   proposer: UserReadData,
   proposerComment: string,
   acceptor: UserReadData,

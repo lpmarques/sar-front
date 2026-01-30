@@ -9,6 +9,8 @@ export type TraitType = "range" | "number" | "boolean" | "string[]" | "string";
 
 export type TraitValue = Range | number | boolean | string[] | string;
 
+export type CatalogContentData = PlantReadData | TraitValueReadData | PopularNameReadData | TaxonReadData | NaturalOccurrenceRegionReadData;
+
 // MUTATIONS
 
 export interface PlantWriteRequestData extends Omit<ContentWriteRequestData, 'sourceId'> {
@@ -52,14 +54,14 @@ export async function proposeTraitValue(data: TraitValueWriteRequestData): Promi
   return snakeToCamelCase(res.data);
 }
 
-export async function acceptTraitValue(contentId: number): Promise<GenericResponse> {
-  const res = await axios.patch(`/catalog/trait-values/${contentId}`);
+export async function acceptTraitValue(traitValueId: number): Promise<GenericResponse> {
+  const res = await axios.patch(`/catalog/trait-values/${traitValueId}`);
   
   return snakeToCamelCase(res.data);
 }
 
-export async function rejectTraitValue(contentId: number): Promise<GenericResponse> {
-  const res = await axios.delete(`/catalog/trait-values/${contentId}`);
+export async function rejectTraitValue(traitValueId: number): Promise<GenericResponse> {
+  const res = await axios.delete(`/catalog/trait-values/${traitValueId}`);
   
   return res.data;
 }
@@ -75,19 +77,19 @@ export interface TaxonWriteRequestData extends ContentWriteRequestData {
 
 export async function proposeTaxon(data: TaxonWriteRequestData): Promise<ContentWriteResponseData> {
   const body = camelToSnakeCase(data);
-  const res = await axios.post("/catalog/taxon", body);
+  const res = await axios.post("/catalog/taxa", body);
   
   return snakeToCamelCase(res.data);
 }
 
-export async function acceptTaxon(contentId: number): Promise<GenericResponse> {
-  const res = await axios.patch(`/catalog/taxa/${contentId}`);
+export async function acceptTaxon(taxonId: number): Promise<GenericResponse> {
+  const res = await axios.patch(`/catalog/taxa/${taxonId}`);
   
   return snakeToCamelCase(res.data);
 }
 
-export async function rejectTaxon(contentId: number): Promise<GenericResponse> {
-  const res = await axios.delete(`/catalog/taxa/${contentId}`);
+export async function rejectTaxon(taxonId: number): Promise<GenericResponse> {
+  const res = await axios.delete(`/catalog/taxa/${taxonId}`);
   
   return res.data;
 }
@@ -104,14 +106,14 @@ export async function proposePopularName(data: PopularNameWriteRequestData): Pro
   return snakeToCamelCase(res.data);
 }
 
-export async function acceptPopularName(contentId: number): Promise<GenericResponse> {
-  const res = await axios.patch(`/catalog/popular-names/${contentId}`);
+export async function acceptPopularName(popularNameId: number): Promise<GenericResponse> {
+  const res = await axios.patch(`/catalog/popular-names/${popularNameId}`);
   
   return snakeToCamelCase(res.data);
 }
 
-export async function rejectPopularName(contentId: number): Promise<GenericResponse> {
-  const res = await axios.delete(`/catalog/popular-names/${contentId}`);
+export async function rejectPopularName(popularNameId: number): Promise<GenericResponse> {
+  const res = await axios.delete(`/catalog/popular-names/${popularNameId}`);
   
   return res.data;
 }
@@ -131,14 +133,14 @@ export async function proposeNaturalOccurrenceRegion(data: NaturalOccurrenceRegi
   return snakeToCamelCase(res.data);
 }
 
-export async function acceptNaturalOccurrenceRegion(contentId: number): Promise<GenericResponse> {
-  const res = await axios.patch(`/catalog/natural-occurrence-regions/${contentId}`);
+export async function acceptNaturalOccurrenceRegion(regionId: number): Promise<GenericResponse> {
+  const res = await axios.patch(`/catalog/natural-occurrence-regions/${regionId}`);
   
   return snakeToCamelCase(res.data);
 }
 
-export async function rejectNaturalOccurrenceRegion(contentId: number): Promise<GenericResponse> {
-  const res = await axios.delete(`/catalog/natural-occurrence-regions/${contentId}`);
+export async function rejectNaturalOccurrenceRegion(regionId: number): Promise<GenericResponse> {
+  const res = await axios.delete(`/catalog/natural-occurrence-regions/${regionId}`);
   
   return res.data;
 }
@@ -146,7 +148,6 @@ export async function rejectNaturalOccurrenceRegion(contentId: number): Promise<
 // QUERIES
 
 export interface PlantReadData extends ContentReadData {
-  id: number,
   acceptedTaxonName: string,
   acceptedFamilyName: string,
   taxa?: TaxonReadData[],
@@ -209,8 +210,8 @@ export interface TraitValueReadData extends ContentReadData {
   plantId?: number,
 }
 
-export async function getTraitValue({ queryKey: [_, contentId, ...params] }: QueryFnInput ): Promise<TraitValueReadData[]> {
-  let res = await axios.get(`/catalog/trait-values/${contentId}` + (params && `?${params.join('&')}`));
+export async function getTraitValueList({ queryKey: [_, ...params] }: QueryFnInput ): Promise<TraitValueReadData[]> {
+  let res = await axios.get(`/catalog/trait-values` + (params && `?${params.join('&')}`));
 
   let data = snakeToCamelCase(res.data);
 
@@ -260,8 +261,8 @@ export interface PopularNameReadData extends ContentReadData {
   plantId: number,
 }
 
-export async function getPopularName({ queryKey: [_, contentId, ...params] }: QueryFnInput ): Promise<PopularNameReadData[]> {
-  let res = await axios.get(`/catalog/popular-names/${contentId}` + (params && `?${params.join('&')}`));
+export async function getPopularName({ queryKey: [_, popularNameId, ...params] }: QueryFnInput ): Promise<PopularNameReadData[]> {
+  let res = await axios.get(`/catalog/popular-names/${popularNameId}` + (params && `?${params.join('&')}`));
 
   let data = snakeToCamelCase(res.data);
 
@@ -292,16 +293,16 @@ export interface NaturalOccurrenceRegionReadData extends ContentReadData {
   plantId: number,
 }
 
-export async function getNaturalOccurrenceRegion({ queryKey: [_, contentId, ...params] }: QueryFnInput ): Promise<NaturalOccurrenceRegionReadData[]> {
-  let res = await axios.get(`/catalog/natural-occurrence-regions/${contentId}` + (params && `?${params.join('&')}`));
+export async function getNaturalOccurrenceRegion({ queryKey: [_, regionId, ...params] }: QueryFnInput ): Promise<NaturalOccurrenceRegionReadData> {
+  let res = await axios.get(`/catalog/natural-occurrence-regions/${regionId}` + (params && `?${params.join('&')}`));
 
   let data = snakeToCamelCase(res.data);
 
   return data;
 }
 
-export async function getNaturalOccurrenceRegionList(): Promise<NaturalOccurrenceRegionReadData[]> {
-  let res = await axios.get('/catalog/natural-occurrence-regions');
+export async function getNaturalOccurrenceRegionList({ queryKey: [_, ...params] }: QueryFnInput ): Promise<NaturalOccurrenceRegionReadData[]> {
+  let res = await axios.get(`/catalog/natural-occurrence-regions` + (params && `?${params.join('&')}`));
 
   let data = snakeToCamelCase(res.data);
 
