@@ -9,6 +9,7 @@ import { QueryLoader } from "../common/QueryLoader";
 import { StickyHeaderTable } from "../common/StickyHeaderTable";
 import { useLanguage } from "../../hooks";
 import { UserAvatar } from ".";
+import LoaderRow from "../common/LoaderRow";
 
 export default function UserContents() {
   const { userEmail } = useParams();
@@ -52,21 +53,21 @@ export default function UserContents() {
     </Table.Tr>
   );
 
-  const rows = sortedContents.map((content) => <ContentRow content={content} />);
+  const rows = contents.isFetching ? [
+    <LoaderRow colSpan={9}/>
+  ] :  sortedContents.map((content) => <ContentRow content={content} />);
 
   return (
-    <QueryLoader {...contentsQueryOptions}>
-      <Container size={1200}>
-        <Paper withBorder>
-          <StickyHeaderTable
-            header={header}
-            rows={rows}
-            scrollWidth={600}
-            scrollHeight={550}
-            />
-        </Paper>
-      </Container>
-    </QueryLoader>
+    <Container size={1200}>
+      <Paper withBorder>
+        <StickyHeaderTable
+          header={header}
+          rows={rows}
+          scrollWidth={600}
+          scrollHeight={550}
+          />
+      </Paper>
+    </Container>
   )
 }
 
@@ -176,6 +177,7 @@ function PlantPageOpening({ content, clicked, onOpen }: PageOpeningProps) {
 
   return null;
 }
+
 function TraitValuePageOpening({ content, clicked, onOpen }: PageOpeningProps) {
   const query = useQuery({
     queryKey: ['traitValueList', `content_id=${content.id}`],
@@ -196,6 +198,7 @@ function TraitValuePageOpening({ content, clicked, onOpen }: PageOpeningProps) {
 
   return null;
 }
+
 function TaxonPageOpening({ content, clicked, onOpen }: PageOpeningProps) {
   const query = useQuery({
     queryKey: ['taxonList', `content_id=${content.id}`],
@@ -216,6 +219,7 @@ function TaxonPageOpening({ content, clicked, onOpen }: PageOpeningProps) {
 
   return null;
 }
+
 function PopularNamePageOpening({ content, clicked, onOpen }: PageOpeningProps) {
   const query = useQuery({
     queryKey: ['popularNameList', `content_id=${content.id}`],
@@ -236,6 +240,7 @@ function PopularNamePageOpening({ content, clicked, onOpen }: PageOpeningProps) 
 
   return null;
 }
+
 function NaturalOccurrenceRegionPageOpening({ content, clicked, onOpen }: PageOpeningProps) {
   const query = useQuery({
     queryKey: ['naturalOccurrenceRegionList', `content_id=${content.id}`],
