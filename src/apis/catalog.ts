@@ -240,7 +240,7 @@ export function getTaxonName({ species, subspecies, variety }: TaxonReadData): s
   return `${species}` + (subspecies ? `subsp. ${subspecies}` : '') + (variety ? `var. ${variety}` : '');
 }
 
-export async function getTaxonList({ queryKey: [_, ...params] }: QueryFnInput ): Promise<TaxonReadData[]> {
+export async function getTaxonList({ queryKey: [_, ...params] }: QueryFnInput): Promise<TaxonReadData[]> {
   let res = await axios.get('/catalog/taxa' + (params && `?${params.join('&')}`));
 
   let data = snakeToCamelCase(res.data);
@@ -269,8 +269,8 @@ export async function getPopularName({ queryKey: [_, popularNameId, ...params] }
   return data;
 }
 
-export async function getPopularNameList(): Promise<PopularNameReadData[]> {
-  let res = await axios.get('/catalog/popular-names');
+export async function getPopularNameList({ queryKey: [_, ...params] }: QueryFnInput): Promise<PopularNameReadData[]> {
+  let res = await axios.get('/catalog/popular-names' + (params && `?${params.join('&')}`));
 
   let data = snakeToCamelCase(res.data);
 

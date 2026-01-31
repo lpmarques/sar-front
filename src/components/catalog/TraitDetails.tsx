@@ -261,7 +261,7 @@ function ProposedValues({
     ),
     labels: { confirm: 'Excluir', cancel: 'Cancelar exclusão' },
     confirmProps: { color: 'red' },
-    onConfirm: () => proposalRejection.mutate(proposal.contentId),
+    onConfirm: () => proposalRejection.mutate(proposal.id),
   });
 
   const openProposalAcceptConfirmModal = (proposal: TraitValueReadData) => modals.openConfirmModal({

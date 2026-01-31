@@ -52,7 +52,7 @@ export default function SectionDetails() {
         <SectionDetailsBody<PopularNameReadData, PopularNameWriteRequestData>
           plant={plant.data}
           sectionConfig={sectionConfig as SectionConfig<PopularNameReadData, PopularNameWriteRequestData>}
-          size={600}
+          size={700}
           /> : 
         sectionSlug === "natural-occurrence-regions" ? 
         <SectionDetailsBody<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>
