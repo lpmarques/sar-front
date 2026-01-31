@@ -1,5 +1,5 @@
-import EndorsementCounter from '../catalog/EndorsementCounter';
-import EndorsementList from '../catalog/EndorsementList';
+import EndorsementCounter from './EndorsementCounter';
+import EndorsementList from './EndorsementList';
 import Login from './Login';
 import Signup from './Signup';
 import UserAvatar from './UserAvatar';
