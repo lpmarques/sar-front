@@ -3,7 +3,7 @@ import { Text, Paper, Divider, Button } from '@mantine/core';
 import { isNotEmpty, useField } from '@mantine/form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  createTraitValue,
+  proposeTraitValue,
   PlantReadData,
   Range,
   TraitReadData,
@@ -32,7 +32,7 @@ export default function TraitValueProposalForm({
   const proposedValues = values.data ? values.data.filter(item => item.contentStatus === "proposed") : [];
 
   const proposalCreation = useMutation({
-    mutationFn: createTraitValue,
+    mutationFn: proposeTraitValue,
     onSuccess: (data) => {
       showSuccess(data.msg);
       queryClient.invalidateQueries({ queryKey: traitValuesQueryOptions.queryKey });

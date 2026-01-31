@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router';
 import { Alert, Button, Container, ContainerProps, Paper, Space, Table, Text, Tooltip } from '@mantine/core';
 import { modals } from '@mantine/modals';
-import { IconAlertHexagon, IconEyeQuestion, IconTrash } from '@tabler/icons-react';
+import { IconAlertHexagon, IconCheckbox, IconEyeQuestion, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getPlant,
@@ -21,9 +21,9 @@ import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { useAuth } from '../../hooks/useAuth';
 import { useLanguage } from '../../hooks/useLanguage';
-import { UserAvatar } from '../user';
+import { EndorsementCounter, UserAvatar } from '../user';
 import { SectionConfig, getSectionConfig, SectionSlug } from './SectionConfigs';
-import { EndorsementCounter, SourceRef } from '.';
+import { SourceRef } from '.';
 import AddRow from '../common/AddRow';
 import LoaderRow from '../common/LoaderRow';
 
@@ -208,8 +208,8 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
     b.proposedAt!.localeCompare(a.proposedAt!)
   );
 
-  const proposalDeletion = useMutation({
-    mutationFn: sectionConfig.deleteMutationFunction,
+  const proposalRejection = useMutation({
+    mutationFn: sectionConfig.rejectMutationFunction,
     onSuccess: (data) => {
       showSuccess(data.msg);
       queryClient.invalidateQueries({ queryKey: itemsQueryOptions.queryKey });
@@ -217,32 +217,41 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
     onError: showMutationError
   });
 
-  const openProposalDeleteConfirmModal = (proposal: ReadT) => modals.openConfirmModal({
+  const proposalAcceptance = useMutation({
+    mutationFn: sectionConfig.acceptMutationFunction,
+    onSuccess: (data) => {
+      showSuccess(data.msg);
+      queryClient.invalidateQueries({ queryKey: itemsQueryOptions.queryKey });
+    },
+    onError: showMutationError
+  });
+
+  const openProposalRejectConfirmModal = (proposal: ReadT) => modals.openConfirmModal({
     title: 'Deseja mesmo excluir essa proposta?',
     children: (
-      <>
-      <Text size="sm" mb={20}>
-          Ao confirmar, você <strong>removerá</strong> a seguinte 
-          proposta para a seção <Text span fw={600}>{sectionConfig.sectionName}</Text>
-          &nbsp;da planta <Text span fs="italic" fw={600}>{plant.acceptedTaxonName}:</Text>
-      </Text>
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <sectionConfig.Header />
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          <Table.Tr>
-            <sectionConfig.DisplayRow data={proposal}/>
-          </Table.Tr>
-        </Table.Tbody>
-      </Table>
-      </>
+      <ItemConfirmModalContent sectionConfig={sectionConfig} proposal={proposal}>
+        Ao confirmar, você <strong>removerá</strong> a seguinte 
+        proposta para a seção <Text span fw={600}>{sectionConfig.sectionName}</Text>
+        &nbsp;da planta <Text span fs="italic" fw={600}>{plant.acceptedTaxonName}:</Text>
+      </ItemConfirmModalContent>
     ),
     labels: { confirm: 'Excluir', cancel: 'Cancelar exclusão' },
     confirmProps: { color: 'red' },
-    onConfirm: () => proposalDeletion.mutate(proposal.contentId),
+    onConfirm: () => proposalRejection.mutate(proposal.id),
+  });
+
+  const openProposalAcceptConfirmModal = (proposal: ReadT) => modals.openConfirmModal({
+    title: 'Deseja mesmo aceitar essa proposta?',
+    children: (
+      <ItemConfirmModalContent sectionConfig={sectionConfig} proposal={proposal}>
+        Ao confirmar, você <strong>aceitará</strong> a seguinte 
+        proposta para a seção <Text span fw={600}>{sectionConfig.sectionName}</Text>
+        &nbsp;da planta <Text span fs="italic" fw={600}>{plant.acceptedTaxonName}:</Text>
+      </ItemConfirmModalContent>
+    ),
+    labels: { confirm: 'Aceitar', cancel: 'Cancelar aceite' },
+    confirmProps: { color: 'green' },
+    onConfirm: () => proposalAcceptance.mutate(proposal.id),
   });
 
   const handleAddRowClick = () => {
@@ -265,7 +274,7 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
     </Table.Tr>
   );
   
-  const rows = itemsQuery.isFetching || proposalDeletion.isPending ? [
+  const rows = itemsQuery.isFetching || proposalRejection.isPending ? [
       <LoaderRow colSpan={sectionConfig.formKeys.length+5}/>
     ] : sortedValues.map((item) => (
     <Table.Tr key={item.contentId}>
@@ -288,9 +297,27 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
         </Tooltip>
       </Table.Td>
       <Table.Td>
-        { user?.id === item.contentProposer?.id &&
-        <Button variant="outline" size="compact-xs" color="red" onClick={() => openProposalDeleteConfirmModal(item)}>
+        { (user?.isStaff || user?.id === item.contentProposer?.id) &&
+        <Button
+          title="Rejeitar proposta"
+          variant="outline"
+          size="compact-xs"
+          color="red"
+          onClick={() => openProposalRejectConfirmModal(item)}
+        >
           <IconTrash size={15} />
+        </Button>}
+      </Table.Td>
+      <Table.Td>
+        { user?.isStaff &&
+        <Button
+          title="Aceitar proposta"
+          variant="outline"
+          size="compact-xs"
+          color="green"
+          onClick={() => openProposalAcceptConfirmModal(item)}
+        >
+          <IconCheckbox size={15} />
         </Button>}
       </Table.Td>
     </Table.Tr>
@@ -314,5 +341,35 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
         />
       </Paper>
     </QueryLoader>
+  )
+}
+
+function ItemConfirmModalContent<ReadT extends ContentReadData, WriteT extends ContentWriteRequestData>({
+  proposal,
+  sectionConfig,
+  children
+}: {
+  proposal: ReadT,
+  sectionConfig: SectionConfig<ReadT, WriteT>,
+  children: React.ReactNode,
+}) {
+  return (
+    <>
+    <Text size="sm" mb={20}>
+      {children}
+    </Text>
+    <Table>
+      <Table.Thead>
+        <Table.Tr>
+          <sectionConfig.Header />
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        <Table.Tr>
+          <sectionConfig.DisplayRow data={proposal}/>
+        </Table.Tr>
+      </Table.Tbody>
+    </Table>
+    </>
   )
 }

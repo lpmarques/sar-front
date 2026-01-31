@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router';
 import { Button, Container, Fieldset, Paper, TextInput, Title } from "@mantine/core";
 import { isNotEmpty, useField } from "@mantine/form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createPlant, getTaxonList, TaxonReadData } from "../../apis/catalog";
+import { proposePlant, getTaxonList, TaxonReadData } from "../../apis/catalog";
 import { showMutationError } from '../../apis/common';
 import { showError, showSuccess } from "../common/notifications";
 import { QueryLoader } from '../common/QueryLoader';
@@ -16,7 +16,7 @@ export default function PlantNew() {
   const queryClient = useQueryClient();
 
   const taxaQueryOptions = {
-    queryKey: ['plantTaxonList', 'status=accepted'],
+    queryKey: ['taxonList', 'status=accepted,proposed'],
     queryFn: getTaxonList
   };
 
@@ -123,11 +123,12 @@ export default function PlantNew() {
     }
   });
 
-  const plantCreation = useMutation({
-    mutationFn: createPlant,
+  const plantProposal = useMutation({
+    mutationFn: proposePlant,
     onSuccess: (data) => {
       showSuccess(data.msg);
-      queryClient.refetchQueries({ predicate: (query) => { return query.queryKey[0] === 'plantList' } });
+      queryClient.invalidateQueries({ predicate: (query) => { return query.queryKey[0] === 'plantList' } });
+      queryClient.invalidateQueries({ predicate: (query) => { return query.queryKey[0] === 'taxonList' } });
       navigate(`/plants/${data.plantId}?edit=true`);
     },
     onError: showMutationError
@@ -151,17 +152,16 @@ export default function PlantNew() {
 
     const commentError = await commentField.validate();
 
-    console.log(taxonErrors);
-    
     if (taxonErrors ||
       taxonSourceError ||
       popularNameErrors ||
       popularNameSourceError ||
       commentError) {   
+        console.log(taxonErrors);
         return showError("Há campos inválidos no formulário.", "Erro");
     }
       
-    plantCreation.mutate({
+    plantProposal.mutate({
       taxon: {
         ...taxonForm.getValues(),
         sourceId: Number(taxonSourceField.getValue()),
@@ -195,7 +195,7 @@ export default function PlantNew() {
             mt="xl"
             radius="md"
             color="teal"
-            loading={plantCreation.isPending}
+            loading={plantProposal.isPending}
             onClick={handleSubmit}
           >
             Publicar proposta

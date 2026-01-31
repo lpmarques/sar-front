@@ -1,10 +1,10 @@
 import { ReactElement, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { Alert, Button, Center, Container, Group, Paper, SimpleGrid, Space, Table, Text } from '@mantine/core';
-import { IconAlertHexagon, IconCircleDashedPlus, IconPencil, IconPencilOff, IconTrash } from "@tabler/icons-react";
+import { IconAlertHexagon, IconCheckbox, IconCircleDashedPlus, IconPencil, IconPencilOff, IconTrash } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  deletePlant,
+  rejectPlant,
   getPlant,
   getPlantNaturalOccurrenceRegionList,
   getPlantPopularNameList,
@@ -18,6 +18,7 @@ import {
   TaxonReadData,
   TraitReadData,
   TraitValueReadData,
+  acceptPlant,
 } from "../../apis/catalog";
 import classes from '../common/Clickable.module.css';
 import { QueryLoader } from '../common/QueryLoader';
@@ -97,8 +98,13 @@ export default function PlantDetails() {
           <Text fz="h2" fs="italic" fw={600}>{plant.data.acceptedTaxonName}</Text>
           <Group>
             <EditButton editMode={editMode} setEditMode={setEditMode} />
-            {plant.data.contentStatus === 'proposed' && plant.data.contentProposer?.id === user?.id &&
-            <DeleteButton plant={plant.data} queryOptions={plantQueryOptions} />}
+            {plant.data.contentStatus === 'proposed' &&
+            <>
+              {(user?.isStaff || plant.data.contentProposer?.id === user?.id) && 
+              <RejectButton plant={plant.data} queryOptions={plantQueryOptions} />}
+              {user?.isStaff &&
+              <AcceptButton plant={plant.data} queryOptions={plantQueryOptions} />}
+            </>}
           </Group>
         </Group>
         {plant.data.contentStatus === 'proposed' && <>
@@ -153,12 +159,12 @@ function EditButton({
   )
 }
 
-function DeleteButton({ plant, queryOptions }: { plant: PlantReadData, queryOptions: QueryOptions<PlantReadData> }) {
+function RejectButton({ plant, queryOptions }: { plant: PlantReadData, queryOptions: QueryOptions<PlantReadData> }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   
-  const proposalDeletion = useMutation({
-    mutationFn: deletePlant,
+  const proposalRejection = useMutation({
+    mutationFn: rejectPlant,
     onSuccess: (data) => {
       queryClient.refetchQueries({ predicate: (query) => { return query.queryKey[0] === 'plantList' } });
       showSuccess(data.msg);
@@ -168,7 +174,7 @@ function DeleteButton({ plant, queryOptions }: { plant: PlantReadData, queryOpti
     onError: showMutationError
   });
 
-  const openProposalDeleteConfirmModal = () => modals.openConfirmModal({
+  const openProposalRejectConfirmModal = () => modals.openConfirmModal({
     title: 'Deseja mesmo excluir essa planta?',
     children: (
       <Text size="sm" mb={20}>
@@ -179,14 +185,52 @@ function DeleteButton({ plant, queryOptions }: { plant: PlantReadData, queryOpti
     ),
     labels: { confirm: 'Excluir', cancel: 'Cancelar exclusão' },
     confirmProps: { color: 'red' },
-    onConfirm: () => proposalDeletion.mutate(plant.contentId),
+    onConfirm: () => proposalRejection.mutate(plant.id),
   });
 
   return (
-    <Button variant="outline" size="compact-md" color="red" onClick={() => openProposalDeleteConfirmModal()}>
+    <Button variant="outline" size="compact-md" color="red" onClick={() => openProposalRejectConfirmModal()}>
       <IconTrash size={20} />
       <Text fw={600}>&nbsp;
         Excluir planta
+      </Text>
+    </Button>
+  )
+}
+
+function AcceptButton({ plant, queryOptions }: { plant: PlantReadData, queryOptions: QueryOptions<PlantReadData> }) {
+  const queryClient = useQueryClient();
+  
+  const proposalAcceptance = useMutation({
+    mutationFn: acceptPlant,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ predicate: (query) => { return query.queryKey[0] === 'plantList' } });
+      queryClient.refetchQueries({ queryKey: queryOptions.queryKey });
+      showSuccess(data.msg);
+    },
+    onError: showMutationError
+  });
+
+  const openProposalAcceptConfirmModal = () => modals.openConfirmModal({
+    title: 'Deseja mesmo aceitar essa proposta de planta?',
+    children: (
+      <Text size="sm" mb={20}>
+        Ao confirmar, você <strong>aceitará</strong> a proposta de inclusão
+        da planta <Text span fs="italic" fw={600}>{plant.acceptedTaxonName}</Text>, 
+        tornando-a item oficial do Catálogo. Ela passará a aparecer também entre as 
+        plantas recomendadas no Projeto Agroflorestal.
+      </Text>
+    ),
+    labels: { confirm: 'Aceitar', cancel: 'Cancelar aceite' },
+    confirmProps: { color: 'green' },
+    onConfirm: () => proposalAcceptance.mutate(plant.id),
+  });
+
+  return (
+    <Button variant="outline" size="compact-md" color="green" onClick={() => openProposalAcceptConfirmModal()}>
+      <IconCheckbox />
+      <Text fw={600}>&nbsp;
+        Aceitar
       </Text>
     </Button>
   )
@@ -319,7 +363,7 @@ function NaturalOccurrenceSection({ regions }: { regions: NaturalOccurrenceRegio
   );
   
   const rows = sortedRegions.map((region: NaturalOccurrenceRegionReadData) => (
-    <Table.Tr key={`${region.contentId}`}>
+    <Table.Tr key={`${region.id}`}>
       <Table.Td fz="sm">{region.country.name}</Table.Td>
       <Table.Td fz="sm">{region.biome?.name ?? ""}</Table.Td>
       <Table.Td fz="sm">{region.state?.code ?? ""}</Table.Td>

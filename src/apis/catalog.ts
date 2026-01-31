@@ -9,6 +9,8 @@ export type TraitType = "range" | "number" | "boolean" | "string[]" | "string";
 
 export type TraitValue = Range | number | boolean | string[] | string;
 
+export type CatalogContentData = PlantReadData | TraitValueReadData | PopularNameReadData | TaxonReadData | NaturalOccurrenceRegionReadData;
+
 // MUTATIONS
 
 export interface PlantWriteRequestData extends Omit<ContentWriteRequestData, 'sourceId'> {
@@ -20,15 +22,21 @@ export interface PlantWriteResponseData extends ContentWriteResponseData {
   plantId: number,
 }
 
-export async function createPlant(data: PlantWriteRequestData): Promise<PlantWriteResponseData> {
+export async function proposePlant(data: PlantWriteRequestData): Promise<PlantWriteResponseData> {
   const body = camelToSnakeCase(data);
-  const res = await axios.post("/catalog/plant", body);
+  const res = await axios.post("/catalog/plants", body);
   
   return snakeToCamelCase(res.data);
 }
 
-export async function deletePlant(contentId: number): Promise<ContentWriteResponseData> {
-  const res = await axios.delete(`/catalog/plant/${contentId}`);
+export async function acceptPlant(plantId: number): Promise<GenericResponse> {
+  const res = await axios.patch(`/catalog/plants/${plantId}`);
+  
+  return snakeToCamelCase(res.data);
+}
+
+export async function rejectPlant(plantId: number): Promise<GenericResponse> {
+  const res = await axios.delete(`/catalog/plants/${plantId}`);
   
   return res.data;
 }
@@ -39,15 +47,21 @@ export interface TraitValueWriteRequestData extends ContentWriteRequestData {
   value: TraitValue,
 }
 
-export async function createTraitValue(data: TraitValueWriteRequestData): Promise<ContentWriteResponseData> {
+export async function proposeTraitValue(data: TraitValueWriteRequestData): Promise<ContentWriteResponseData> {
   const body = camelToSnakeCase(data);
-  const res = await axios.post("/catalog/trait-value", body);
+  const res = await axios.post("/catalog/trait-values", body);
   
   return snakeToCamelCase(res.data);
 }
 
-export async function deleteTraitValue(contentId: number): Promise<GenericResponse> {
-  const res = await axios.delete(`/catalog/trait-value/${contentId}`);
+export async function acceptTraitValue(traitValueId: number): Promise<GenericResponse> {
+  const res = await axios.patch(`/catalog/trait-values/${traitValueId}`);
+  
+  return snakeToCamelCase(res.data);
+}
+
+export async function rejectTraitValue(traitValueId: number): Promise<GenericResponse> {
+  const res = await axios.delete(`/catalog/trait-values/${traitValueId}`);
   
   return res.data;
 }
@@ -61,15 +75,21 @@ export interface TaxonWriteRequestData extends ContentWriteRequestData {
   plantId: number,
 }
 
-export async function createTaxon(data: TaxonWriteRequestData): Promise<ContentWriteResponseData> {
+export async function proposeTaxon(data: TaxonWriteRequestData): Promise<ContentWriteResponseData> {
   const body = camelToSnakeCase(data);
-  const res = await axios.post("/catalog/taxon", body);
+  const res = await axios.post("/catalog/taxa", body);
   
   return snakeToCamelCase(res.data);
 }
 
-export async function deleteTaxon(contentId: number): Promise<GenericResponse> {
-  const res = await axios.delete(`/catalog/taxon/${contentId}`);
+export async function acceptTaxon(taxonId: number): Promise<GenericResponse> {
+  const res = await axios.patch(`/catalog/taxa/${taxonId}`);
+  
+  return snakeToCamelCase(res.data);
+}
+
+export async function rejectTaxon(taxonId: number): Promise<GenericResponse> {
+  const res = await axios.delete(`/catalog/taxa/${taxonId}`);
   
   return res.data;
 }
@@ -79,15 +99,21 @@ export interface PopularNameWriteRequestData extends ContentWriteRequestData {
   plantId: number,
 }
 
-export async function createPopularName(data: PopularNameWriteRequestData): Promise<ContentWriteResponseData> {
+export async function proposePopularName(data: PopularNameWriteRequestData): Promise<ContentWriteResponseData> {
   const body = camelToSnakeCase(data);
-  const res = await axios.post("/catalog/popular-name", body);
+  const res = await axios.post("/catalog/popular-names", body);
   
   return snakeToCamelCase(res.data);
 }
 
-export async function deletePopularName(contentId: number): Promise<GenericResponse> {
-  const res = await axios.delete(`/catalog/popular-name/${contentId}`);
+export async function acceptPopularName(popularNameId: number): Promise<GenericResponse> {
+  const res = await axios.patch(`/catalog/popular-names/${popularNameId}`);
+  
+  return snakeToCamelCase(res.data);
+}
+
+export async function rejectPopularName(popularNameId: number): Promise<GenericResponse> {
+  const res = await axios.delete(`/catalog/popular-names/${popularNameId}`);
   
   return res.data;
 }
@@ -100,15 +126,21 @@ export interface NaturalOccurrenceRegionWriteRequestData extends ContentWriteReq
   plantId: number,
 }
 
-export async function createNaturalOccurrenceRegion(data: NaturalOccurrenceRegionWriteRequestData): Promise<ContentWriteResponseData> {
+export async function proposeNaturalOccurrenceRegion(data: NaturalOccurrenceRegionWriteRequestData): Promise<ContentWriteResponseData> {
   const body = camelToSnakeCase(data);
-  const res = await axios.post("/catalog/natural-occurrence-region", body);
+  const res = await axios.post("/catalog/natural-occurrence-regions", body);
   
   return snakeToCamelCase(res.data);
 }
 
-export async function deleteNaturalOccurrenceRegion(contentId: number): Promise<GenericResponse> {
-  const res = await axios.delete(`/catalog/natural-occurrence-region/${contentId}`);
+export async function acceptNaturalOccurrenceRegion(regionId: number): Promise<GenericResponse> {
+  const res = await axios.patch(`/catalog/natural-occurrence-regions/${regionId}`);
+  
+  return snakeToCamelCase(res.data);
+}
+
+export async function rejectNaturalOccurrenceRegion(regionId: number): Promise<GenericResponse> {
+  const res = await axios.delete(`/catalog/natural-occurrence-regions/${regionId}`);
   
   return res.data;
 }
@@ -116,7 +148,6 @@ export async function deleteNaturalOccurrenceRegion(contentId: number): Promise<
 // QUERIES
 
 export interface PlantReadData extends ContentReadData {
-  id: number,
   acceptedTaxonName: string,
   acceptedFamilyName: string,
   taxa?: TaxonReadData[],
@@ -176,6 +207,15 @@ export interface TraitValueReadData extends ContentReadData {
   boundaries?: boolean[] | string[] | Range,
   sectionSlug?: string,
   sectionName?: string,
+  plantId?: number,
+}
+
+export async function getTraitValueList({ queryKey: [_, ...params] }: QueryFnInput ): Promise<TraitValueReadData[]> {
+  let res = await axios.get(`/catalog/trait-values` + (params && `?${params.join('&')}`));
+
+  let data = snakeToCamelCase(res.data);
+
+  return data;
 }
 
 export async function getPlantTraitValueList({ queryKey: [_, plantId, ...params] }: QueryFnInput ): Promise<TraitValueReadData[]> {
@@ -221,6 +261,14 @@ export interface PopularNameReadData extends ContentReadData {
   plantId: number,
 }
 
+export async function getPopularName({ queryKey: [_, popularNameId, ...params] }: QueryFnInput ): Promise<PopularNameReadData[]> {
+  let res = await axios.get(`/catalog/popular-names/${popularNameId}` + (params && `?${params.join('&')}`));
+
+  let data = snakeToCamelCase(res.data);
+
+  return data;
+}
+
 export async function getPopularNameList(): Promise<PopularNameReadData[]> {
   let res = await axios.get('/catalog/popular-names');
 
@@ -245,8 +293,16 @@ export interface NaturalOccurrenceRegionReadData extends ContentReadData {
   plantId: number,
 }
 
-export async function getNaturalOccurrenceRegionList(): Promise<NaturalOccurrenceRegionReadData[]> {
-  let res = await axios.get('/catalog/natural-occurrence-regions');
+export async function getNaturalOccurrenceRegion({ queryKey: [_, regionId, ...params] }: QueryFnInput ): Promise<NaturalOccurrenceRegionReadData> {
+  let res = await axios.get(`/catalog/natural-occurrence-regions/${regionId}` + (params && `?${params.join('&')}`));
+
+  let data = snakeToCamelCase(res.data);
+
+  return data;
+}
+
+export async function getNaturalOccurrenceRegionList({ queryKey: [_, ...params] }: QueryFnInput ): Promise<NaturalOccurrenceRegionReadData[]> {
+  let res = await axios.get(`/catalog/natural-occurrence-regions` + (params && `?${params.join('&')}`));
 
   let data = snakeToCamelCase(res.data);
 

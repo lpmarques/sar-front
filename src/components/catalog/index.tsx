@@ -1,5 +1,3 @@
-import EndorsementCounter from './EndorsementCounter';
-import EndorsementList from './EndorsementList';
 import PlantDetails from './PlantDetails';
 import PlantList from './PlantList';
 import PlantNew from './PlantNew';
@@ -20,8 +18,6 @@ import SectionItemsProposalForm from './SectionItemsProposalForm';
 
 export {
   CommentInput,
-  EndorsementCounter,
-  EndorsementList,
   PlantDetails,
   PlantList,
   PlantNew,

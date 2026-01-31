@@ -140,6 +140,7 @@ export async function createSource(data: SourceWriteRequestData): Promise<Source
 // QUERIES
 
 export interface ContentReadData {
+  id: number,
   contentId: number,
   contentStatus: string,
   contentProposer?: UserReadData,
@@ -150,6 +151,32 @@ export interface ContentReadData {
   proposedAt?: string,
   acceptedAt?: string,
   rejectedAt?: string,
+}
+
+export interface ContentPreviewReadData {
+  id: number,
+  type: string,
+  status: string,
+  endorsementsCount: number,
+  proposer: UserReadData,
+  proposerComment: string,
+  acceptor: UserReadData,
+  rejector: UserReadData,
+  proposedAt: string,
+  acceptedAt: string | null,
+  rejectedAt: string | null,
+}
+
+export async function getContentPreview({ queryKey: [_, contentId] }: QueryFnInput): Promise<ContentPreviewReadData> {
+  const res = await axios.get(`/core/contents/${contentId}`);
+
+  return snakeToCamelCase(res.data);
+}
+
+export async function getContentPreviewList({ queryKey: [_, ...params] }: QueryFnInput): Promise<ContentPreviewReadData[]> {
+  const res = await axios.get(`/core/contents` + (params && `?${params.join('&')}`));
+
+  return snakeToCamelCase(res.data);
 }
 
 interface SourceFieldValueReadData {
@@ -216,6 +243,7 @@ export interface UserReadData {
   firstName: string,
   lastName: string,
   email: string,
+  isStaff: boolean,
   occupation?: string,
   company?: string,
   country?: string,
@@ -224,9 +252,7 @@ export interface UserReadData {
 };
 
 export async function getUser({ queryKey: [_, ...params] }: QueryFnInput): Promise<UserReadData> {
-  console.log(params)
   const endpoint = params.length > 0 ? "/core/users" + (params && `?${params.join('&')}`) : "/core/user";
-  console.log(endpoint)
 
   let res = await axios.get(endpoint);
 

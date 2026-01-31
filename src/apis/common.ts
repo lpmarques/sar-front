@@ -67,10 +67,13 @@ export async function showMutationError(error: Error){
   if (axios.isAxiosError(error)) {
     if (error.response) {
       const keys = Object.keys(error.response.data);
-      if (keys.length === 1 && keys[0] === "msg")
-        errorMsg = error.response.data.msg;
-      else
+      if (keys.length === 1 && keys[0] === "msg") {
+        const msg = error.response.data.msg;
+        errorMsg = typeof msg === 'string' ? msg : JSON.stringify(msg);
+      }
+      else {
         errorMsg = JSON.stringify(error.response.data);
+      }
     } else {
       errorMsg = "Serviço indisponível. Tente novamente em instantes.";
     }

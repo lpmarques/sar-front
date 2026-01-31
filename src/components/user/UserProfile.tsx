@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router";
-import { Avatar, Button, Center, Container, Group, Paper, Text } from '@mantine/core';
+import { Avatar, Button, Center, Container, Group, Paper, Stack, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { IconMail, IconBuildings, IconMapPin } from '@tabler/icons-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -34,20 +34,22 @@ export default function UserProfile() {
 }
 
 function UserDataCard({ data }: { data: UserReadData }) {
+  const navigate = useNavigate();
 
   return (
     <Paper withBorder shadow="sm" p={25} mt={20} mb={30} radius="md">
+      <Stack gap="xs">
       <Avatar
         size={150}
         radius={120}
         mx="auto"
-        mb={15}
+        mb={5}
         name={`${data.firstName} ${data.lastName}`}
         color="initials" />
-      <Text ta="center" fz="lg" fw={500} mb={10} className={classes.name}>
+      <Text ta="center" fz="lg" fw={500} className={classes.name}>
         {data.firstName} {data.lastName}
       </Text>
-      <Text ta="center" fz="xs" tt="uppercase" fw={700} c="dimmed" mb={15}>
+      <Text ta="center" fz="xs" tt="uppercase" fw={700} c="dimmed">
         {data.occupation}
       </Text>
       <Container size={200} pl={5} pr={5}>
@@ -74,13 +76,15 @@ function UserDataCard({ data }: { data: UserReadData }) {
           </Text>
         </Group>
       </Container>
+      <Button mt={10} onClick={() => navigate("contents")}>Minhas contribuições</Button>
+      </Stack>
     </Paper>
   )
 }
 
 function UserOptions() {
-  const navigate = useNavigate();
   const { unauth } = useAuth();
+  const navigate = useNavigate();
 
   const userTokenDeletion = useMutation({
     mutationFn: deleteUserToken,
@@ -117,7 +121,7 @@ function UserOptions() {
   return (
     <Center>
       <Group gap="md" mb={30}>
-        <Button onClick={() => userTokenDeletion.mutate()}>Sair</Button>
+        <Button color="gray.6" onClick={() => userTokenDeletion.mutate()}>Sair</Button>
         {/* <Button onClick={() => navigate("/user/edit")}>Editar</Button> */}
         <Button onClick={openDeleteConfirmModal} color='red'>Excluir</Button>
       </Group>

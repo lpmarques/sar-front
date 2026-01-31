@@ -16,10 +16,11 @@ import classes from '../common/Clickable.module.css';
 import ClickableText from '../common/ClickableText';
 import { showError, showSuccess } from '../common/notifications';
 import { useAuth } from "../../hooks/useAuth";
-import { EndorsementList } from '.';
+import { EndorsementList } from '../user';
 
 interface EndorsementCounterProps<ReadT extends ContentReadData> extends Omit<GroupProps, 'content'> {
   content: ReadT,
+  enableThumb?: boolean,
   textProps?: TextProps,
   iconProps?: IconProps,
 };
@@ -28,6 +29,7 @@ export default function EndorsementCounter<ReadT extends ContentReadData>({
   content,
   textProps,
   iconProps,
+  enableThumb=true,
   ...groupProps
 }: EndorsementCounterProps<ReadT>) {
 
@@ -46,7 +48,7 @@ export default function EndorsementCounter<ReadT extends ContentReadData>({
     queryKey: ['userEndorsements', content.contentId.toString()],
     queryFn: getUserEndorsements,
     refetchOnMount: true,
-    enabled: clicked || content.userEndorsementId === undefined,
+    enabled: enableThumb && (clicked || content.userEndorsementId === undefined),
   };
 
   const invalidateQueries = () => {
@@ -118,12 +120,13 @@ export default function EndorsementCounter<ReadT extends ContentReadData>({
       <ClickableText fz="h2" onClick={openEndorsementListModal} {...textProps}>
         {count}
       </ClickableText>
+      {enableThumb &&
       <ThumbIcon 
         size={25}
         onClick={handleThumbClick}
         className={clsx({ [classes.fillableIcon]: !userEndorsementId }, { [classes.icon]: userEndorsementId })}
         {...iconProps}
-      />
+      />}
     </Group>
     }
     </>
