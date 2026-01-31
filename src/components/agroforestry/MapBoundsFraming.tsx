@@ -12,10 +12,9 @@ export default function MapBoundsFraming({ bounds, maxZoom }: MapBoundsFramingPr
   const center = bounds.getCenter();
 
   useEffect(() => {
-    // Fit the map to these bounds with some padding
     map.fitBounds(bounds, {
       padding: [20, 20], // Adds 20px buffer so polygon doesn't touch edges
-      maxZoom: maxZoom,       // Prevents extreme zooming on very small polygons
+      maxZoom: maxZoom,  // Prevents extreme zooming on very small polygons
     });
   }, [center, map]);
 
