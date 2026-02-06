@@ -22,7 +22,7 @@ export interface UserWriteRequestData {
   country?: string,
   state?: string,
   municipality?: string,
-};
+}
 
 export async function createUser(data: UserWriteRequestData): Promise<GenericResponse> {
   const requestBody = camelToSnakeCase(data);

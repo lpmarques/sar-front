@@ -107,7 +107,7 @@ function SourceDataForm({ type, subtype, onSubmit }: { type: SourceTypeReadData,
       initialValue: undefined,
       validate: (value) => validateFieldValue(field, value),
     })
-  ]))
+  ]));
 
   const notesMaxChars = 300;
   const notesField = useField<string>({

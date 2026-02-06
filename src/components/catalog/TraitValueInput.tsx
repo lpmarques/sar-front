@@ -32,7 +32,7 @@ function StringTraitSelect({ trait, field, ...extraSelectProps }: { trait: Trait
   const options = trait.textValueOptions.map(opt => ({
     value: opt.value,
     label: opt.value.toUpperCase()
-  }))
+  }));
 
   return (
     <Container size={containerSize}>

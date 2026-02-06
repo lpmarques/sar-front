@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router';
-import { Button, Container, Fieldset, Paper, TextInput, Title } from "@mantine/core";
+import { Button, Container, Fieldset, Paper, Space, TextInput, Title } from "@mantine/core";
 import { isNotEmpty, useField } from "@mantine/form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { proposePlant, getTaxonList, TaxonReadData } from "../../apis/catalog";
@@ -202,6 +202,7 @@ export default function PlantNew() {
           </Button>
         </Paper>
       </Container>
+      <Space h={5}/>
     </QueryLoader>
   )
 }

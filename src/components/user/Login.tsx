@@ -70,7 +70,6 @@ export default function Login() {
           key={form.key('email')}
           label="E-mail"
           placeholder="seu@email.com"
-          required
           radius="md" 
           {...form.getInputProps('email')}
         />
@@ -78,7 +77,6 @@ export default function Login() {
           key={form.key('password')}
           label="Senha"
           placeholder="Sua senha"
-          required
           mt="md"
           radius="md"
           {...form.getInputProps('password')}

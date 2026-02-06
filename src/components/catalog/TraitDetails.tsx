@@ -116,6 +116,7 @@ export function TraitInfo({ trait }: { trait: TraitReadData }) {
     <Alert variant="light" color="blue" title={trait.name} icon={<IconInfoCircle />}>
       { textOptionDescItems.length === 0 ? traitDesc : 
       <Accordion
+        variant="unstyled"
         classNames={{ chevron: classes.chevron }}
         chevron={<IconPlus size={16} />}
       >
