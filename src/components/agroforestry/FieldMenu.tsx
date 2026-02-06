@@ -13,7 +13,6 @@ import { modals } from "@mantine/modals";
 import { StickyHeaderTable } from "../common/StickyHeaderTable";
 import { QueryLoader } from "../common/QueryLoader";
 import ClickableRow from "../common/ClickableRow";
-import { useNavigate } from "react-router-dom";
 
 interface FieldMenuProps {
   farm: FarmReadData,

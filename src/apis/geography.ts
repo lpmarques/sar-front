@@ -101,7 +101,7 @@ export async function getLandSummary({ queryKey: [_, latlong, ...params] }: Quer
 export interface DroughtData {
   year: number,
   month: number,
-  droughtLevel: number,
+  droughtLevel: 0 | 1 | 2 | 3 | 4 | 5,
   droughtLevelCode: "si" | "s0" | "s1" | "s2" | "s3" | "s4",
   countryId: number,
 }
