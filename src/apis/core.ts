@@ -101,7 +101,7 @@ export interface EndorsementWriteResponseData extends GenericResponse {
 
 export async function createEndorsement(data: EndorsementWriteRequestData): Promise<EndorsementWriteResponseData> {  
   const body = { content_id: data.contentId };
-  let res = await axios.post('/core/endorsement', body);
+  let res = await axios.post('/core/endorsements', body);
 
   return snakeToCamelCase(res.data);
 }
