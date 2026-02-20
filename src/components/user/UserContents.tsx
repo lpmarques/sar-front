@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { getNaturalOccurrenceRegionList, getPlantList, getPopularNameList, getTaxonList, getTraitValueList } from "../../apis/catalog";
 import { ContentPreviewReadData, getContentPreviewList, getUser } from "../../apis/core";
 import ClickableRow from "../common/ClickableRow";
-import { QueryLoader } from "../common/QueryLoader";
 import { StickyHeaderTable } from "../common/StickyHeaderTable";
 import { useLanguage } from "../../hooks";
 import { UserAvatar } from ".";
@@ -45,7 +44,7 @@ export default function UserContents() {
       <Table.Th>Status</Table.Th>
       <Table.Th>Apoios</Table.Th>
       <Table.Th>Proposto por</Table.Th>
-      <Table.Th>Proposto em</Table.Th>
+      <Table.Th>Proposto em</Table.Th>  
       <Table.Th>Aceito por</Table.Th>
       <Table.Th>Aceito em</Table.Th>
       <Table.Th>Rejeitado por</Table.Th>
