@@ -48,8 +48,8 @@ export default function UserContents() {
       <Table.Th>Proposto em</Table.Th>
       <Table.Th>Aceito por</Table.Th>
       <Table.Th>Aceito em</Table.Th>
-      <Table.Th>Descartado por</Table.Th>
-      <Table.Th>Descartado em</Table.Th>
+      <Table.Th>Rejeitado por</Table.Th>
+      <Table.Th>Rejeitado em</Table.Th>
     </Table.Tr>
   );
 
@@ -108,7 +108,7 @@ function ContentRow({ content }: { content: ContentPreviewReadData }) {
   const statusLabels: {[ key: string ]: React.ReactElement } = {
     'proposed': <Badge w={100} color="yellow.5">Proposto</Badge>,
     'accepted': <Badge w={100} color="green">Aceito</Badge>,
-    'rejected': <Badge w={100} color="gray">Descartado</Badge>,
+    'rejected': <Badge w={100} color="gray">Rejeitado</Badge>,
   }
 
   const config = getContentConfig();
