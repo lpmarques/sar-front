@@ -11,7 +11,7 @@ import classes from '../common/AccordionPlusChevron.module.css';
 
 type LabelProps = Omit<SiteTraitLabelProps, 'trait'>;
 
-interface TraitValueInputProps extends InputProps {
+interface SiteTraitValueInputProps extends InputProps {
   trait: SiteTraitReadData,
   field: UseFieldReturnType<SiteTraitValue | undefined>,
   labelProps?: LabelProps,
@@ -19,7 +19,7 @@ interface TraitValueInputProps extends InputProps {
 
 const numericTypes = ["number", "integer"];
 
-export default function SiteTraitValueInput({ trait, field, labelProps, ...extraProps }: TraitValueInputProps) {
+export default function SiteTraitValueInput({ trait, field, labelProps, ...extraProps }: SiteTraitValueInputProps) {
   
   if (trait.schema.type == "string")
     return <StringTraitSelect key={trait.slug} trait={trait} field={field as UseFieldReturnType<string | undefined>} labelProps={labelProps} {...extraProps} />

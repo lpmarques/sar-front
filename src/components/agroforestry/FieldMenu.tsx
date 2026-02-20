@@ -114,7 +114,7 @@ export default function FieldMenu({ farm, field, fieldPolygon, onFieldClose, onF
       </Button>  
     </Tooltip>;
 
-  const submitButton = (!field || fieldForm.isDirty()) &&
+  const submitButton = (!field || fieldForm.isDirty()) && // TODO: triggar atualização da área tb quando o polígono for alterado
     <Button onClick={handleSubmitButtonClick} loading={fieldSubmit.isPending}>
       {field ? "Atualizar área" : "Cadastrar área"}
     </Button>;

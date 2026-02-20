@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getSiteTraitList, SiteReadData } from "../../apis/agroforestry";
 import FieldView from "../common/FieldView";
 import { QueryLoader } from "../common/QueryLoader";
+import SiteTraitValueDisplay from "./SiteTraitValueDisplay";
 
 const absentInfo = <Text span c="red">Não informado</Text>;
 
@@ -33,13 +34,13 @@ export default function SiteTraitsDetails({ site }: { site: SiteReadData }) {
   
   const climateFields = sectionedTraits["climate"] && sectionedTraits["climate"].map(trait => (
     <FieldView pb={10} key={trait.slug} label={trait.name}>
-      {traitValues[trait.slug] ? traitValues[trait.slug].value : absentInfo}
+      {traitValues[trait.slug] ? <SiteTraitValueDisplay data={traitValues[trait.slug]} /> : absentInfo}
     </FieldView>
   ));
   
   const soilFields = sectionedTraits["soil"] && sectionedTraits["soil"].map(trait => (
     <FieldView pb={10} key={trait.slug} label={trait.name}>
-      {traitValues[trait.slug] ? traitValues[trait.slug].value : absentInfo}
+      {traitValues[trait.slug] ? <SiteTraitValueDisplay data={traitValues[trait.slug]} /> : absentInfo}
     </FieldView>
   ));
 

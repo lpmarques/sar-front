@@ -20,8 +20,9 @@ export default function FarmEdit() {
   const farmUpdate = useMutation({
     mutationFn: updateFarm,
     onSuccess: (data, variables) => {
-      showSuccess(data.msg);
       queryClient.refetchQueries(farmQueryOptions);
+      queryClient.invalidateQueries({ predicate: (query) => { return query.queryKey[0] === 'farmList' } });
+      showSuccess(data.msg);
       navigate(`/farms/${variables.id}`);
     },
     onError: showMutationError

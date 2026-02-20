@@ -17,6 +17,7 @@ import MapControl from './MapControl';
 import MaptilerVectorLayer from './MaptilerVectorLayer';
 import ProjectDetails from './ProjectDetails';
 import SiteTraitsDetails from './SiteTraitsDetails';
+import SiteTraitValueDisplay from './SiteTraitValueDisplay';
 import SiteTraitValueInput from './SiteTraitValueInput';
 import SiteTraitValuesForm from './SiteTraitValuesForm';
 
@@ -40,6 +41,7 @@ export {
   MaptilerVectorLayer,
   ProjectDetails,
   SiteTraitsDetails,
+  SiteTraitValueDisplay,
   SiteTraitValueInput,
   SiteTraitValuesForm,
 }
