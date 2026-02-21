@@ -9,6 +9,7 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
+RUN mv vite.env .env
 RUN npm run build
 
 # Stage 2, use the compiled app, ready for production with Nginx
