@@ -43,10 +43,10 @@ export default function PlantDetails() {
     queryFn: getPlantTaxonList
   };
   const popularNamesQueryOptions = {
-    queryKey: ['plantPopularNames', plantId!, 'status=accepted'],
-    queryFn: getPlantPopularNameList 
+    queryKey: ['plantPopularNameList', plantId!, 'status=accepted'],
+    queryFn: getPlantPopularNameList
   };
-  const traitsQueryOptions = { 
+  const traitsQueryOptions = {
     queryKey: ['traitList'],
     queryFn: getTraitList
   };

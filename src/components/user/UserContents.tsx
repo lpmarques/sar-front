@@ -113,6 +113,7 @@ function ContentRow({ content }: { content: ContentPreviewReadData }) {
   const config = getContentConfig();
 
   return (
+    // TODO: make user avatar clickable inside of clickable row
     <ClickableRow 
       key={content.id} 
       onClick={() => setClicked(true)}
