@@ -232,7 +232,7 @@ function ProposedValues({
     mutationFn: rejectTraitValue,
     onSuccess: (data) => {
       showSuccess(data.msg);
-      queryClient.invalidateQueries({ queryKey: proposalsQueryOptions.queryKey });
+      queryClient.refetchQueries({ queryKey: proposalsQueryOptions.queryKey });
     },
     onError: showMutationError
   });
@@ -241,7 +241,8 @@ function ProposedValues({
     mutationFn: acceptTraitValue,
     onSuccess: (data) => {
       showSuccess(data.msg);
-      queryClient.invalidateQueries({ queryKey: proposalsQueryOptions.queryKey });
+      queryClient.refetchQueries({ predicate: (query) => { return query.queryKey[0] === 'plantTraitValueList' } });
+      queryClient.refetchQueries({ queryKey: proposalsQueryOptions.queryKey });
     },
     onError: showMutationError
   });

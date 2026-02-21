@@ -212,7 +212,7 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
     mutationFn: sectionConfig.rejectMutationFunction,
     onSuccess: (data) => {
       showSuccess(data.msg);
-      queryClient.invalidateQueries({ queryKey: itemsQueryOptions.queryKey });
+      queryClient.refetchQueries({ queryKey: itemsQueryOptions.queryKey });
     },
     onError: showMutationError
   });
@@ -221,7 +221,8 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
     mutationFn: sectionConfig.acceptMutationFunction,
     onSuccess: (data) => {
       showSuccess(data.msg);
-      queryClient.invalidateQueries({ queryKey: itemsQueryOptions.queryKey });
+      queryClient.refetchQueries({ predicate: (query) => { return query.queryKey[0] === itemsQueryOptions.queryKey[0] } });
+      queryClient.refetchQueries({ queryKey: itemsQueryOptions.queryKey });
     },
     onError: showMutationError
   });
