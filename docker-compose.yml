@@ -4,4 +4,4 @@ services:
     container_name: sar-front-react
     network_mode: host
     env_file:
-      - .env.development
+      - .env.development.docker
