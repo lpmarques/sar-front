@@ -8,7 +8,7 @@ import InputTip from '../common/InputTip';
 import { showError, showSuccess } from '../common/notifications';
 import { showMutationError } from "../../apis/common";
 import { createUserToken, createUser, UserWriteRequestData } from "../../apis/core";
-import { getCountryList, getStateList, getMunicipalityList, MunicipalityData, CountryData, StateData, geoDataToOptions } from "../../apis/geography";
+import { getCountryList, getStateList, getMunicipalityList, geoDataToOptions } from "../../apis/geography";
 import { useAuth } from "../../hooks/useAuth";
 import { unaccent } from "../../utils/common";
 

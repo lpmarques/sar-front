@@ -1,4 +1,4 @@
-import { Anchor, Text } from '@mantine/core';
+import { Anchor } from '@mantine/core';
 import { getSource, SourceReadData, SourceValue } from '../../apis/core';
 import { JsonSchema } from '../../apis/common';
 import classes from '../common/Clickable.module.css';

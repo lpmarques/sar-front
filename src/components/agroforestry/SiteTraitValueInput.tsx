@@ -1,13 +1,12 @@
-import { Accordion, Container, Group, Input, InputProps, List, MultiSelect, NumberInput, Select, Switch, Text, TextProps, Tooltip } from '@mantine/core';
+import { Container, Group, Input, InputProps, List, MultiSelect, NumberInput, Select, Switch, Text, TextProps, Tooltip } from '@mantine/core';
 import { UseFieldReturnType } from '@mantine/form';
-import { IconInfoCircle, IconPlus } from '@tabler/icons-react';
+import { IconInfoCircle } from '@tabler/icons-react';
 import {
   Range,
   SiteTraitReadData,
   SiteTraitValue,
 } from "../../apis/agroforestry";
 import { JsonSchemaArray, JsonSchemaNumber } from '../../apis/common';
-import classes from '../common/AccordionPlusChevron.module.css';
 
 type LabelProps = Omit<SiteTraitLabelProps, 'trait'>;
 
@@ -197,7 +196,7 @@ interface SiteTraitLabelProps extends TextProps {
 function SiteTraitLabel({ trait, ...textProps }: SiteTraitLabelProps) {
   return (
     <>
-      <Text fz="sm" mb={5}>{trait.name}</Text>
+      <Text fz="sm" mb={5} {...textProps}>{trait.name}</Text>
       <SiteTraitDesc mb={5} trait={trait} />
     </>
   )
@@ -211,21 +210,6 @@ function SiteTraitDesc({ trait, ...textProps }: SiteTraitLabelProps) {
       <Text span fz="xs" fw={600}>{opt.value.toUpperCase()}</Text>{opt.description ? `: ${opt.description}` : ""}
     </List.Item>
   )) ?? [];
-
-  const optionsAccordion = (
-    <Accordion
-      variant="unstyled"
-      // classNames={{ chevron: classes.chevron }}
-      // chevron={<IconPlus size={15} />}
-    >
-      <Accordion.Item value="default">
-        <Accordion.Control h={30} pl={0}>{traitDesc}</Accordion.Control>
-        <Accordion.Panel>
-          <List>{textOptionDescItems}</List>
-        </Accordion.Panel>
-      </Accordion.Item>
-    </Accordion>
-  );
 
   const optionsTooltip = (
     <Group align="normal">

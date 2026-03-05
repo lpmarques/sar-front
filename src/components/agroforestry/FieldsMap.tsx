@@ -9,7 +9,7 @@ import {
   Map,
   Polygon as PolygonLayer,
 } from "leaflet";
-import { RefObject, useEffect, useRef } from "react";
+import { RefObject, useRef } from "react";
 import {
   FeatureGroup,
   MapContainer,
@@ -19,7 +19,6 @@ import {
   Polygon,
   PolygonProps,
   Tooltip,
-  useMap
 } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
 import { MapStyle } from "@maptiler/leaflet-maptilersdk";
