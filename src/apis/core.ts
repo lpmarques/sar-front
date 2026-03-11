@@ -131,7 +131,7 @@ export interface SourceWriteResponseData extends GenericResponse {
 
 export async function createSource(data: SourceWriteRequestData): Promise<SourceWriteResponseData> {  
   const body = camelToSnakeCase(data);
-  let res = await axios.post('/core/source', body);
+  let res = await axios.post('/core/sources', body);
 
   return snakeToCamelCase(res.data);
 }
