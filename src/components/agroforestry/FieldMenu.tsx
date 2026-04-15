@@ -16,30 +16,33 @@ import { useState } from "react";
 import { Badge, Button, Group, Stack, Table, Text, TextInput, Tooltip } from "@mantine/core";
 import { useForm, UseFormReturnType } from "@mantine/form";
 import { IconPencil, IconX } from "@tabler/icons-react";
+import { modals } from "@mantine/modals";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import booleanEqual from "@turf/boolean-equal";
 import { createField, deleteField, FarmReadData, FieldReadData, FieldWriteRequestData, getFarmPlantFitnessList, SitePlantFitness, updateField } from "../../apis/agroforestry";
 import { showMutationError } from "../../apis/common";
 import DeleteButton from "../common/DeleteButton";
 import FieldView from "../common/FieldView";
 import { showError, showSuccess } from "../common/notifications";
-import { modals } from "@mantine/modals";
 import { StickyHeaderTable } from "../common/StickyHeaderTable";
 import { QueryLoader } from "../common/QueryLoader";
 import ClickableRow from "../common/ClickableRow";
+import ConfirmingButton from "../common/ConfirmingButton";
 
 interface FieldMenuProps {
   farm: FarmReadData,
-  field?: FieldReadData,
+  initialField?: FieldReadData,
   fieldPolygon: Polygon,
   onFieldClose: () => void,
   onFieldDelete: () => void,
+  onFieldReset: () => void,
 }
 
-export default function FieldMenu({ farm, field, fieldPolygon, onFieldClose, onFieldDelete }: FieldMenuProps) {
+export default function FieldMenu({ farm, initialField, fieldPolygon, onFieldClose, onFieldDelete, onFieldReset }: FieldMenuProps) {
   const queryClient = useQueryClient();
   
   const fieldSubmit = useMutation({
-    mutationFn: field ? updateField : createField,
+    mutationFn: initialField ? updateField : createField,
     onSuccess: (data) => {
       showSuccess(data.msg);
       queryClient.refetchQueries({ predicate: (query) => { return query.queryKey[0] === 'fieldList' } });
@@ -61,10 +64,10 @@ export default function FieldMenu({ farm, field, fieldPolygon, onFieldClose, onF
   const fieldForm = useForm<FieldWriteRequestData>({
     mode: 'controlled',
     initialValues: {
-      name: field?.name ?? "",
-      farmId: field?.farmId ?? farm.id,
-      polygon: fieldPolygon,
-      traitValues: field?.traitValues ?? [],
+      name: initialField?.name ?? "",
+      farmId: initialField?.farmId ?? farm.id,
+      polygon: initialField?.polygon,
+      traitValues: initialField?.traitValues ?? [],
     },
     validate: {
       name: (value) => {
@@ -84,32 +87,37 @@ export default function FieldMenu({ farm, field, fieldPolygon, onFieldClose, onF
       return showError("Há campos inválidos no formulário.", "Erro");
 
     fieldSubmit.mutate({
-      ...(field && {id: field.id}),
+      ...(initialField && {id: initialField.id}),
       data: {
         farmId: fieldForm.getValues()['farmId'],
         name: fieldForm.getTransformedValues()['name'],
-        polygon: fieldForm.getValues()['polygon'],
+        polygon: fieldPolygon,
         traitValues: fieldForm.getValues()['traitValues'],
       },
     });
   }
 
+  const onUnsavedFieldClose = () => {
+    onFieldReset();
+    onFieldClose();
+  }
+
   const fieldDeleteButton = (    
-    <Tooltip label="Excluir área">
-      {field ?
+    <Tooltip label="Excluir área de cultivo">
+      {initialField ?
       <DeleteButton
-        modalTitle="Deseja mesmo excluir essa área?"
+        modalTitle="Deseja mesmo excluir essa área de cultivo?"
         modalContent={
           <Text size="sm" mb={20}>
-            Ao confirmar, você <strong>removerá</strong> o cadastro da 
-            área <Text span fw={700}>{field.name}</Text>,
-            junto com todos os dados vinculados a ela.
+            Ao confirmar, você <strong>removerá</strong> o cadastro do 
+            SAF <Text span fw={700}>{initialField.name}</Text>,
+            junto com todos os dados vinculados a ele.
           </Text>
         }
-        onModalConfirm={() => fieldDelete.mutate(field.id)}
+        onModalConfirm={() => fieldDelete.mutate(initialField.id)}
       /> : 
       <DeleteButton
-        modalTitle="Deseja mesmo excluir essa área?"
+        modalTitle="Deseja mesmo excluir essa área de cultivo?"
         modalContent={
           <Text size="sm" mb={20}>
             Ao confirmar, você <strong>removerá</strong> a área desenhada.
@@ -120,16 +128,36 @@ export default function FieldMenu({ farm, field, fieldPolygon, onFieldClose, onF
     </Tooltip>
   );
 
-  const fieldCloseButton = field &&
-    <Tooltip label="Fechar área">
-      <Button variant="outline" size="compact-md" color="var(--mantine-color-gray-6)" onClick={onFieldClose}>
-        <IconX />
-      </Button>  
+  const isFieldChanged = !initialField || fieldForm.isDirty() || !booleanEqual(initialField.polygon, fieldPolygon);
+
+  const closeButtonStyle = {
+    variant: "outline",
+    size: "compact-md",
+    color: "var(--mantine-color-gray-6)",
+  };
+
+  const fieldCloseButton = initialField &&
+    <Tooltip label="Fechar área de cultivo">
+      {isFieldChanged ?
+        <ConfirmingButton
+          modalTitle="Deseja descartar as mudanças?"
+          modalContent="Há mudanças não salvas nessa área de cultivo. Se fechar agora, elas serão descartadas."
+          modalLabels={{ confirm: 'Descartar mudanças', cancel: 'Cancelar' }}
+          modalConfirmProps={{ color: 'red' }}
+          onModalConfirm={onUnsavedFieldClose}
+          {...closeButtonStyle}
+        >
+          <IconX />
+        </ConfirmingButton> :
+        <Button onClick={onFieldClose} {...closeButtonStyle}>
+          <IconX />
+        </Button>
+      }
     </Tooltip>;
 
-  const submitButton = (!field || fieldForm.isDirty()) && // TODO: triggar atualização da área tb quando o polígono for alterado
+  const submitButton = isFieldChanged &&
     <Button onClick={handleSubmitButtonClick} loading={fieldSubmit.isPending}>
-      {field ? "Atualizar área" : "Cadastrar área"}
+      Salvar SAF
     </Button>;
 
   const headerHeight = "50px";
@@ -143,12 +171,12 @@ export default function FieldMenu({ farm, field, fieldPolygon, onFieldClose, onF
     <Stack justify="space-between" style={{height: `calc(100% - ${headerHeight})`}}>
       <Stack align="stretch">
         <EditableFieldView
-          editing={!field}
+          editing={!initialField}
           form={fieldForm}
           fieldName="name"
-          fieldLabel="Nome da área"
+          fieldLabel="Nome do SAF"
         />
-        {field &&
+        {initialField &&
         <PlantFitnessButton farm={farm} />}
       </Stack>
       {submitButton}

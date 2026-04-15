@@ -41,7 +41,7 @@ export default function ProjectDetails() {
       {farm.data && fields.data &&
       <FieldsView
         farm={farm.data}
-        fields={fields.data}
+        initialFields={fields.data}
       />}
     </QueryLoader>
   )
@@ -49,14 +49,14 @@ export default function ProjectDetails() {
 
 interface FieldsViewProps {
   farm: FarmReadData,
-  fields: FieldReadData[],
+  initialFields: FieldReadData[],
 }
 
-function FieldsView({ farm, fields }: FieldsViewProps) {
+function FieldsView({ farm, initialFields }: FieldsViewProps) {
   const [mapDrawingMode, setMapDrawingMode] = useState<boolean>(false);
   const [focusFieldIndex , setFocusFieldIndex] = useState<number | undefined>(undefined);
   const [fieldPolygons, fieldPolygonsHandlers] = useListState<Polygon>(
-    fields.map(data => data.polygon)
+    initialFields.map(data => data.polygon)
   );
 
   const onFieldDraw = () => {
@@ -90,6 +90,11 @@ function FieldsView({ farm, fields }: FieldsViewProps) {
     setFocusFieldIndex(undefined);
     setMapDrawingMode(false);
   }
+
+  const onFieldReset = () => {
+    if (focusFieldIndex !== undefined)
+      fieldPolygonsHandlers.setItem(focusFieldIndex, initialFields[focusFieldIndex].polygon);
+  }
   
   const farmPolygon = farm.polygon ?? undefined;
   const farmLocation = !farmPolygon ? farm.location : undefined;
@@ -121,10 +126,11 @@ function FieldsView({ farm, fields }: FieldsViewProps) {
               <Paper withBorder p={10} style={{ height: '100%' }}>
                 <FieldMenu
                   farm={farm}
-                  field={fields[focusFieldIndex]}
+                  initialField={initialFields[focusFieldIndex]}
                   fieldPolygon={fieldPolygons[focusFieldIndex]}
                   onFieldClose={onFieldClosed}
                   onFieldDelete={onFieldDeleted}
+                  onFieldReset={onFieldReset}
                 />
               </Paper>}
             </Grid.Col>

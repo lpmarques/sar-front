@@ -223,7 +223,7 @@ export default function FieldsMap({
       <MaptilerVectorLayer style={MapStyle.HYBRID} />
       {!drawingMode &&
       <ButtonControl position="topright" color="teal" onClick={onFieldDraw}>
-        Adicionar nova área
+        Adicionar área de cultivo
       </ButtonControl>}
       {drawingMode && !focusField &&
       <ButtonControl position="topright" color="red" onClick={onFieldDeleted}>
