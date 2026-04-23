@@ -11,9 +11,6 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
-import { Position } from "geojson";
-import { latLng, LatLng } from "leaflet";
-
 export function sortValueFirst(a: string, b: string, value: string): number;
 export function sortValueFirst(a: number, b: number, value: number): number;
 export function sortValueFirst(a: string | number, b: string | number, value: string | number): number {
@@ -72,23 +69,4 @@ export function convertStringToPrimitiveType(str: string, primitive: Primitive) 
 
 export function unaccent(str: string) {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
-export function positionToLatLng(coords: Position): LatLng;
-export function positionToLatLng(coords: Position[]): LatLng[];
-export function positionToLatLng(coords: Position[][]): LatLng[][];
-export function positionToLatLng(coords: Position | Position[] | Position[][]): LatLng | LatLng[] | LatLng[][] {
-  if (typeof coords[0] === 'number')
-    return latLng(coords[1] as number, coords[0]);
-  if (typeof coords[0][0] === 'number')
-    return coords.map(coords => positionToLatLng(coords as Position));
-
-  return coords.map(coords => positionToLatLng(coords as Position[]));
-}
-
-// TODO: replace with component linking coordinates to google maps (https://maps.google.com/?q={lat},{long})
-export function latLongToString(latitude: number, longitude: number, decimalPlaces: number = 4) {
-  const rndFctr = Math.pow(10, decimalPlaces);
-
-  return `${Math.round(latitude*rndFctr)/rndFctr},${Math.round(longitude*rndFctr)/rndFctr}`
 }

@@ -35,7 +35,7 @@ import { showError } from "../common/notifications";
 import { FarmLandForm, FarmMap, SiteTraitValuesForm } from ".";
 import { SiteTraitField } from "./SiteTraitValuesForm";
 import { GenericResponse, WriteFnInput } from "../../apis/common";
-import { positionToLatLng } from "../../utils/common";
+import { positionToLatLng } from "../../utils/agroforestry";
 
 interface FarmFormProps {
   farm?: FarmReadData,

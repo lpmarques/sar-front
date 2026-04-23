@@ -14,23 +14,11 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 import { Position } from "geojson";
 import { latLng, LatLng, LatLngTuple } from "leaflet";
 
-// ---------------------------------------------------------------------------
-// Internal geometry types (not exported — implementation detail)
-// ---------------------------------------------------------------------------
-
-type Point2D = [number, number]; // [x, y] in metres
+export type Point2D = [number, number]; // [x, y] in metres
 type BBox = { minX: number; minY: number; maxX: number; maxY: number };
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const DEG2RAD = Math.PI / 180;
+export const DEG2RAD = Math.PI / 180;
 const EARTH_R = 6_371_000; // metres
-
-// ---------------------------------------------------------------------------
-// Geo-math helpers
-// ---------------------------------------------------------------------------
 
 export function positionToLatLng(coords: Position): LatLng;
 export function positionToLatLng(coords: Position[]): LatLng[];
@@ -45,35 +33,38 @@ export function positionToLatLng(coords: Position | Position[] | Position[][]): 
 }
 
 // TODO: replace with component linking coordinates to google maps (https://maps.google.com/?q={lat},{long})
-export function latLongToString(latitude: number, longitude: number, decimalPlaces: number = 4) {
+export function latLngToString(latitude: number, longitude: number, decimalPlaces: number = 4) {
   const rndFctr = Math.pow(10, decimalPlaces);
 
   return `${Math.round(latitude*rndFctr)/rndFctr},${Math.round(longitude*rndFctr)/rndFctr}`
 }
 
+export function latLngCentroid(coords: LatLng[]): LatLng {
+  const centroidLat = coords.reduce((s, [lat]) => s + lat, 0) / coords.length;
+  const centroidLng = coords.reduce((s, [, lng]) => s + lng, 0) / coords.length;
+
+  return latLng([centroidLat, centroidLng]);
+}
+
 /** Project a lat/lng coordinate to local X/Y in metres relative to an origin. */
-export function toMeters(
-  lat: number,
-  lng: number,
-  originLat: number,
-  originLng: number
+export function latLngToMeters(
+  latLng: LatLng,
+  originLatLng: LatLng
 ): Point2D {
   const x =
-    (lng - originLng) * DEG2RAD * EARTH_R * Math.cos(originLat * DEG2RAD);
-  const y = (lat - originLat) * DEG2RAD * EARTH_R;
+    (latLng.lng - originLatLng.lng) * DEG2RAD * EARTH_R * Math.cos(originLatLng.lat * DEG2RAD);
+  const y = (latLng.lat - originLatLng.lat) * DEG2RAD * EARTH_R;
   return [x, y];
 }
 
 /** Inverse of `toMeters` — convert local metric X/Y back to [lat, lng]. */
-export function fromMeters(
-  x: number,
-  y: number,
-  originLat: number,
-  originLng: number
-): LatLngTuple {
-  const lat = originLat + y / EARTH_R / DEG2RAD;
-  const lng =
-    originLng + x / (EARTH_R * Math.cos(originLat * DEG2RAD)) / DEG2RAD;
+export function metersToLatLng(
+  point: Point2D,
+  originLatLng: LatLng
+): LatLng {
+  const lat = originLatLng.lat + point[1] / EARTH_R / DEG2RAD;
+  const lng = originLatLng.lng + point[0] / (EARTH_R * Math.cos(originLatLng.lat * DEG2RAD)) / DEG2RAD;
+  
   return [lat, lng];
 }
 
@@ -99,7 +90,7 @@ export function getBBox(points: Point2D[]): BBox {
  * Returns the intersection point as a `Point2D`, or `null` if the segments
  * do not cross within their extents.
  */
-export function segmentIntersect(
+function segmentIntersect(
   ax: number, ay: number,
   bx: number, by: number,
   cx: number, cy: number,
@@ -157,14 +148,14 @@ export function clipLineToPoly(
  * Ray-casting point-in-polygon test.
  * Returns `true` if (x, y) is strictly inside `poly`.
  */
-export function pointInPoly(x: number, y: number, poly: Point2D[]): boolean {
+export function pointInPoly(point: Point2D, poly: Point2D[]): boolean {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
     const [xi, yi] = poly[i];
     const [xj, yj] = poly[j];
     if (
-      yi > y !== yj > y &&
-      x < ((xj - xi) * (y - yi)) / (yj - yi) + xi
+      yi > point[1] !== yj > point[1] &&
+      point[0] < ((xj - xi) * (point[1] - yi)) / (yj - yi) + xi
     ) {
       inside = !inside;
     }

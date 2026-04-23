@@ -22,7 +22,7 @@ import {
   Map,
   Polygon as PolygonLayer,
 } from "leaflet";
-import { RefObject, useRef } from "react";
+import { RefObject, useMemo, useRef } from "react";
 import {
   FeatureGroup,
   MapContainer,
@@ -40,8 +40,9 @@ import MapBoundsFraming from "./MapBoundsFraming";
 import MapCentering from "./MapCentering";
 import MaptilerVectorLayer from "./MaptilerVectorLayer";
 import classes from "./MapContainer.module.css";
-import { positionToLatLng } from "../../utils/common";
+import { positionToLatLng } from "../../utils/agroforestry";
 import { ButtonControl } from ".";
+import { computeFieldLayers, CropMarkers, CropRows, FieldLayers, ROW_PATTERN } from "./FieldLayers";
 
 interface FieldsMapProps extends MapContainerProps {
   drawingMode: boolean,
@@ -121,7 +122,19 @@ export default function FieldsMap({
   const focusField = focusIndex.current !== undefined ? fieldPolygons[focusIndex.current] : undefined;
   const focusFieldLatLngs = focusField && positionToLatLng(focusField.coordinates);
 
-  const focusFieldFeatureGroup = focusField && focusFieldLatLngs && (
+  // Recompute geometry only when relevant props change
+  const angleDeg = 0;
+  const fieldLayers = focusFieldLatLngs && useMemo<FieldLayers>(
+    () =>
+      computeFieldLayers(focusFieldLatLngs[0], ROW_PATTERN, {
+        rowSpacingM: 2,
+        cropSpacingM: 1,
+        angleDeg: angleDeg
+      }),
+    [] //[focusFieldLatLngs, ROW_PATTERN, angleDeg]
+  );
+
+  const focusFieldFeatureGroup = focusFieldLatLngs && (
     <FeatureGroup key={focusFieldLatLngs.toString()}>
       <Polygon positions={focusFieldLatLngs} pathOptions={{color: 'orange'}} {...focusedFieldPolygonProps}>
         <Tooltip permanent direction='center'>
@@ -145,6 +158,10 @@ export default function FieldsMap({
           remove: false,
         }}
       />}
+      {fieldLayers && <>
+      <CropRows rows={fieldLayers.rows} />
+      <CropMarkers crops={fieldLayers.crops} />
+      </>}
     </FeatureGroup>
   );
 
