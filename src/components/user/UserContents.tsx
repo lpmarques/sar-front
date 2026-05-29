@@ -111,7 +111,7 @@ function ContentRow({ content }: { content: ContentPreviewReadData }) {
         };
       case 'natural_occurrence_region':
         return {
-          label: 'Regiões de Ocorrência Natural',
+          label: 'Região de Ocorrência Natural',
           PageOpening: NaturalOccurrenceRegionPageOpening,
         };
     }

@@ -21,7 +21,7 @@ import { FarmReadData, FieldReadData, getFarm, getFieldList } from "../../apis/a
 import { QueryLoader } from "../common/QueryLoader";
 import { FieldMenu, FieldsMap } from ".";
 
-export default function ProjectDetails() {
+export default function ProjectDashboard() {
   const { farmId } = useParams();
 
   const farmQueryOptions = {

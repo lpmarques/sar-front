@@ -20,7 +20,7 @@ import { showMutationError } from "../../apis/common";
 import DeleteButton from "../common/DeleteButton";
 import { QueryLoader } from "../common/QueryLoader";
 import { showSuccess } from "../common/notifications";
-import { positionToLatLng } from "../../utils/common";
+import { positionToLatLng } from "../../utils/agroforestry";
 import { FarmLandDetails, FarmMap, SiteTraitsDetails } from ".";
 
 export default function FarmDetails() {

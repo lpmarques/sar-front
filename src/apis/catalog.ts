@@ -163,6 +163,7 @@ export async function rejectNaturalOccurrenceRegion(regionId: number): Promise<G
 export interface PlantReadData extends ContentReadData {
   acceptedTaxonName: string,
   acceptedFamilyName: string,
+  colorHex: string,
   taxa?: TaxonReadData[],
   popularNames?: string[],
   traitValues?: TraitValueReadData[],

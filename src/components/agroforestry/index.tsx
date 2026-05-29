@@ -12,6 +12,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
 import ButtonControl from './ButtonControl';
+import { CroppingFeatureGroup } from './CroppingFeatureGroup';
 import DeviceLocationControl from './DeviceLocationControl';
 import FarmDetails from './FarmDetails';
 import FarmEdit from './FarmEdit';
@@ -28,7 +29,7 @@ import MapBoundsFraming from './MapBoundsFraming';
 import MapCentering from './MapCentering';
 import MapControl from './MapControl';
 import MaptilerVectorLayer from './MaptilerVectorLayer';
-import ProjectDetails from './ProjectDetails';
+import ProjectDashboard from './ProjectDashboard';
 import SiteTraitsDetails from './SiteTraitsDetails';
 import SiteTraitValueDisplay from './SiteTraitValueDisplay';
 import SiteTraitValueInput from './SiteTraitValueInput';
@@ -36,6 +37,7 @@ import SiteTraitValuesForm from './SiteTraitValuesForm';
 
 export {
   ButtonControl,
+  CroppingFeatureGroup,
   DeviceLocationControl,
   FarmDetails,
   FarmEdit,
@@ -52,7 +54,7 @@ export {
   MapCentering,
   MapControl,
   MaptilerVectorLayer,
-  ProjectDetails,
+  ProjectDashboard,
   SiteTraitsDetails,
   SiteTraitValueDisplay,
   SiteTraitValueInput,

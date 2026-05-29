@@ -40,8 +40,8 @@ export function latLngToString(latitude: number, longitude: number, decimalPlace
 }
 
 export function latLngCentroid(coords: LatLng[]): LatLng {
-  const centroidLat = coords.reduce((s, [lat]) => s + lat, 0) / coords.length;
-  const centroidLng = coords.reduce((s, [, lng]) => s + lng, 0) / coords.length;
+  const centroidLat = coords.reduce((s, ll) => s + ll.lat, 0) / coords.length;
+  const centroidLng = coords.reduce((s, ll) => s + ll.lng, 0) / coords.length;
 
   return latLng([centroidLat, centroidLng]);
 }

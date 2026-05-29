@@ -15,6 +15,7 @@ import { defaultDeleteFn, defaultPostFn, defaultPutFn, defaultQueryFn, GenericRe
 import { UserReadData } from './core';
 import { Feature, Point, Polygon } from 'geojson';
 import { BiomeData, CountryData, MunicipalityData, StateData, VegetationTypeData } from './geography';
+import { PlantReadData } from './catalog';
 
 export const fieldDataToGeoJSON = (data: FieldReadData): Feature<Polygon> => {
   const { location, polygon, ...properties } = data;
@@ -137,6 +138,10 @@ export interface FieldReadData extends SiteReadData {
   id: number,
   farmId: number,
   polygon: Polygon,
+  croppingPatternId: number | undefined,
+  rowsAngleDeg: number | undefined,
+  rowsOffsetM: number | undefined,
+  cropsOffsetM: number | undefined,
 }
 
 export async function getField({ queryKey: [_, fieldId, ...params] }: QueryFnInput ): Promise<FieldReadData> {
@@ -145,6 +150,41 @@ export async function getField({ queryKey: [_, fieldId, ...params] }: QueryFnInp
 
 export async function getFieldList({ queryKey: [_, farmId, ...params] }: QueryFnInput ): Promise<FieldReadData[]> {
   return defaultQueryFn({ endpoint: `/agroforestry/farms/${farmId}/fields`, params });
+}
+
+/** A single crop slot within a row: what plant it is and its position relative to other crops. */
+interface PatternCrop {
+  plant: PlantReadData,
+  position: number;
+  distanceToNextCropM: number;
+}
+
+/**
+ * One entry in the repeating row pattern.
+ * The `crops` array is cycled along the full length of each row.
+ */
+export interface PatternRow {
+  crops: PatternCrop[];
+  position: number;
+  distanceToNextRowM: number;
+}
+
+export interface CroppingPatternReadData {
+  id: number;
+  name: string;
+  description: string;
+  is_public: boolean;
+  source_pattern_id: number;
+  author: UserReadData;
+  rows: PatternRow[];
+}
+
+export async function getCroppingPattern({ queryKey: [_, patternId, ...params] }: QueryFnInput ): Promise<CroppingPatternReadData> {
+  return defaultQueryFn({ endpoint: `/agroforestry/cropping-pattern/${patternId}`, params });
+}
+
+export async function getCroppingPatternList({ queryKey: [_, ...params] }: QueryFnInput ): Promise<CroppingPatternReadData[]> {
+  return defaultQueryFn({ endpoint: `/agroforestry/cropping-pattern`, params });
 }
 
 interface SiteTraitTextValueOption {

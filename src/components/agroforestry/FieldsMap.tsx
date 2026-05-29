@@ -14,15 +14,13 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 import { Point as GJPoint, Polygon as GJPolygon } from "geojson";
 import {
   DrawEvents,
-  GeometryUtil,
   latLngBounds,
-  LatLng,
   LeafletEventHandlerFnMap,
   LeafletMouseEvent,
   Map,
   Polygon as PolygonLayer,
 } from "leaflet";
-import { RefObject, useMemo, useRef } from "react";
+import { RefObject, useRef } from "react";
 import {
   FeatureGroup,
   MapContainer,
@@ -31,7 +29,6 @@ import {
   MarkerProps,
   Polygon,
   PolygonProps,
-  Tooltip,
 } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
 import { MapStyle } from "@maptiler/leaflet-maptilersdk";
@@ -41,8 +38,9 @@ import MapCentering from "./MapCentering";
 import MaptilerVectorLayer from "./MaptilerVectorLayer";
 import classes from "./MapContainer.module.css";
 import { positionToLatLng } from "../../utils/agroforestry";
-import { ButtonControl } from ".";
-import { computeFieldLayers, CropMarkers, CropRows, FieldLayers, ROW_PATTERN } from "./FieldLayers";
+import { ButtonControl, CroppingFeatureGroup } from ".";
+
+const MAX_ZOOM = 22;
 
 interface FieldsMapProps extends MapContainerProps {
   drawingMode: boolean,
@@ -82,15 +80,8 @@ export default function FieldsMap({
   ...mapContainerProps
 }: FieldsMapProps
 ) {
-  const maxZoom = 18;
-
   const focusIndex = useRef<number | undefined>(undefined);
   focusIndex.current = focusFieldIndex; // using ref here to store state's current value is necessary to avoid stale closures (callbacks accessing old versions of the state)
-
-  const getPolygonAreaDisplay = (polygonLatLngs: LatLng[][]) => {
-    const polygonArea = GeometryUtil.geodesicArea(polygonLatLngs[0]);
-    return `${Math.round(polygonArea)} m²`;
-  }
 
   const polygonEventHandlers: LeafletEventHandlerFnMap = {
     click: (e: LeafletMouseEvent) => {
@@ -112,58 +103,8 @@ export default function FieldsMap({
     e.layer.remove();
   };
 
-  const onEdited = (e: DrawEvents.Edited) => {
-    const focusLayer = e.layers.getLayers()[0];
-    if (focusLayer instanceof PolygonLayer) {
-      onFieldEdited(focusLayer.toGeoJSON().geometry as GJPolygon);
-    }
-  };
-
   const focusField = focusIndex.current !== undefined ? fieldPolygons[focusIndex.current] : undefined;
   const focusFieldLatLngs = focusField && positionToLatLng(focusField.coordinates);
-
-  // Recompute geometry only when relevant props change
-  const angleDeg = 0;
-  const fieldLayers = focusFieldLatLngs && useMemo<FieldLayers>(
-    () =>
-      computeFieldLayers(focusFieldLatLngs[0], ROW_PATTERN, {
-        rowSpacingM: 2,
-        cropSpacingM: 1,
-        angleDeg: angleDeg
-      }),
-    [] //[focusFieldLatLngs, ROW_PATTERN, angleDeg]
-  );
-
-  const focusFieldFeatureGroup = focusFieldLatLngs && (
-    <FeatureGroup key={focusFieldLatLngs.toString()}>
-      <Polygon positions={focusFieldLatLngs} pathOptions={{color: 'orange'}} {...focusedFieldPolygonProps}>
-        <Tooltip permanent direction='center'>
-          {getPolygonAreaDisplay(focusFieldLatLngs)}
-        </Tooltip>
-      </Polygon>
-      <MapBoundsFraming bounds={latLngBounds(focusFieldLatLngs[0])} maxZoom={maxZoom} />
-      {drawingMode &&
-      <EditControl
-        position="topright"
-        onEdited={onEdited}
-        draw={{
-          polygon: false,
-          marker: false,
-          polyline: false,
-          rectangle: false,
-          circle: false,
-          circlemarker: false,
-        }}
-        edit={{
-          remove: false,
-        }}
-      />}
-      {fieldLayers && <>
-      <CropRows rows={fieldLayers.rows} />
-      <CropMarkers crops={fieldLayers.crops} />
-      </>}
-    </FeatureGroup>
-  );
 
   const otherFields = fieldPolygons.filter((_, index) => index !== focusIndex.current);
   const otherFieldsFeatures = otherFields.map((field) => {
@@ -214,12 +155,12 @@ export default function FieldsMap({
       {farmPolygonLatLngs && <>
       <Polygon key={farmPolygonLatLngs.toString()} positions={farmPolygonLatLngs} pathOptions={{ fillColor: 'none', dashArray: '8' }} {...farmPolygonProps} />
       {!focusField &&
-      <MapBoundsFraming bounds={latLngBounds(farmPolygonLatLngs[0])} maxZoom={maxZoom} />}
+      <MapBoundsFraming bounds={latLngBounds(farmPolygonLatLngs[0])} maxZoom={MAX_ZOOM} />}
       </>}
       {farmLocationLatLng && <>
       <Marker key={farmLocationLatLng.toString()} position={farmLocationLatLng} opacity={0} {...farmMarkerProps} />
       {!focusField &&
-      <MapCentering center={farmLocationLatLng} zoom={maxZoom} />}
+      <MapCentering center={farmLocationLatLng} zoom={MAX_ZOOM} />}
       </>}
     </FeatureGroup>
   );
@@ -248,7 +189,17 @@ export default function FieldsMap({
       </ButtonControl>}
       {farmFeatureGroup}
       {fieldsFeatureGroup}
-      {focusFieldFeatureGroup}
+      {focusFieldLatLngs &&
+      <CroppingFeatureGroup
+        drawingMode={drawingMode}
+        fieldLatLngs={focusFieldLatLngs}
+        // croppingPattern={CROPPING_PATTERN}
+        // rowsAngleDeg={90}
+        // rowsOffsetM={0}
+        // cropsOffsetM={0}
+        onFieldEdited={onFieldEdited}
+        fieldPolygonProps={fieldPolygonProps}
+      />}
     </MapContainer>
   )
 }
