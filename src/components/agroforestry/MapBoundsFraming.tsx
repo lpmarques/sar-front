@@ -18,18 +18,20 @@ import * as L from 'leaflet';
 interface MapBoundsFramingProps {
   bounds: L.LatLngBounds,
   maxZoom: number,
+  padding?: number,
+  deps?: React.DependencyList,
 }
 
-export default function MapBoundsFraming({ bounds, maxZoom }: MapBoundsFramingProps) {
+export default function MapBoundsFraming({ bounds, maxZoom, padding = 20, deps }: MapBoundsFramingProps) {
   const map = useMap();
   const center = bounds.getCenter();
 
   useEffect(() => {
     map.fitBounds(bounds, {
-      padding: [20, 20], // Adds 20px buffer so polygon doesn't touch edges
-      maxZoom: maxZoom,  // Prevents extreme zooming on very small polygons
+      padding: [padding, padding], // Adds 20px buffer so polygon doesn't touch edges
+      maxZoom,  // Prevents extreme zooming on very small polygons
     });
-  }, [center, map]);
+  }, deps ?? [center, map]);
 
   return null;
 };

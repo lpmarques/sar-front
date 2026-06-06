@@ -30,6 +30,7 @@ export const useLocalStorage = (keyName: string, defaultValue: any) => {
       return defaultValue;
     }
   });
+  
   const setValue = (newValue: any) => {
     try {
       window.localStorage.setItem(keyName, JSON.stringify(newValue));
@@ -38,5 +39,6 @@ export const useLocalStorage = (keyName: string, defaultValue: any) => {
     }
     setStoredValue(newValue);
   };
+
   return [storedValue, setValue];
 };

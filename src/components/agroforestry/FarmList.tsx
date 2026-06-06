@@ -29,7 +29,7 @@ export default function FarmList() {
   const farmsQueryOptions = {
     queryKey: [ 'farmList' ],
     queryFn: getFarmList,
-    enable: isLogged,
+    enabled: isLogged,
   };
   const farms = useQuery(farmsQueryOptions);
 

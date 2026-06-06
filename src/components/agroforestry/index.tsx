@@ -12,7 +12,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
 import ButtonControl from './ButtonControl';
-import { CroppingFeatureGroup } from './CroppingFeatureGroup';
+import CroppingLayers from './CroppingLayers';
 import DeviceLocationControl from './DeviceLocationControl';
 import FarmDetails from './FarmDetails';
 import FarmEdit from './FarmEdit';
@@ -24,6 +24,7 @@ import FarmMap from './FarmMap';
 import FarmNew from './FarmNew';
 import FieldMenu from './FieldMenu';
 import FieldsMap from './FieldsMap';
+import FocusFieldFeatureGroup from './FocusFieldFeatureGroup';
 import LayerVisibility from './LayerVisibility';
 import MapBoundsFraming from './MapBoundsFraming';
 import MapCentering from './MapCentering';
@@ -37,7 +38,7 @@ import SiteTraitValuesForm from './SiteTraitValuesForm';
 
 export {
   ButtonControl,
-  CroppingFeatureGroup,
+  CroppingLayers,
   DeviceLocationControl,
   FarmDetails,
   FarmEdit,
@@ -49,6 +50,7 @@ export {
   FarmNew,
   FieldsMap,
   FieldMenu,
+  FocusFieldFeatureGroup,
   LayerVisibility,
   MapBoundsFraming,
   MapCentering,

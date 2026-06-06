@@ -11,7 +11,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
-import { Point as GJPoint, Polygon as GJPolygon } from "geojson";
+import { Polygon as GJPolygon } from "geojson";
 import {
   DrawEvents,
   latLngBounds,
@@ -38,21 +38,22 @@ import MapCentering from "./MapCentering";
 import MaptilerVectorLayer from "./MaptilerVectorLayer";
 import classes from "./MapContainer.module.css";
 import { positionToLatLng } from "../../utils/agroforestry";
-import { ButtonControl, CroppingFeatureGroup } from ".";
+import { ButtonControl, FocusFieldFeatureGroup } from ".";
+import { FieldGeomData } from "./ProjectDashboard";
+import { FarmReadData } from "../../apis/agroforestry";
 
 const MAX_ZOOM = 22;
 
 interface FieldsMapProps extends MapContainerProps {
   drawingMode: boolean,
-  fieldPolygons: GJPolygon[],
+  farm: FarmReadData,
+  fields: FieldGeomData[],
   focusFieldIndex: number | undefined,
   onFieldDraw: () => void,
-  onFieldCreated: (field: GJPolygon) => void,
-  onFieldEdited: (field: GJPolygon) => void,
+  onFieldDrawn: (polygon: GJPolygon) => void,
+  onFieldEdited: (field: FieldGeomData) => void,
   onFieldDeleted: () => void,
   onFieldClicked: (index: number | undefined) => void,
-  farmLocation: GJPoint | undefined,
-  farmPolygon: GJPolygon | undefined,
   farmMarkerProps?: Omit<MarkerProps, 'key' | 'position'>,
   farmPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
   fieldPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
@@ -64,15 +65,14 @@ export default function FieldsMap({
   zoom,
   style={ width: '100%' },
   drawingMode,
-  fieldPolygons,
+  farm,
+  fields,
   focusFieldIndex,
   onFieldDraw,
-  onFieldCreated,
+  onFieldDrawn,
   onFieldEdited,
   onFieldDeleted,
   onFieldClicked,
-  farmLocation,
-  farmPolygon,
   farmMarkerProps,
   farmPolygonProps,
   fieldPolygonProps,
@@ -88,7 +88,7 @@ export default function FieldsMap({
       const layer = e.target;
       if (!focusField && layer instanceof PolygonLayer) {
         const geoJson = layer.toGeoJSON();
-        const fieldIndex = fieldPolygons.findIndex((field) => turf.booleanEqual(field, geoJson.geometry));
+        const fieldIndex = fields.findIndex((field) => turf.booleanEqual(field.polygon, geoJson.geometry));
         onFieldClicked(fieldIndex);
       }
     }
@@ -97,18 +97,17 @@ export default function FieldsMap({
   const onCreated = (e: DrawEvents.Created) => {
     if (e.layer instanceof PolygonLayer) {
       const geoJson = e.layer.toGeoJSON();
-      onFieldCreated(geoJson.geometry as GJPolygon);
+      onFieldDrawn(geoJson.geometry as GJPolygon);
     }
 
     e.layer.remove();
   };
 
-  const focusField = focusIndex.current !== undefined ? fieldPolygons[focusIndex.current] : undefined;
-  const focusFieldLatLngs = focusField && positionToLatLng(focusField.coordinates);
+  const focusField = focusIndex.current !== undefined ? fields[focusIndex.current] : undefined;
 
-  const otherFields = fieldPolygons.filter((_, index) => index !== focusIndex.current);
+  const otherFields = fields.filter((_, index) => index !== focusIndex.current);
   const otherFieldsFeatures = otherFields.map((field) => {
-    const latLngs = positionToLatLng(field.coordinates);
+    const latLngs = positionToLatLng(field.polygon.coordinates);
     return (
       <Polygon
         key={latLngs.toString()}
@@ -146,6 +145,9 @@ export default function FieldsMap({
       />}
     </FeatureGroup>
   );
+    
+  const farmPolygon = farm.polygon ?? undefined;
+  const farmLocation = !farmPolygon ? farm.location : undefined;
 
   const farmLocationLatLng = farmLocation && positionToLatLng(farmLocation.coordinates);
   const farmPolygonLatLngs = farmPolygon && positionToLatLng(farmPolygon.coordinates);
@@ -189,14 +191,11 @@ export default function FieldsMap({
       </ButtonControl>}
       {farmFeatureGroup}
       {fieldsFeatureGroup}
-      {focusFieldLatLngs &&
-      <CroppingFeatureGroup
+      {focusField &&
+      <FocusFieldFeatureGroup
         drawingMode={drawingMode}
-        fieldLatLngs={focusFieldLatLngs}
-        // croppingPattern={CROPPING_PATTERN}
-        // rowsAngleDeg={90}
-        // rowsOffsetM={0}
-        // cropsOffsetM={0}
+        field={focusField}
+        fieldIndex={focusFieldIndex}
         onFieldEdited={onFieldEdited}
         fieldPolygonProps={fieldPolygonProps}
       />}

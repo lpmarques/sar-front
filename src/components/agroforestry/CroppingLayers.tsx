@@ -11,10 +11,14 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
-import { LatLng } from "leaflet";
+import { GeometryUtil, LatLng } from "leaflet";
+import 'leaflet-geometryutil';
 import { clipLineToPoly, DEG2RAD, getBBox, latLngCentroid, latLngToMeters, metersToLatLng, Point2D, pointInPoly } from "../../utils/agroforestry";
 import { CircleMarker, Polyline, Tooltip } from "react-leaflet";
-import { PatternRow } from "../../apis/agroforestry";
+import { CroppingSummary, PatternCrop, PatternRow } from "../../apis/agroforestry";
+import { useEffect, useMemo } from "react";
+
+const SQ_METERS_PER_HECTARE = 10000;
 
 /** A single rendered crop marker. */
 interface CropLayer {
@@ -37,6 +41,99 @@ export interface CroppingLayers {
   crops: CropLayer[];
 }
 
+interface CroppingLayersProps {
+  fieldCoords: LatLng[],
+  patternRows: PatternRow[],
+  rowsAngleDeg?: number,
+  rowsOffsetM?: number,
+  cropsOffsetM?: number,
+  onCroppingSummarized: (summary: CroppingSummary) => void,
+}
+
+export default function CroppingLayers({
+  fieldCoords,
+  patternRows,
+  rowsAngleDeg=0,
+  rowsOffsetM=0,
+  cropsOffsetM=0,
+  onCroppingSummarized,
+}: CroppingLayersProps) {
+
+  const fieldCentroid = latLngCentroid(fieldCoords);
+  const recomputeDeps = [fieldCentroid.lat, fieldCentroid.lng, patternRows, rowsAngleDeg, rowsOffsetM, cropsOffsetM];
+  
+  // Recompute geometry only when relevant props change
+  const croppingLayers = useMemo<CroppingLayers>(
+    () => 
+      computeCroppingLayers(fieldCoords, patternRows, rowsAngleDeg, rowsOffsetM, cropsOffsetM),
+    recomputeDeps
+  );
+
+  // Recompute summary only when geometry changes
+  useEffect(() => {
+      const croppingSummary = computeCroppingSummary(fieldCoords, patternRows, croppingLayers.crops);
+      onCroppingSummarized(croppingSummary);
+    },
+    recomputeDeps
+  );
+  console.log(patternRows);
+
+  if (croppingLayers) {
+    return <>
+      <CropRows rows={croppingLayers.rows} />
+      <CropMarkers crops={croppingLayers.crops} />
+    </>
+  }
+}
+
+function computeCroppingSummary(
+  fieldCoords: LatLng[],
+  patternRows: PatternRow[],
+  cropLayers: CropLayer[]
+) {
+  const fieldAreaSqrm = GeometryUtil.geodesicArea(fieldCoords);
+
+  const computeIndividualCropArea = (patternRow: PatternRow, patternCrop: PatternCrop) => {
+    return patternCrop.distanceToNextCropM*patternRow.distanceToNextRowM;
+  }
+
+  const computeCropDensity = (individualsCount: number) => {
+    return Math.floor(individualsCount/fieldAreaSqrm*SQ_METERS_PER_HECTARE);
+  }
+
+  const initCropSummary = (patternRow: PatternRow, patternCrop: PatternCrop) => {
+    return {
+      plant: patternCrop.plant,
+      metrics: {
+        individualsCount: 1,
+        occupiedAreaSqrm: computeIndividualCropArea(patternRow, patternCrop),
+        densityPerHa: computeCropDensity(1),
+      }
+    };
+  }
+
+  const croppingSummary = cropLayers.reduce(
+    (summary: CroppingSummary, crop) => {
+      const patternRow = patternRows[crop.patternRowPos-1]
+      const patternCrop = patternRow.crops[crop.patternCropPos-1];
+      const cropKey = patternCrop.plant.acceptedTaxonName;
+      if (!Object.keys(summary).includes(cropKey))
+        summary[cropKey] = initCropSummary(patternRow, patternCrop);
+
+      const { individualsCount, occupiedAreaSqrm } = summary[cropKey].metrics;
+      summary[cropKey].metrics = {
+        individualsCount: individualsCount + 1,
+        occupiedAreaSqrm: occupiedAreaSqrm + computeIndividualCropArea(patternRow, patternCrop),
+        densityPerHa: computeCropDensity(individualsCount + 1),
+      };
+
+      return summary;
+    }, {}
+  );
+
+  return croppingSummary;
+}
+
 /**
  * Computes all row polylines and crop marker positions that lie inside the
  * field polygon, honouring the repeating row/crop pattern.
@@ -46,9 +143,9 @@ export interface CroppingLayers {
  * lat/lng for Leaflet.
  */
 
-export function computeCroppingLayers(
+function computeCroppingLayers(
   fieldCoords: LatLng[],
-  croppingPattern: PatternRow[],
+  patternRows: PatternRow[],
   rowsAngleDeg: number = 0,
   rowsOffsetM: number = 0,
   cropsOffsetM: number = 0,
@@ -66,16 +163,17 @@ export function computeCroppingLayers(
   const cy = (bbox.minY + bbox.maxY) / 2;
   const diagonalM = Math.hypot(bbox.maxX - bbox.minX, bbox.maxY - bbox.minY);
 
-  const totalRowSpacingM = croppingPattern.reduce((s, patternRow) => s + patternRow.distanceToNextRowM, 0);
-  const maxTotalCropSpacingM = Math.max(...croppingPattern.map(patternRow => patternRow.crops.reduce((s, patternCrop) => s + patternCrop.distanceToNextCropM, 0)));
-  const avgRowSpacingM = totalRowSpacingM / croppingPattern.length;
+  const totalRowSpacingM = patternRows.reduce((s, row) => s + row.distanceToNextRowM, 0);
+  const rowsSizesM = patternRows.map(row => row.crops.reduce((s, crop) => s + crop.distanceToNextCropM, 0));
+  const longestRowSizeM = Math.min(...rowsSizesM);
+  const avgRowSpacingM = totalRowSpacingM / patternRows.length;
   
   // 3. Unit vectors for the row direction and its perpendicular
   const angle = (rowsAngleDeg + 90) * -DEG2RAD;
   const dir: Point2D = [Math.cos(angle), Math.sin(angle)];   // along the row
   const perp: Point2D = [-Math.sin(angle), Math.cos(angle)]; // across rows
 
-  const dirOffsetM = cropsOffsetM % maxTotalCropSpacingM;
+  const dirOffsetM = cropsOffsetM % longestRowSizeM;
   const perpOffsetM = rowsOffsetM % totalRowSpacingM;
 
   const numSweeps = Math.ceil((diagonalM + totalRowSpacingM) / avgRowSpacingM ) + 1;
@@ -91,18 +189,18 @@ export function computeCroppingLayers(
   }
 
   const getPatternRowIndex = (sweepNum: number): number => {
-    return ((sweepNum % croppingPattern.length) + croppingPattern.length) % croppingPattern.length;
+    return ((sweepNum % patternRows.length) + patternRows.length) % patternRows.length;
   }
-
+  
   const halfSweeps = Math.ceil(numSweeps/2);
   const initPatternRowIndex = getPatternRowIndex(-halfSweeps-1);
   let sweepOrigin = getSweepLineOrigin([cx, cy], (-halfSweeps-1) * avgRowSpacingM + perpOffsetM);
-  let distanceToNextRowM = croppingPattern[initPatternRowIndex].distanceToNextRowM;
+  let distanceToNextRowM = patternRows[initPatternRowIndex].distanceToNextRowM;
 
   for (let ri = -halfSweeps; ri <= halfSweeps; ri++) {
     // 4. Pick the row definition by cycling through the pattern
     const patternRowIndex = getPatternRowIndex(ri);
-    const patternRow = croppingPattern[patternRowIndex];
+    const patternRow = patternRows[patternRowIndex];
 
     // 5. Translate the row origin along the perpendicular axis
     sweepOrigin = getSweepLineOrigin(sweepOrigin, distanceToNextRowM);
@@ -110,7 +208,7 @@ export function computeCroppingLayers(
     const [ox, oy] = sweepOrigin;
 
     // Extend the sweep line well past the bounding box in both directions
-    const reach = diagonalM/2 + maxTotalCropSpacingM;
+    const reach = diagonalM/2 + longestRowSizeM;
     const ax = ox - dir[0] * reach;
     const ay = oy - dir[1] * reach;
     const bx = ox + dir[0] * reach;
@@ -132,7 +230,7 @@ export function computeCroppingLayers(
 
     rows.push({
       coords: [startLL, endLL],
-      patternRowPos: patternRow.position,
+      patternRowPos: patternRowIndex+1,
       color: "#888888",
     });
 
@@ -157,14 +255,15 @@ export function computeCroppingLayers(
 
       // Belt-and-suspenders check: required for concave polygons where the
       // clipped segment may still briefly exit the boundary.
-      if (pointInPoly(cropPoint, polyMeters))
+      if (pointInPoly(cropPoint, polyMeters)) {
         crops.push({
           coords: metersToLatLng(cropPoint, originLatLng),
           name: patternCrop.plant.acceptedTaxonName,
           color: patternCrop.plant.colorHex,
-          patternRowPos: patternRow.position,
-          patternCropPos: patternCrop.position,
+          patternRowPos: patternRowIndex+1,
+          patternCropPos: patternCropIndex+1,
         });
+      }
 
       cropPoint = getCropPoint(cropPoint, patternCrop.distanceToNextCropM);
     }

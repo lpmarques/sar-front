@@ -29,12 +29,12 @@ const initialContextValues = {
 const LanguageContext = createContext(initialContextValues);
 
 export const useLanguage = () => {
-  const authContext = useContext(LanguageContext);
-  if (!authContext) {
+  const langContext = useContext(LanguageContext);
+  if (!langContext) {
     throw new Error("useLanguage has to be used within <LanguageProvider>");
   }
   
-  return authContext;
+  return langContext;
 };
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {

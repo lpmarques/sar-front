@@ -63,6 +63,10 @@ export async function deleteFarm(farmId: number): Promise<GenericResponse> {
 export interface FieldWriteRequestData extends SiteWriteRequestData {
   name: string,
   farmId: number,
+  croppingPatternId?: number | null,
+  rowsAngleDeg?: number | null,
+  rowsOffsetM?: number | null,
+  cropsOffsetM?: number | null,
 }
 
 export interface FieldWriteResponseData extends GenericResponse {
@@ -108,8 +112,6 @@ export async function deleteSiteTraitValue(siteTraitValueId: number): Promise<Ge
 
 export interface SiteReadData {
   siteId: number,
-  name: string,
-  user: UserReadData,
   location: Point,
   polygon: Polygon | null,
   areaM2: number | null,
@@ -124,6 +126,8 @@ export interface SiteReadData {
 
 export interface FarmReadData extends SiteReadData {
   id: number,
+  name: string,
+  user: UserReadData,
 }
 
 export async function getFarm({ queryKey: [_, farmId, ...params] }: QueryFnInput ): Promise<FarmReadData> {
@@ -134,14 +138,46 @@ export async function getFarmList({ queryKey: [_, ...params] }: QueryFnInput ): 
   return defaultQueryFn({ endpoint: `/agroforestry/farms`, params });
 }
 
+type EicatCategory = "Moderate" | "Major" | "Massive";
+
+interface PlantFitnessTraitValues {
+  isNative: boolean,
+  isInvasive: boolean,
+  eicatCategory: EicatCategory | null,
+  fitnessScore: number,
+  nativityScore: number,
+}
+
+interface CropUsageTraitValues {
+  purposes: string[],
+  isPlanted: boolean,
+}
+
+interface CropSummaryMetrics {
+  individualsCount: number,
+  occupiedAreaSqrm: number,
+  densityPerHa: number,
+}
+
+export interface CropSummary {
+  plant: PlantReadData,
+  fitness?: PlantFitnessTraitValues,
+  usage?: CropUsageTraitValues,
+  metrics: CropSummaryMetrics,
+}
+
+export type CroppingSummary = {[key: string]: CropSummary};
+
 export interface FieldReadData extends SiteReadData {
   id: number,
   farmId: number,
+  name: string,
+  user: UserReadData,
   polygon: Polygon,
-  croppingPatternId: number | undefined,
-  rowsAngleDeg: number | undefined,
-  rowsOffsetM: number | undefined,
-  cropsOffsetM: number | undefined,
+  croppingPatternId: number | null,
+  rowsAngleDeg: number | null,
+  rowsOffsetM: number | null,
+  cropsOffsetM: number | null,
 }
 
 export async function getField({ queryKey: [_, fieldId, ...params] }: QueryFnInput ): Promise<FieldReadData> {
@@ -153,7 +189,7 @@ export async function getFieldList({ queryKey: [_, farmId, ...params] }: QueryFn
 }
 
 /** A single crop slot within a row: what plant it is and its position relative to other crops. */
-interface PatternCrop {
+export interface PatternCrop {
   plant: PlantReadData,
   position: number;
   distanceToNextCropM: number;
@@ -173,18 +209,18 @@ export interface CroppingPatternReadData {
   id: number;
   name: string;
   description: string;
-  is_public: boolean;
-  source_pattern_id: number;
+  isPublic: boolean;
+  sourcePatternId: number;
   author: UserReadData;
   rows: PatternRow[];
 }
 
 export async function getCroppingPattern({ queryKey: [_, patternId, ...params] }: QueryFnInput ): Promise<CroppingPatternReadData> {
-  return defaultQueryFn({ endpoint: `/agroforestry/cropping-pattern/${patternId}`, params });
+  return defaultQueryFn({ endpoint: `/agroforestry/cropping-patterns/${patternId}`, params });
 }
 
 export async function getCroppingPatternList({ queryKey: [_, ...params] }: QueryFnInput ): Promise<CroppingPatternReadData[]> {
-  return defaultQueryFn({ endpoint: `/agroforestry/cropping-pattern`, params });
+  return defaultQueryFn({ endpoint: `/agroforestry/cropping-patterns`, params });
 }
 
 interface SiteTraitTextValueOption {
@@ -233,17 +269,10 @@ export async function getFieldTraitValueList({ queryKey: [_, fieldId, ...params]
   return defaultQueryFn({ endpoint: `/agroforestry/fields/${fieldId}/site-trait-values`, params });
 }
 
-type EicatCategory = "Moderate" | "Major" | "Massive";
-
-export interface SitePlantFitness {
+export interface SitePlantFitness extends PlantFitnessTraitValues {
   plantId: number,
   acceptedTaxonName: string,
   colorHex: string,
-  isNative: boolean,
-  isInvasive: boolean,
-  eicatCategory: EicatCategory | null,
-  fitnessScore: number,
-  nativityScore: number,
 }
 
 export async function getFarmPlantFitnessList({ queryKey: [_, farmId, ...params] }: QueryFnInput ): Promise<SitePlantFitness[]> {

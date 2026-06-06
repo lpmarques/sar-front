@@ -19,7 +19,6 @@ import {
   LatLng,
   Polygon as PolygonLayer,
 } from "leaflet";
-import { useMemo } from "react";
 import {
   FeatureGroup,
   Polygon,
@@ -28,10 +27,13 @@ import {
 } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
 import MapBoundsFraming from "./MapBoundsFraming";
-import { computeCroppingLayers, CropMarkers, CropRows, CroppingLayers } from "./CroppingLayers";
-import { PatternRow } from "../../apis/agroforestry";
+import { CroppingLayers } from ".";
+import { getCroppingPattern, PatternRow } from "../../apis/agroforestry";
+import { FieldGeomData } from "./ProjectDashboard";
+import { positionToLatLng } from "../../utils/agroforestry";
+import { useQuery } from "@tanstack/react-query";
 
-const CROPPING_PATTERN: PatternRow[] = [
+const MOCK_ROWS: PatternRow[] = [
   {
     crops: [
       { distanceToNextCropM: 3, plant: { acceptedTaxonName: "Milho",    acceptedFamilyName: "Famileae", colorHex: "#e6a817", id: 1, contentId: 1, contentStatus: "accepted" }, position: 1 },
@@ -69,34 +71,31 @@ const CROPPING_PATTERN: PatternRow[] = [
   },
 ];
 
-const MAX_ZOOM = 22;
+const MAX_ZOOM = 30;
 
-interface CroppingFeatureGroupProps {
+interface FocusFieldFeatureGroupProps {
   drawingMode: boolean,
-  fieldLatLngs: LatLng[][],
-  croppingPattern?: PatternRow[],
-  rowsAngleDeg?: number,
-  rowsOffsetM?: number,
-  cropsOffsetM?: number,
-  onFieldEdited: (field: GJPolygon) => void,
+  field: FieldGeomData,
+  fieldIndex: number,
+  onFieldEdited: (field: FieldGeomData) => void,
   fieldPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
 }
 
-export function CroppingFeatureGroup({
+export default function FocusFieldFeatureGroup({
   drawingMode,
-  fieldLatLngs,
-  croppingPattern=CROPPING_PATTERN,
-  rowsAngleDeg=0,
-  rowsOffsetM=0,
-  cropsOffsetM=0,
+  field,
+  fieldIndex,
   onFieldEdited,
   fieldPolygonProps
-}: CroppingFeatureGroupProps) {
+}: FocusFieldFeatureGroupProps) {
 
-  const onEdited = (e: DrawEvents.Edited) => {
+  const onPolygonEdited = (e: DrawEvents.Edited) => {
     const focusLayer = e.layers.getLayers()[0];
     if (focusLayer instanceof PolygonLayer) {
-      onFieldEdited(focusLayer.toGeoJSON().geometry as GJPolygon);
+      onFieldEdited({
+        ...field,
+        polygon: focusLayer.toGeoJSON().geometry as GJPolygon
+      });
     }
   };
 
@@ -105,43 +104,51 @@ export function CroppingFeatureGroup({
     return `${Math.round(polygonArea)} m²`;
   }
 
-  // Recompute geometry only when relevant props change
-  const fieldLayers = useMemo<CroppingLayers>(
-    () =>
-      computeCroppingLayers(fieldLatLngs[0], croppingPattern, rowsAngleDeg, rowsOffsetM, cropsOffsetM),
-    [fieldLatLngs, croppingPattern, rowsAngleDeg, rowsOffsetM, cropsOffsetM]
-  );
+  const fieldLatLngs = field.polygon && positionToLatLng(field.polygon.coordinates);
 
-  return (
-    <FeatureGroup key={fieldLatLngs.toString()}>
-      <MapBoundsFraming bounds={latLngBounds(fieldLatLngs[0])} maxZoom={MAX_ZOOM} />
-      <FeatureGroup>
-        <Polygon positions={fieldLatLngs} pathOptions={{color: 'orange', weight: 1, opacity: 1, fillOpacity: 0}} {...fieldPolygonProps}>
-          <Tooltip permanent={false} direction='center'>
-            {getPolygonAreaDisplay(fieldLatLngs)}
-          </Tooltip>
-        </Polygon>
-        {drawingMode &&
-        <EditControl
-          position="topright"
-          onEdited={onEdited}
-          draw={{
-            polygon: false,
-            marker: false,
-            polyline: false,
-            rectangle: false,
-            circle: false,
-            circlemarker: false,
-          }}
-          edit={{
-            remove: false,
-          }}
+  const croppingPatternQueryOptions = {
+    queryKey: ['croppingPattern', field.croppingPatternId?.toString() ?? '0'],
+    queryFn: getCroppingPattern,
+    enabled: (field.croppingPatternId ?? 0) > 0,
+  };
+  const croppingPattern = useQuery(croppingPatternQueryOptions);
+
+  if (fieldLatLngs)
+    return (
+      <FeatureGroup key={fieldLatLngs.toString()}>
+        <MapBoundsFraming bounds={latLngBounds(fieldLatLngs[0])} maxZoom={MAX_ZOOM} deps={[fieldIndex]} />
+        <FeatureGroup>
+          <Polygon positions={fieldLatLngs} pathOptions={{color: 'orange', weight: 1, opacity: 1, fillOpacity: 0}} {...fieldPolygonProps}>
+            <Tooltip permanent={false} direction='center'>
+              {getPolygonAreaDisplay(fieldLatLngs)}
+            </Tooltip>
+          </Polygon>
+          {drawingMode &&
+          <EditControl
+            position="topright"
+            onEdited={onPolygonEdited}
+            draw={{
+              polygon: false,
+              marker: false,
+              polyline: false,
+              rectangle: false,
+              circle: false,
+              circlemarker: false,
+            }}
+            edit={{
+              remove: false,
+            }}
+          />}
+        </FeatureGroup>
+        {croppingPattern.data &&
+        <CroppingLayers
+          fieldCoords={fieldLatLngs[0]}
+          patternRows={croppingPattern.data.rows}
+          rowsAngleDeg={field.rowsAngleDeg ?? undefined}
+          rowsOffsetM={field.rowsOffsetM ?? undefined}
+          cropsOffsetM={field.cropsOffsetM ?? undefined}
+          onCroppingSummarized={(croppingSummary) => onFieldEdited({...field, croppingSummary})}
         />}
       </FeatureGroup>
-      {fieldLayers && <>
-      <CropRows rows={fieldLayers.rows} />
-      <CropMarkers crops={fieldLayers.crops} />
-      </>}
-    </FeatureGroup>
-  );
+    );
 }

@@ -60,7 +60,7 @@ export default function SiteTraitValuesForm({
       siteMunicipalityId?.toString() ?? '0',
     ],
     queryFn: getMunicipality,
-    enable: estimateTraitValues && siteMunicipalityId != undefined,
+    enabled: estimateTraitValues && siteMunicipalityId != undefined,
   };
   const municipality = useQuery(municipalityQueryOptions);
 
@@ -70,7 +70,7 @@ export default function SiteTraitValuesForm({
       `latlong=${siteCenter.lat},${siteCenter.lng}`,
     ],
     queryFn: getClimateSummary,
-    enable: estimateTraitValues,
+    enabled: estimateTraitValues,
   }
   const climateSummary = useQuery(climateQueryOptions);
 
@@ -80,7 +80,7 @@ export default function SiteTraitValuesForm({
       `latlong=${siteCenter.lat},${siteCenter.lng}`,
     ],
     queryFn: getSoilSummary,
-    enable: estimateTraitValues,
+    enabled: estimateTraitValues,
   }
   const soilSummary = useQuery(soilQueryOptions);
 

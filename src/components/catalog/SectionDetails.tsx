@@ -284,7 +284,8 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
       <Table.Th fz="h6" fw={550}>Proponente</Table.Th>
       <Table.Th fz="h6" fw={550}>Proposta em</Table.Th>
       <Table.Th fz="h6" fw={550} w={120}>Apoios</Table.Th>
-      <Table.Th w={50}></Table.Th>
+      <Table.Th></Table.Th>
+      <Table.Th></Table.Th>
     </Table.Tr>
   );
   

@@ -17,7 +17,7 @@ import { useParams } from "react-router-dom";
 import { Container, Grid, Paper, Transition } from "@mantine/core";
 import { useListState } from "@mantine/hooks";
 import { useQuery } from "@tanstack/react-query";
-import { FarmReadData, FieldReadData, getFarm, getFieldList } from "../../apis/agroforestry";
+import { CroppingSummary, FarmReadData, FieldReadData, getFarm, getFieldList } from "../../apis/agroforestry";
 import { QueryLoader } from "../common/QueryLoader";
 import { FieldMenu, FieldsMap } from ".";
 
@@ -39,7 +39,7 @@ export default function ProjectDashboard() {
   return (
     <QueryLoader {...farmQueryOptions}>
       {farm.data && fields.data &&
-      <FieldsView
+      <ProjectDashboardBody
         farm={farm.data}
         initialFields={fields.data}
       />}
@@ -47,57 +47,70 @@ export default function ProjectDashboard() {
   )
 }
 
-interface FieldsViewProps {
+export type FieldGeomData = {
+  polygon: Polygon,
+  croppingPatternId?: number | null,
+  rowsAngleDeg?: number | null,
+  rowsOffsetM?: number | null,
+  cropsOffsetM?: number | null,
+  croppingSummary?: CroppingSummary,
+}
+
+interface ProjectDashboardBodyProps {
   farm: FarmReadData,
   initialFields: FieldReadData[],
 }
 
-function FieldsView({ farm, initialFields }: FieldsViewProps) {
+function ProjectDashboardBody({ farm, initialFields }: ProjectDashboardBodyProps) {
   const [mapDrawingMode, setMapDrawingMode] = useState<boolean>(false);
-  const [focusFieldIndex , setFocusFieldIndex] = useState<number | undefined>(undefined);
-  const [fieldPolygons, fieldPolygonsHandlers] = useListState<Polygon>(
-    initialFields.map(data => data.polygon)
-  );
+  const [focusFieldIndex, setFocusFieldIndex] = useState<number | undefined>(undefined);
+
+  const fieldReadToGeomData = (data: FieldReadData) => ({
+    ...(data.polygon && {polygon: data.polygon}),
+    ...(data.croppingPatternId && {croppingPatternId: data.croppingPatternId}),
+    ...(data.rowsAngleDeg && {rowsAngleDeg: data.rowsAngleDeg}),
+    ...(data.rowsOffsetM && {rowsOffsetM: data.rowsOffsetM}),
+    ...(data.cropsOffsetM && {cropsOffsetM: data.cropsOffsetM}),
+  });
+
+  const [fields, fieldsHandlers] = useListState<FieldGeomData>(initialFields.map(fieldReadToGeomData));
 
   const onFieldDraw = () => {
     setMapDrawingMode(true);
   };
 
-  const onFieldCreated = (field: Polygon) => {
-    setFocusFieldIndex(fieldPolygons.length);
-    fieldPolygonsHandlers.append(field);
+  const onFieldDrawn = (polygon: Polygon) => {
+    setFocusFieldIndex(fields.length);
+    fieldsHandlers.append({polygon});
   };
 
-  const onFieldEdited = (field: Polygon) => {
+  const onFieldEdited = (field: FieldGeomData) => {
     if (focusFieldIndex !== undefined)
-      fieldPolygonsHandlers.setItem(focusFieldIndex, field);
-  }
+      fieldsHandlers.setItem(focusFieldIndex, field);
+  };
 
   const onFieldDeleted = () => {
     if (focusFieldIndex !== undefined) {
-      fieldPolygonsHandlers.remove(focusFieldIndex!);
+      fieldsHandlers.remove(focusFieldIndex);
       setFocusFieldIndex(undefined);
     }
     setMapDrawingMode(false);
-  }
+  };
 
   const onFieldClicked = (fieldIndex: number | undefined) => {
     setFocusFieldIndex(fieldIndex);
     setMapDrawingMode(true);
-  }
+  };
 
   const onFieldClosed = () => {
     setFocusFieldIndex(undefined);
     setMapDrawingMode(false);
-  }
+  };
 
   const onFieldReset = () => {
     if (focusFieldIndex !== undefined)
-      fieldPolygonsHandlers.setItem(focusFieldIndex, initialFields[focusFieldIndex].polygon);
-  }
-  
-  const farmPolygon = farm.polygon ?? undefined;
-  const farmLocation = !farmPolygon ? farm.location : undefined;
+      fieldsHandlers.setItem(focusFieldIndex, fieldReadToGeomData(initialFields[focusFieldIndex]));
+  };
 
   return (
     <Container size="100%" mb={5} mt={-30}>
@@ -106,15 +119,14 @@ function FieldsView({ farm, initialFields }: FieldsViewProps) {
           <Paper withBorder p={5}>
             <FieldsMap
               drawingMode={mapDrawingMode}
-              fieldPolygons={fieldPolygons}
+              farm={farm}
+              fields={fields}
               focusFieldIndex={focusFieldIndex}
               onFieldDraw={onFieldDraw}
-              onFieldCreated={onFieldCreated}
+              onFieldDrawn={onFieldDrawn}
               onFieldEdited={onFieldEdited}
               onFieldDeleted={onFieldDeleted}
               onFieldClicked={onFieldClicked}
-              farmLocation={farmLocation}
-              farmPolygon={farmPolygon}
               style={{ height: '600px' }}
             />
           </Paper>
@@ -127,9 +139,10 @@ function FieldsView({ farm, initialFields }: FieldsViewProps) {
                 <FieldMenu
                   farm={farm}
                   initialField={initialFields[focusFieldIndex]}
-                  fieldPolygon={fieldPolygons[focusFieldIndex]}
-                  onFieldClose={onFieldClosed}
-                  onFieldDelete={onFieldDeleted}
+                  fieldGeom={fields[focusFieldIndex]}
+                  onFieldEdited={onFieldEdited}
+                  onFieldClosed={onFieldClosed}
+                  onFieldDeleted={onFieldDeleted}
                   onFieldReset={onFieldReset}
                 />
               </Paper>}
