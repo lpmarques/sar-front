@@ -11,6 +11,8 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
+import { UserReadData } from "../apis/core";
+
 export function sortValueFirst(a: string, b: string, value: string): number;
 export function sortValueFirst(a: number, b: number, value: number): number;
 export function sortValueFirst(a: string | number, b: string | number, value: string | number): number {

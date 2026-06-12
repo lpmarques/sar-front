@@ -63,10 +63,7 @@ export async function deleteFarm(farmId: number): Promise<GenericResponse> {
 export interface FieldWriteRequestData extends SiteWriteRequestData {
   name: string,
   farmId: number,
-  croppingPatternId?: number | null,
-  rowsAngleDeg?: number | null,
-  rowsOffsetM?: number | null,
-  cropsOffsetM?: number | null,
+  cropping?: Cropping | null,
 }
 
 export interface FieldWriteResponseData extends GenericResponse {
@@ -141,43 +138,48 @@ export async function getFarmList({ queryKey: [_, ...params] }: QueryFnInput ): 
 type EicatCategory = "Moderate" | "Major" | "Massive";
 
 interface PlantFitnessTraitValues {
-  isNative: boolean,
-  isInvasive: boolean,
-  eicatCategory: EicatCategory | null,
-  fitnessScore: number,
-  nativityScore: number,
+  isNative: boolean;
+  isInvasive: boolean;
+  eicatCategory: EicatCategory | null;
+  fitnessScore: number;
+  nativityScore: number;
 }
 
 interface CropUsageTraitValues {
-  purposes: string[],
-  isPlanted: boolean,
+  purposes: string[];
+  isPlanted: boolean;
 }
 
 interface CropSummaryMetrics {
-  individualsCount: number,
-  occupiedAreaSqrm: number,
-  densityPerHa: number,
+  individualsCount: number;
+  occupiedAreaSqrm: number;
+  densityPerHa: number;
 }
 
 export interface CropSummary {
-  plant: PlantReadData,
-  fitness?: PlantFitnessTraitValues,
-  usage?: CropUsageTraitValues,
-  metrics: CropSummaryMetrics,
+  plant: PlantReadData;
+  fitness?: PlantFitnessTraitValues;
+  usage?: CropUsageTraitValues;
+  metrics: CropSummaryMetrics;
 }
 
 export type CroppingSummary = {[key: string]: CropSummary};
 
+export interface Cropping {
+  patternId: number;
+  rowsAngleDeg: number;
+  rowsOffsetM: number;
+  cropsOffsetM: number;
+  summary?: CroppingSummary;
+}
+
 export interface FieldReadData extends SiteReadData {
-  id: number,
-  farmId: number,
-  name: string,
-  user: UserReadData,
-  polygon: Polygon,
-  croppingPatternId: number | null,
-  rowsAngleDeg: number | null,
-  rowsOffsetM: number | null,
-  cropsOffsetM: number | null,
+  id: number;
+  farmId: number;
+  name: string;
+  user: UserReadData;
+  polygon: Polygon;
+  cropping: Cropping | null;
 }
 
 export async function getField({ queryKey: [_, fieldId, ...params] }: QueryFnInput ): Promise<FieldReadData> {
@@ -202,6 +204,7 @@ export interface PatternCrop {
 export interface PatternRow {
   crops: PatternCrop[];
   position: number;
+  cropsOffsetM: number;
   distanceToNextRowM: number;
 }
 

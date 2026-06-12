@@ -107,9 +107,9 @@ export default function FocusFieldFeatureGroup({
   const fieldLatLngs = field.polygon && positionToLatLng(field.polygon.coordinates);
 
   const croppingPatternQueryOptions = {
-    queryKey: ['croppingPattern', field.croppingPatternId?.toString() ?? '0'],
+    queryKey: ['croppingPattern', field.cropping?.patternId?.toString() ?? '0'],
     queryFn: getCroppingPattern,
-    enabled: (field.croppingPatternId ?? 0) > 0,
+    enabled: (field.cropping?.patternId ?? 0) > 0,
   };
   const croppingPattern = useQuery(croppingPatternQueryOptions);
 
@@ -144,10 +144,10 @@ export default function FocusFieldFeatureGroup({
         <CroppingLayers
           fieldCoords={fieldLatLngs[0]}
           patternRows={croppingPattern.data.rows}
-          rowsAngleDeg={field.rowsAngleDeg ?? undefined}
-          rowsOffsetM={field.rowsOffsetM ?? undefined}
-          cropsOffsetM={field.cropsOffsetM ?? undefined}
-          onCroppingSummarized={(croppingSummary) => onFieldEdited({...field, croppingSummary})}
+          rowsAngleDeg={field.cropping?.rowsAngleDeg ?? undefined}
+          rowsOffsetM={field.cropping?.rowsOffsetM ?? undefined}
+          cropsOffsetM={field.cropping?.cropsOffsetM ?? undefined}
+          onCroppingSummarized={(summary) => onFieldEdited({...field, cropping: {...field.cropping!, summary}})}
         />}
       </FeatureGroup>
     );

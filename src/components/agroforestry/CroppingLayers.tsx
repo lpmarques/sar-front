@@ -76,7 +76,6 @@ export default function CroppingLayers({
     },
     recomputeDeps
   );
-  console.log(patternRows);
 
   if (croppingLayers) {
     return <>
@@ -246,7 +245,8 @@ function computeCroppingLayers(
       return [mx, my];
     }
     
-    let cropPoint = getCropPoint([ax, ay], dirOffsetM);
+    const rowCropsOffsetM = patternRow.cropsOffsetM % rowsSizesM[patternRowIndex];
+    let cropPoint = getCropPoint([ax, ay], dirOffsetM + rowCropsOffsetM);
 
     for (let ci = 0; ci <= numCrops; ci++) {
       // 8. Cycle the crop sequence within this row's definition

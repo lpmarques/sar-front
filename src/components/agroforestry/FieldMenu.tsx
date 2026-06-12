@@ -12,7 +12,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
 import { useState } from "react";
-import { Badge, Button, Container, Fieldset, Group, NativeSelect, NativeSelectProps, NumberInput, ScrollArea, Stack, Table, Text, TextInput, Title, Tooltip } from "@mantine/core";
+import { Badge, Button, Container, Fieldset, Group, NativeSelect, NativeSelectProps, NumberInput, ScrollArea, Stack, Table, Text, TextInput, Tooltip } from "@mantine/core";
 import { useForm, UseFormReturnType } from "@mantine/form";
 import { IconCircleFilled, IconInfoCircle, IconPencil, IconX } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
@@ -70,10 +70,17 @@ export default function FieldMenu({ farm, initialField, fieldGeom, onFieldEdited
       name: initialField?.name ?? "",
       farmId: initialField?.farmId ?? farm.id,
       polygon: initialField?.polygon,
-      croppingPatternId: initialField?.croppingPatternId,
-      rowsAngleDeg: initialField?.rowsAngleDeg ?? 0,
-      rowsOffsetM: initialField?.rowsOffsetM ?? 0,
-      cropsOffsetM: initialField?.cropsOffsetM ?? 0,
+      cropping: initialField?.cropping ? {
+        patternId: initialField.cropping.patternId,
+        rowsAngleDeg: initialField.cropping.rowsAngleDeg,
+        rowsOffsetM: initialField.cropping.rowsOffsetM,
+        cropsOffsetM: initialField.cropping.cropsOffsetM,
+      } : {
+        patternId: 0,
+        rowsAngleDeg: 0,
+        rowsOffsetM: 0,
+        cropsOffsetM: 0,
+      },
       traitValues: initialField?.traitValues ?? [],
     },
     validate: {
@@ -84,10 +91,12 @@ export default function FieldMenu({ farm, initialField, fieldGeom, onFieldEdited
     transformValues: (values) => ({
       ...values,
       name: values.name.trim(),
-      croppingPatternId: values.croppingPatternId ? values.croppingPatternId : null,
-      rowsAngleDeg: values.croppingPatternId ? values.rowsAngleDeg : null,
-      rowsOffsetM: values.croppingPatternId ? values.rowsOffsetM : null,
-      cropsOffsetM: values.croppingPatternId ? values.cropsOffsetM : null,
+      cropping: values.cropping?.patternId ? {
+        patternId: values.cropping.patternId,
+        rowsAngleDeg: values.cropping.rowsAngleDeg,
+        rowsOffsetM: values.cropping.rowsOffsetM,
+        cropsOffsetM: values.cropping.cropsOffsetM,
+      } : null
     })
   });
 
@@ -192,8 +201,8 @@ export default function FieldMenu({ farm, initialField, fieldGeom, onFieldEdited
             fieldForm={fieldForm}
             onFieldEdited={onFieldEdited}
           />
-          {fieldGeom.croppingSummary &&
-          <CroppingSummaryDetails summary={fieldGeom.croppingSummary} />}
+          {fieldGeom.cropping?.summary &&
+          <CroppingSummaryDetails summary={fieldGeom.cropping.summary} />}
           {/* {initialField &&
           <PlantFitnessButton farm={farm} />} */}
         </Stack>
@@ -284,39 +293,38 @@ interface CroppingControlsProps {
 
 function CroppingControls({ fieldForm, fieldGeom, onFieldEdited }: CroppingControlsProps) {
 
-  fieldForm.watch('croppingPatternId', ({ value }) => {
+  const syncCroppingData = () => {
+    const values = fieldForm.getValues();
+    console.log('values');
+
+    if (values.cropping) {
+      onFieldEdited({
+        ...fieldGeom,
+        cropping: values.cropping,
+      });
+    }
+  }
+
+  fieldForm.watch('cropping.patternId', ({ value }) => {
     const values = fieldForm.getValues();
 
     onFieldEdited({
       ...fieldGeom,
-      croppingPatternId: value ? value : null,
-      rowsAngleDeg: value ? values['rowsAngleDeg'] : null,
-      rowsOffsetM: value ? values['rowsOffsetM'] : null,
-      cropsOffsetM: value ? values['cropsOffsetM'] : null,
-      croppingSummary: value ? fieldGeom['croppingSummary'] : undefined,
+      cropping: value ? {
+        ...fieldGeom.cropping,
+        patternId: value,
+        rowsAngleDeg: values.cropping?.rowsAngleDeg ?? 0,
+        rowsOffsetM: values.cropping?.rowsOffsetM ?? 0,
+        cropsOffsetM: values.cropping?.cropsOffsetM ?? 0,
+      } : undefined
     });
   });
 
-  fieldForm.watch('rowsAngleDeg', ({ value }) => {
-    onFieldEdited({
-      ...fieldGeom,
-      rowsAngleDeg: value,
-    });
-  });
+  fieldForm.watch('cropping.rowsAngleDeg', () => syncCroppingData());
 
-  fieldForm.watch('rowsOffsetM', ({ value }) => {
-    onFieldEdited({
-      ...fieldGeom,
-      rowsOffsetM: value,
-    });
-  });
+  fieldForm.watch('cropping.rowsOffsetM', () => syncCroppingData());
 
-  fieldForm.watch('cropsOffsetM', ({ value }) => {
-    onFieldEdited({
-      ...fieldGeom,
-      cropsOffsetM: value,
-    });
-  });
+  fieldForm.watch('cropping.cropsOffsetM', () => syncCroppingData());
 
   const offsetInputWidth = 110;
 
@@ -351,33 +359,36 @@ function CroppingControls({ fieldForm, fieldGeom, onFieldEdited }: CroppingContr
         fieldForm={fieldForm}
         mb={5}
       />
-      {fieldForm.getValues()['croppingPatternId'] ? <>
+      {fieldForm.getValues().cropping?.patternId ? <>
       <NumberInput
-        key={fieldForm.key('rowsAngleDeg')}
+        key={fieldForm.key('cropping.rowsAngleDeg')}
         label={rowsAngleInputLabel}
+        defaultValue={0}
         min={-180}
         max={180}
         step={5}
         mb={5}
-        {...fieldForm.getInputProps('rowsAngleDeg')}
+        {...fieldForm.getInputProps('cropping.rowsAngleDeg')}
       />
       <Text fz="sm" fw={500}>Deslocamento (m)</Text>
       <Fieldset p={10}>
         <Group justify="space-evenly" gap="xs">
           <NumberInput
-            key={fieldForm.key('rowsOffsetM')}
+            key={fieldForm.key('cropping.rowsOffsetM')}
             label={rowsOffsetInputLabel}
+            defaultValue={0}
             min={-100}
             max={100}
             allowedDecimalSeparators={['.',',']}
             decimalScale={2}
             step={0.5}
             w={offsetInputWidth}
-            {...fieldForm.getInputProps('rowsOffsetM')}
+            {...fieldForm.getInputProps('cropping.rowsOffsetM')}
           />
           <NumberInput
-            key={fieldForm.key('cropsOffsetM')}
+            key={fieldForm.key('cropping.cropsOffsetM')}
             label={cropsOffsetInputLabel}
+            defaultValue={0}
             min={-100}
             max={100}
             allowDecimal={true}
@@ -385,7 +396,7 @@ function CroppingControls({ fieldForm, fieldGeom, onFieldEdited }: CroppingContr
             decimalScale={2}
             step={0.25}
             w={offsetInputWidth}
-            {...fieldForm.getInputProps('cropsOffsetM')}
+            {...fieldForm.getInputProps('cropping.cropsOffsetM')}
           />
         </Group>
       </Fieldset>
@@ -450,7 +461,7 @@ function CroppingPatternSelect({ fieldForm, ...selectProps }: CroppingPatternSel
       items: userOptions
     },
     {
-      group: 'De outros autores',
+      group: 'Outros',
       items: otherOptions
     },
   ] : [];
@@ -461,10 +472,10 @@ function CroppingPatternSelect({ fieldForm, ...selectProps }: CroppingPatternSel
 
   return (
     <NativeSelect
-      key={fieldForm.key('croppingPatternId')}
+      key={fieldForm.key('cropping.patternId')}
       data={options}
-      {...fieldForm.getInputProps('croppingPatternId')}
-      onChange={changeValue('croppingPatternId')}
+      {...fieldForm.getInputProps('cropping.patternId')}
+      onChange={changeValue('cropping.patternId')}
       {...selectProps}
       />
   )

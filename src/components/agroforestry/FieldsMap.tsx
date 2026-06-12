@@ -195,7 +195,7 @@ export default function FieldsMap({
       <FocusFieldFeatureGroup
         drawingMode={drawingMode}
         field={focusField}
-        fieldIndex={focusFieldIndex}
+        fieldIndex={focusIndex.current!}
         onFieldEdited={onFieldEdited}
         fieldPolygonProps={fieldPolygonProps}
       />}

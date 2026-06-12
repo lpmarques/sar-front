@@ -17,7 +17,7 @@ import { useParams } from "react-router-dom";
 import { Container, Grid, Paper, Transition } from "@mantine/core";
 import { useListState } from "@mantine/hooks";
 import { useQuery } from "@tanstack/react-query";
-import { CroppingSummary, FarmReadData, FieldReadData, getFarm, getFieldList } from "../../apis/agroforestry";
+import { Cropping, FarmReadData, FieldReadData, getFarm, getFieldList } from "../../apis/agroforestry";
 import { QueryLoader } from "../common/QueryLoader";
 import { FieldMenu, FieldsMap } from ".";
 
@@ -47,18 +47,14 @@ export default function ProjectDashboard() {
   )
 }
 
-export type FieldGeomData = {
-  polygon: Polygon,
-  croppingPatternId?: number | null,
-  rowsAngleDeg?: number | null,
-  rowsOffsetM?: number | null,
-  cropsOffsetM?: number | null,
-  croppingSummary?: CroppingSummary,
-}
+export interface FieldGeomData {
+  polygon: Polygon;
+  cropping?: Cropping;
+};
 
 interface ProjectDashboardBodyProps {
-  farm: FarmReadData,
-  initialFields: FieldReadData[],
+  farm: FarmReadData;
+  initialFields: FieldReadData[];
 }
 
 function ProjectDashboardBody({ farm, initialFields }: ProjectDashboardBodyProps) {
@@ -67,10 +63,7 @@ function ProjectDashboardBody({ farm, initialFields }: ProjectDashboardBodyProps
 
   const fieldReadToGeomData = (data: FieldReadData) => ({
     ...(data.polygon && {polygon: data.polygon}),
-    ...(data.croppingPatternId && {croppingPatternId: data.croppingPatternId}),
-    ...(data.rowsAngleDeg && {rowsAngleDeg: data.rowsAngleDeg}),
-    ...(data.rowsOffsetM && {rowsOffsetM: data.rowsOffsetM}),
-    ...(data.cropsOffsetM && {cropsOffsetM: data.cropsOffsetM}),
+    ...(data.cropping && {cropping: data.cropping}),
   });
 
   const [fields, fieldsHandlers] = useListState<FieldGeomData>(initialFields.map(fieldReadToGeomData));
