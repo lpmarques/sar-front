@@ -22,11 +22,10 @@ export interface UserNameProps extends TextProps {
 
 export default function UserName({ user, ...textProps }: UserNameProps) {
   const auth = useAuth();
-
   const path = auth.user && auth.user.id === user.id ? "/user" : `/users/${user.email}`;
 
   return (
-    <ClickableText onClick={() => window.open(path, '_blank')} {...textProps}>
+    <ClickableText path={path} {...textProps}>
       {user.firstName} {user.lastName}
     </ClickableText>
   )

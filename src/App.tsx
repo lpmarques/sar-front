@@ -39,6 +39,7 @@ import { Login, UserContents, UserProfile, Signup } from './components/user';
 import { LanguageProvider } from './hooks/useLanguage';
 import { useAuth } from './hooks/useAuth';
 import { theme } from "./theme";
+import About from "./components/About";
 
 export default function App() {
   const auth = useAuth();
@@ -63,7 +64,7 @@ export default function App() {
   dayjs.extend(customParseFormat);
   dayjs.extend(LocalizedFormat);
 
-  maptilersdk.config.apiKey = "ySNElyovuaMoY8g0Bgmc";
+  maptilersdk.config.apiKey = import.meta.env.VITE_MAPTILER_API_KEY;
   drawLocales('pt');
 
   return (
@@ -77,6 +78,7 @@ export default function App() {
               <Shell>
                 <Routes>
                   <Route index element={<Home />}/>
+                  <Route path="about" element={<About />}/>
                   <Route path="login" element={<UnloggedOnlyRoute><Login /></UnloggedOnlyRoute>}/>
                   <Route path="signup" element={<UnloggedOnlyRoute><Signup /></UnloggedOnlyRoute>}/>
                   <Route path="user" element={<LoggedOnlyRoute><UserProfile /></LoggedOnlyRoute>}/>
