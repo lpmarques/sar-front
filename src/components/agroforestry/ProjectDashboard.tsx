@@ -11,13 +11,11 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
-import { Polygon } from "geojson";
-import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Container, Grid, Paper, Transition } from "@mantine/core";
-import { useListState } from "@mantine/hooks";
 import { useQuery } from "@tanstack/react-query";
-import { Cropping, FarmReadData, FieldReadData, getFarm, getFieldList } from "../../apis/agroforestry";
+import { getFarm, getFieldList } from "../../apis/agroforestry";
+import { ProjectProvider, useProject } from "../../hooks/useProject";
 import { QueryLoader } from "../common/QueryLoader";
 import { FieldMenu, FieldsMap } from ".";
 
@@ -38,106 +36,31 @@ export default function ProjectDashboard() {
   
   return (
     <QueryLoader {...farmQueryOptions}>
-      {farm.data && fields.data &&
-      <ProjectDashboardBody
-        farm={farm.data}
-        initialFields={fields.data}
-      />}
+      {farm.data && fields.data && 
+      <ProjectProvider farm={farm.data} initialFields={fields.data}>
+        <ProjectDashboardBody />
+      </ProjectProvider>}
     </QueryLoader>
   )
 }
 
-export interface FieldGeomData {
-  polygon: Polygon;
-  cropping?: Cropping;
-};
-
-interface ProjectDashboardBodyProps {
-  farm: FarmReadData;
-  initialFields: FieldReadData[];
-}
-
-function ProjectDashboardBody({ farm, initialFields }: ProjectDashboardBodyProps) {
-  const [mapDrawingMode, setMapDrawingMode] = useState<boolean>(false);
-  const [focusFieldIndex, setFocusFieldIndex] = useState<number | undefined>(undefined);
-
-  const fieldReadToGeomData = (data: FieldReadData) => ({
-    ...(data.polygon && {polygon: data.polygon}),
-    ...(data.cropping && {cropping: data.cropping}),
-  });
-
-  const [fields, fieldsHandlers] = useListState<FieldGeomData>(initialFields.map(fieldReadToGeomData));
-
-  const onFieldDraw = () => {
-    setMapDrawingMode(true);
-  };
-
-  const onFieldDrawn = (polygon: Polygon) => {
-    setFocusFieldIndex(fields.length);
-    fieldsHandlers.append({polygon});
-  };
-
-  const onFieldEdited = (field: FieldGeomData) => {
-    if (focusFieldIndex !== undefined)
-      fieldsHandlers.setItem(focusFieldIndex, field);
-  };
-
-  const onFieldDeleted = () => {
-    if (focusFieldIndex !== undefined) {
-      fieldsHandlers.remove(focusFieldIndex);
-      setFocusFieldIndex(undefined);
-    }
-    setMapDrawingMode(false);
-  };
-
-  const onFieldClicked = (fieldIndex: number | undefined) => {
-    setFocusFieldIndex(fieldIndex);
-    setMapDrawingMode(true);
-  };
-
-  const onFieldClosed = () => {
-    setFocusFieldIndex(undefined);
-    setMapDrawingMode(false);
-  };
-
-  const onFieldReset = () => {
-    if (focusFieldIndex !== undefined)
-      fieldsHandlers.setItem(focusFieldIndex, fieldReadToGeomData(initialFields[focusFieldIndex]));
-  };
+function ProjectDashboardBody() {
+  const { selectedFieldIndex } = useProject();
 
   return (
     <Container size="100%" mb={5} mt={-30}>
       <Grid>
         <Grid.Col span="auto">
           <Paper withBorder p={5}>
-            <FieldsMap
-              drawingMode={mapDrawingMode}
-              farm={farm}
-              fields={fields}
-              focusFieldIndex={focusFieldIndex}
-              onFieldDraw={onFieldDraw}
-              onFieldDrawn={onFieldDrawn}
-              onFieldEdited={onFieldEdited}
-              onFieldDeleted={onFieldDeleted}
-              onFieldClicked={onFieldClicked}
-              style={{ height: '600px' }}
-            />
+            <FieldsMap style={{ height: '600px' }}/>
           </Paper>
         </Grid.Col>
-        <Transition mounted={focusFieldIndex !== undefined} transition="slide-left">
+        <Transition mounted={selectedFieldIndex !== null} transition="slide-left">
           {(transStyle) => (
             <Grid.Col span={3} style={{ ...transStyle }}>
-              {focusFieldIndex !== undefined &&
+              {selectedFieldIndex !== null &&
               <Paper withBorder p={10} style={{ height: '100%' }}>
-                <FieldMenu
-                  farm={farm}
-                  initialField={initialFields[focusFieldIndex]}
-                  fieldGeom={fields[focusFieldIndex]}
-                  onFieldEdited={onFieldEdited}
-                  onFieldClosed={onFieldClosed}
-                  onFieldDeleted={onFieldDeleted}
-                  onFieldReset={onFieldReset}
-                />
+                <FieldMenu />
               </Paper>}
             </Grid.Col>
           )}

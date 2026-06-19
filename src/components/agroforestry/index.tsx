@@ -24,7 +24,7 @@ import FarmMap from './FarmMap';
 import FarmNew from './FarmNew';
 import FieldMenu from './FieldMenu';
 import FieldsMap from './FieldsMap';
-import FocusFieldFeatureGroup from './FocusFieldFeatureGroup';
+import FieldFeatureGroup from './FieldFeatureGroup';
 import LayerVisibility from './LayerVisibility';
 import MapBoundsFraming from './MapBoundsFraming';
 import MapCentering from './MapCentering';
@@ -35,11 +35,13 @@ import SiteTraitsDetails from './SiteTraitsDetails';
 import SiteTraitValueDisplay from './SiteTraitValueDisplay';
 import SiteTraitValueInput from './SiteTraitValueInput';
 import SiteTraitValuesForm from './SiteTraitValuesForm';
+import EditControl from './EditControl';
 
 export {
   ButtonControl,
   CroppingLayers,
   DeviceLocationControl,
+  EditControl,
   FarmDetails,
   FarmEdit,
   FarmForm,
@@ -50,7 +52,7 @@ export {
   FarmNew,
   FieldsMap,
   FieldMenu,
-  FocusFieldFeatureGroup,
+  FieldFeatureGroup,
   LayerVisibility,
   MapBoundsFraming,
   MapCentering,

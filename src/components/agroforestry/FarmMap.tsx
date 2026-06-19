@@ -21,11 +21,7 @@ import {
 import { FeatureGroup, MapContainer, MapContainerProps, Marker, MarkerProps, Polygon, PolygonProps, Tooltip } from "react-leaflet";
 import { EditControl, EditControlProps } from "react-leaflet-draw";
 import { MapStyle } from "@maptiler/leaflet-maptilersdk";
-import MapBoundsFraming from "./MapBoundsFraming";
-import MapCentering from "./MapCentering";
-import MaptilerVectorLayer from "./MaptilerVectorLayer";
-import classes from "./MapContainer.module.css";
-import { DeviceLocationControl } from ".";
+import { DeviceLocationControl, MapBoundsFraming, MapCentering, MaptilerVectorLayer } from ".";
 
 interface FarmMapProps extends MapContainerProps {
   farmLocation: LatLng | undefined,
@@ -129,7 +125,12 @@ export default function FarmMap({
   );
   
   return (
-    <MapContainer center={center} zoom={zoom} style={style} className={classes['map-container']} {...mapContainerProps}>
+    <MapContainer
+      center={center}
+      zoom={zoom}
+      style={{zIndex: 0, ...style}}
+      {...mapContainerProps}
+    >
       <MaptilerVectorLayer style={MapStyle.HYBRID} />
       {farmFeature}
       {locationControl &&

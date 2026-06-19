@@ -25,7 +25,7 @@ const initialContextValues = {
   lang: "pt-BR",
   setLang: () => {}
 }
-
+ 
 const LanguageContext = createContext(initialContextValues);
 
 export const useLanguage = () => {
@@ -57,8 +57,8 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   );
 
   return (
-    <LanguageContext.Provider value={value}>
+    <LanguageContext value={value}>
       {children}
-    </LanguageContext.Provider>
+    </LanguageContext>
   )
 };

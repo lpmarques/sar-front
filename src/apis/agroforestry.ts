@@ -36,11 +36,12 @@ export interface SiteWriteRequestData {
   location?: Point,
   polygon?: Polygon,
   municipalityId?: number,
-  traitValues: SiteTraitValueWriteRequestData[],
+  traitValues?: SiteTraitValueWriteRequestData[],
 }
 
 export interface FarmWriteRequestData extends SiteWriteRequestData {
   name: string,
+  traitValues: SiteTraitValueWriteRequestData[],
 }
 
 export interface FarmWriteResponseData extends GenericResponse {
@@ -63,6 +64,7 @@ export async function deleteFarm(farmId: number): Promise<GenericResponse> {
 export interface FieldWriteRequestData extends SiteWriteRequestData {
   name: string,
   farmId: number,
+  polygon: Polygon,
   cropping?: Cropping | null,
 }
 
