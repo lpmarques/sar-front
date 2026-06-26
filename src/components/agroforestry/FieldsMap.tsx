@@ -20,7 +20,7 @@ import {
   Map,
   Polygon as PolygonLayer,
 } from "leaflet";
-import { RefObject, useRef, useState } from "react";
+import { RefObject, useMemo, useRef, useState } from "react";
 import {
   FeatureGroup,
   MapContainer,
@@ -31,7 +31,7 @@ import {
   PolygonProps,
 } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
-import { MapStyle } from "@maptiler/leaflet-maptilersdk";
+import { MapStyle } from '@maptiler/sdk';
 import * as turf from "@turf/boolean-equal";
 import { useProject } from "../../hooks/useProject";
 import { positionToLatLng } from "../../utils/agroforestry";
@@ -63,7 +63,10 @@ export default function FieldsMap({
   const drawingMode = selectedFieldIndex !== null || drawingNewField;
 
   const focusIndex = selectedFieldIndex;
-  const focusField = focusIndex !== null ? fields[focusIndex] : undefined;
+  const focusField = useMemo(
+    () => focusIndex !== null ? fields[focusIndex] : undefined,
+    [focusIndex]
+  );
 
   const polygonEventHandlers: LeafletEventHandlerFnMap = {
     click: (e: LeafletMouseEvent) => {
@@ -172,7 +175,7 @@ export default function FieldsMap({
       {farmFeatureGroup}
       {fieldsFeatureGroup}
       {focusField &&
-      <FieldFeatureGroup fieldPolygonProps={fieldPolygonProps}/>}
+      <FieldFeatureGroup extraPolygonProps={fieldPolygonProps}/>}
     </MapContainer>
   )
 }

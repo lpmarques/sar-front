@@ -12,7 +12,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
 import { Position } from "geojson";
-import { latLng, LatLng, LatLngTuple } from "leaflet";
+import { latLng, LatLng } from "leaflet";
 
 export type Point2D = [number, number]; // [x, y] in metres
 type BBox = { minX: number; minY: number; maxX: number; maxY: number };
@@ -25,7 +25,7 @@ export function positionToLatLng(coords: Position[]): LatLng[];
 export function positionToLatLng(coords: Position[][]): LatLng[][];
 export function positionToLatLng(coords: Position | Position[] | Position[][]): LatLng | LatLng[] | LatLng[][] {
   if (typeof coords[0] === 'number')
-    return latLng(coords[1] as number, coords[0]);
+    return latLng(coords[1] as number, coords[0] as number);
   if (typeof coords[0][0] === 'number')
     return coords.map(coords => positionToLatLng(coords as Position));
 
@@ -57,7 +57,7 @@ export function latLngToMeters(
   return [x, y];
 }
 
-/** Inverse of `toMeters` — convert local metric X/Y back to [lat, lng]. */
+/** Inverse of `latLngToMeters` — convert local metric X/Y back to [lat, lng]. */
 export function metersToLatLng(
   point: Point2D,
   originLatLng: LatLng
@@ -65,7 +65,7 @@ export function metersToLatLng(
   const lat = originLatLng.lat + point[1] / EARTH_R / DEG2RAD;
   const lng = originLatLng.lng + point[0] / (EARTH_R * Math.cos(originLatLng.lat * DEG2RAD)) / DEG2RAD;
   
-  return [lat, lng];
+  return latLng(lat, lng);
 }
 
 /** Axis-aligned bounding box of a list of metric points. */

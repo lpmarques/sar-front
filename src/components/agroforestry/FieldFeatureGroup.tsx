@@ -26,7 +26,7 @@ import {
   Tooltip,
 } from "react-leaflet";
 import MapBoundsFraming from "./MapBoundsFraming";
-import { getCroppingPattern } from "../../apis/agroforestry";
+import { CroppingSummary, getCroppingPattern } from "../../apis/agroforestry";
 import { positionToLatLng } from "../../utils/agroforestry";
 import { useQuery } from "@tanstack/react-query";
 import { useProject } from "../../hooks/useProject";
@@ -37,42 +37,77 @@ import { EditControlProps } from "react-leaflet-draw";
 const MAX_ZOOM = 30;
 
 interface FieldFeatureGroupProps {
-  fieldPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
+  onEditStart?: () => void;
+  onEditStop?: () => void;
+  extraPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
 }
 
-export default function FieldFeatureGroup({ fieldPolygonProps }: FieldFeatureGroupProps) {
-  const { fields, selectedFieldIndex, inputsEnabled, enableInputs, disableInputs, replaceField } = useProject();
-  const [polygonVersion, setPolygonVersion] = useState<number>(0);
-
+export default function FieldFeatureGroup({ onEditStart, onEditStop, extraPolygonProps }: FieldFeatureGroupProps) {
+  const { fields, selectedFieldIndex, enableInputs, disableInputs, replaceField } = useProject();
+  const [polygonVersion, setPolygonVersion] = useState(1);
+  
   const field = selectedFieldIndex !== null ? fields[selectedFieldIndex] : undefined;
-  const fieldLatLngs = useMemo(() => field?.polygon && positionToLatLng(field.polygon.coordinates), []);
+  const fieldRef = useRef(field);
+  fieldRef.current = field;
+  
+  const editedRef = useRef(false);
+  editedRef.current = false;
+  const [editCancels, setEditCancels] = useState(0);
+  
+  // console.log(`edited: ${editedRef.current}`);
+  // console.log(`editCancels: ${editCancels}`);
+  // console.log(`polygonVersion: ${polygonVersion}`);
 
-  const polygonRef = useRef<any>(null);
+  // useMemo is necessary to stabilize fieldLatLngs, preventing desyncing between react state and 
+  // leaflet layer on re-renders. On the other hand, fieldLatLngs should be recalculated when 
+  // A) coordinates change or B) an edit session is canceled (since apparently leaflet-draw directly 
+  // updates the array during edit and fails to revert repositioned vertexes after edit is canceled)
+  const fieldLatLngs = useMemo(
+    () => {
+      // console.log("recalc fieldLatLngs");
+      const currentField = fieldRef.current;
+      return currentField?.polygon && positionToLatLng(currentField.polygon.coordinates);
+    },
+    [field?.polygon.coordinates, editCancels]
+  );
 
-  const onPolygonEditStart = () => {
-    disableInputs();
-    if (polygonRef.current)
-      polygonRef.current.editing.enable();
-  };
+  // TODO: remove inputsEnabled from ProjectProvider to prevent re-rendering of FieldsMap during polygon edit.
+  // Instead, declare it directly in ProjectDashboard and pass only callbacks into FieldsMap/FieldFeatureGroup 
+  // as onEditStart and onEditStop props.
+  // const onPolygonEditStart = useCallback(disableInputs, [disableInputs]);
+  // const onPolygonEditStop = useCallback(enableInputs, [enableInputs]);
 
-  const onPolygonEditStop = () => {
-    enableInputs();
-    if (polygonRef.current)
-      polygonRef.current.editing.disable();
-  };
+  const onPolygonEditStart = useCallback(() => {
+    // console.log('edit start');
+  }, []);
+
+  const onPolygonEditStop = useCallback(() => {
+    // console.log('edit stop');
+    const currentField = fieldRef.current;
+    if (!currentField) return
+
+    if (!editedRef.current) {
+      // console.log('edit canceled');
+      setEditCancels(c => c + 1); // triggers fieldLatLngs recalc, discarding any change in state that leaflet failed to revert
+      setPolygonVersion(v => v + 1); // forces Polygon to remount, discarding any change in leaflet's layer that it failed to revert
+    }
+  }, []);
 
   const onPolygonEdited = useCallback((e: DrawEvents.Edited) => {
-    if (!field) return
+    // console.log('edited');
+    editedRef.current = true;
+    const currentField = fieldRef.current;
+    if (!currentField) return
 
     const layer = e.layers.getLayers()[0];
     if (layer instanceof PolygonLayer) {
       replaceField({
-        ...field,
+        ...currentField,
         polygon: layer.toGeoJSON().geometry as GJPolygon
       });
+      setPolygonVersion((version) => version + 1);
     }
-    setPolygonVersion((prev) => prev + 1);
-  }, []);
+  }, [replaceField]);
 
   const croppingPatternQueryOptions = {
     queryKey: ['croppingPattern', field?.cropping?.patternId?.toString() ?? '0'],
@@ -81,20 +116,40 @@ export default function FieldFeatureGroup({ fieldPolygonProps }: FieldFeatureGro
   };
   const croppingPattern = useQuery(croppingPatternQueryOptions);
 
+  const onCroppingSummarized = useCallback((summary: CroppingSummary) => {
+    const currentField = fieldRef.current;
+
+    if (currentField?.cropping)
+      replaceField({
+        ...currentField,
+        cropping: {
+          ...currentField.cropping,
+          summary
+        }
+      })
+  }, [replaceField]);
+
+  // The key to avoid desync between react state and leaflet DOM elements is in 
+  // ensuring that react-leaflet-draw's EditControl never re-renders during an edit, 
+  // but also forcing both EditControl and controled layer to remount when the layer's 
+  // positions change (even if as result of the edit itself).
+  // 
+  // Hooks such as useMemo and useCallback prevent re-renders on parent from triggering 
+  // child re-rendering by stabilizing complex-typed props (arrays/objs and functions).
+  // Conversely, the use of versioned 'key' props can ensure that the child re-renders 
+  // when relevant state changes actually occur in parent.
   if (selectedFieldIndex !== null && field && fieldLatLngs) {
     return (
       <FeatureGroup key={selectedFieldIndex}>
-        <MapBoundsFraming bounds={latLngBounds(fieldLatLngs[0])} maxZoom={MAX_ZOOM} deps={[selectedFieldIndex]} />
         <FieldPolygon
-          // ref={polygonRef}
           id={selectedFieldIndex}
           version={polygonVersion}
           positions={fieldLatLngs}
-          extraPolygonProps={fieldPolygonProps}
+          extraPolygonProps={extraPolygonProps}
           extraEditControlProps={{
             onEdited: onPolygonEdited,
-            // onEditStart: onPolygonEditStart,
-            // onEditStop: onPolygonEditStop,
+            onEditStart: onPolygonEditStart,
+            onEditStop: onPolygonEditStop,
           }}
         />
         {croppingPattern.data &&
@@ -104,8 +159,9 @@ export default function FieldFeatureGroup({ fieldPolygonProps }: FieldFeatureGro
           rowsAngleDeg={field.cropping?.rowsAngleDeg ?? undefined}
           rowsOffsetM={field.cropping?.rowsOffsetM ?? undefined}
           cropsOffsetM={field.cropping?.cropsOffsetM ?? undefined}
-          onCroppingSummarized={(summary) => replaceField({...field, cropping: {...field.cropping!, summary}})}
+          onCroppingSummarized={onCroppingSummarized}
         />}
+        <MapBoundsFraming bounds={latLngBounds(fieldLatLngs[0])} maxZoom={MAX_ZOOM} deps={[selectedFieldIndex]} />
       </FeatureGroup>
     );
   }
@@ -113,7 +169,6 @@ export default function FieldFeatureGroup({ fieldPolygonProps }: FieldFeatureGro
 
 interface FieldPolygonProps {
   id: number,
-  // ref: React.RefObject<any>,
   version: number,
   positions: LatLng[][],
   extraPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
@@ -126,13 +181,12 @@ function FieldPolygon({ id, version, positions, extraPolygonProps, extraEditCont
     return `${Math.round(polygonArea)} m²`;
   }
 
-  console.log(`render polygon ${id} version ${version}`);
+  // console.log(`render polygon ${id} version ${version}`);
 
   return (
     <FeatureGroup>
       <Polygon
-        // ref={ref}
-        key={`polygon-${id}-${version}`}
+        key={`polygon-${id}-v${version}`}
         positions={positions}
         pathOptions={{color: 'orange', weight: 1, opacity: 1, fillOpacity: 0}}
         {...extraPolygonProps}
@@ -142,7 +196,7 @@ function FieldPolygon({ id, version, positions, extraPolygonProps, extraEditCont
         </Tooltip>
       </Polygon>
       <EditControl
-        key={`edit-control-${id}-${version}`}
+        key={`control-${id}-v${version}`}
         position="topright"
         draw={{
           polygon: false,

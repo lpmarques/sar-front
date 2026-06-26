@@ -11,8 +11,8 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
-import { createContext, useContext, useMemo, useState } from "react";
-import { useListState, useToggle } from "@mantine/hooks";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { useListState } from "@mantine/hooks";
 import { FarmReadData, FieldReadData, FieldWriteRequestData } from "../apis/agroforestry";
 
 // Field interface makes name optional to allow adding new field 
@@ -77,11 +77,14 @@ export function ProjectProvider({children, farm, initialFields, initialSeletedFi
     selectField(fields.length);
   };
 
-  const replaceField = (field: Field) => {
-    if (selectedFieldIndex === null)
-      throw new Error("You can only replace a field after selecting it.")
-    fieldsHandlers.setItem(selectedFieldIndex, { ...field, farmId: farm.id });
-  };
+  const replaceField = useCallback((field: Field) => {
+      if (selectedFieldIndex === null)
+        throw new Error("You can only replace a field after selecting it.")
+      // console.log(`replacing field with: ${field.polygon.coordinates}`);
+      fieldsHandlers.setItem(selectedFieldIndex, { ...field, farmId: farm.id });
+    },
+    [selectedFieldIndex, farm.id]
+  );
 
   const removeField = () => {
     if (selectedFieldIndex === null)
@@ -94,13 +97,12 @@ export function ProjectProvider({children, farm, initialFields, initialSeletedFi
     if (selectedFieldIndex === null)
       throw new Error("You can only reset a field after selecting it.")
 
-    console.log(`resetando ${fields[selectedFieldIndex].name} com dados do ${initialFields[selectedFieldIndex].name}`);
     fieldsHandlers.setItem(selectedFieldIndex, initialFields[selectedFieldIndex]);
   }
 
-  const enableInputs = () => setInputsEnabled(true);
+  const enableInputs = useCallback(() => setInputsEnabled(true), []);
 
-  const disableInputs = () => setInputsEnabled(false);
+  const disableInputs = useCallback(() => setInputsEnabled(false), []);
 
   const project = useMemo<ProjectContext>(
     () => ({

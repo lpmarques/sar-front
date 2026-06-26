@@ -12,24 +12,37 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
 import { LeafletEventHandlerFn } from "leaflet";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 import { EditControl as LeafletEditControl, EditControlProps } from "react-leaflet-draw";
+// import { EditControl as LeafletEditControl, EditControlProps } from "../reactleafletdraw";
 
-// This wrapper bypasses a known react-leaflet-draw's EditControl bug where it 
-// fails to clear out previous (stale) event handlers and keeps calling them after 
-// a new version is passed (such as one that edits a different polygon).
+// This wrapper bypasses a known react-leaflet-draw's EditControl bug where it fails to 
+// clear out stale event handlers, applying changes to current and previously selected layers.
 // Issue: https://github.com/alex3165/react-leaflet-draw/issues/192
-export default function EditControl({ onEdited, ...props }: EditControlProps) {
+export default function EditControl({ onEdited, onEditStart, onEditStop, ...props }: EditControlProps) {
   const map = useMap();
+  const onEditedRef = useRef(onEdited);
+  const onEditStartRef = useRef(onEditStart);
+  const onEditStopRef = useRef(onEditStop);
+
+  onEditedRef.current = onEdited;
+  onEditStartRef.current = onEditStart;
+  onEditStopRef.current = onEditStop;
 
   useEffect(() => {
-    const handleEdited = onEdited as LeafletEventHandlerFn;
+    const handleEdited = onEditedRef.current as LeafletEventHandlerFn;
+    const handleEditStart = onEditStartRef.current as LeafletEventHandlerFn;
+    const handleEditStop = onEditStopRef.current as LeafletEventHandlerFn;
 
-    map.on('draw:edited', handleEdited);
+    handleEdited && map.on('draw:edited', handleEdited);
+    handleEditStart && map.on('draw:editstart', handleEditStart);
+    handleEditStop && map.on('draw:editstop', handleEditStop);
 
     return () => {
-      map.off('draw:edited', handleEdited);
+      handleEdited && map.off('draw:edited', handleEdited);
+      handleEditStart && map.off('draw:editstart', handleEditStart);
+      handleEditStop && map.off('draw:editstop', handleEditStop);
     }
   }, [map]);
 

@@ -60,13 +60,11 @@ export default function CroppingLayers({
 }: CroppingLayersProps) {
 
   const fieldCentroid = latLngCentroid(fieldCoords);
-  const recomputeDeps = [fieldCentroid.lat, fieldCentroid.lng, patternRows, rowsAngleDeg, rowsOffsetM, cropsOffsetM];
   
   // Recompute geometry only when relevant props change
   const croppingLayers = useMemo<CroppingLayers>(
-    () => 
-      computeCroppingLayers(fieldCoords, patternRows, rowsAngleDeg, rowsOffsetM, cropsOffsetM),
-    recomputeDeps
+    () => computeCroppingLayers(fieldCoords, patternRows, rowsAngleDeg, rowsOffsetM, cropsOffsetM),
+    [fieldCentroid.lat, fieldCentroid.lng, patternRows, rowsAngleDeg, rowsOffsetM, cropsOffsetM]
   );
 
   // Recompute summary only when geometry changes
@@ -74,7 +72,7 @@ export default function CroppingLayers({
       const croppingSummary = computeCroppingSummary(fieldCoords, patternRows, croppingLayers.crops);
       onCroppingSummarized(croppingSummary);
     },
-    recomputeDeps
+    [croppingLayers]
   );
 
   if (croppingLayers) {
@@ -137,7 +135,7 @@ function computeCroppingSummary(
  * Computes all row polylines and crop marker positions that lie inside the
  * field polygon, honouring the repeating row/crop pattern.
  *
- * The function works entirely in a local metric (metre) coordinate system
+ * The function works entirely in metric (metre) coordinate system
  * projected from the polygon centroid, then reprojects results back to
  * lat/lng for Leaflet.
  */

@@ -170,7 +170,12 @@ export default function FieldMenu() {
     </Tooltip>;
 
   const submitButton = isFieldChanged ?
-    <Button size="lg" onClick={handleSubmitButtonClick} loading={fieldSubmit.isPending}>
+    <Button
+      size="lg"
+      onClick={handleSubmitButtonClick}
+      loading={fieldSubmit.isPending}
+      disabled={!inputsEnabled}
+    >
       Salvar SAF
     </Button> : undefined;
 

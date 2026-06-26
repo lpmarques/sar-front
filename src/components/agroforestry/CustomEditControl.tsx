@@ -1,81 +1,65 @@
-import isEqual from 'fast-deep-equal';
-import React, { useRef } from 'react';
-import { useLeafletContext } from '@react-leaflet/core';
-import leaflet from 'leaflet';
-
-const eventHandlers = {
-  onEdited: 'draw:edited',
-  onDrawStart: 'draw:drawstart',
-  onDrawStop: 'draw:drawstop',
-  onDrawVertex: 'draw:drawvertex',
-  onEditStart: 'draw:editstart',
-  onEditMove: 'draw:editmove',
-  onEditResize: 'draw:editresize',
-  onEditVertex: 'draw:editvertex',
-  onEditStop: 'draw:editstop',
-  onDeleted: 'draw:deleted',
-  onDeleteStart: 'draw:deletestart',
-  onDeleteStop: 'draw:deletestop',
-};
-
-function CustomEditControl(props) {
+function EditControl(props) {
   const context = useLeafletContext();
-  const drawRef = useRef();
-  const propsRef = useRef(props);
-  const onDrawCreate = (e) => {
+  const drawRef = useRef(null);
+  const handlersRef = useRef({});
+
+  const onDrawCreate = useCallback((e) => {
     const { onCreated } = props;
     const container = context.layerContainer || context.map;
     container.addLayer(e.layer);
-    onCreated && onCreated(e);
-  };
-  
-  React.useEffect(() => {
-    const { map } = context;
-    const { onMounted } = props;
+    onCreated?.(e);
+  }, [context, props.onCreated]);
 
-    for (const key in eventHandlers) {
-      if (props[key]) {
-        map.on(eventHandlers[key], props[key]);
-      }
-    }
-    map.on(leaflet.Draw.Event.CREATED, onDrawCreate);
-    drawRef.current = createDrawElement(props, context);
-    map.addControl(drawRef.current);
-    onMounted && onMounted(drawRef.current);
-    return () => {
-      map.off(leaflet.Draw.Event.CREATED, onDrawCreate);
-      for (const key in eventHandlers) {
-        if (props[key]) {
-          map.off(eventHandlers[key], props[key]);
-        }
-      }
-      drawRef.current.remove(map);
-    };
-  }, [props.onCreated, props.onDeleted, props.onEdited]);
-  React.useEffect(() => {
-    if (
-      isEqual(props.draw, propsRef.current.draw) &&
-      isEqual(props.edit, propsRef.current.edit) &&
-      props.position === propsRef.current.position
-    ) {
-      return;
-    }
+  // Main effect for control setup
+  useEffect(() => {
     const { map } = context;
-    drawRef.current.remove(map);
-    drawRef.current = createDrawElement(props, context);
-    drawRef.current.addTo(map);
-    const { onMounted } = props;
-    onMounted && onMounted(drawRef.current);
+    if (!map || !L.Control.Draw) return; // Safety check
+
+    // Clear previous handlers
+    Object.entries(handlersRef.current).forEach(([key, handler]) => {
+      map.off(eventHandlers[key], handler);
+    });
+
+    // Setup new handlers
+    const newHandlers = {};
+    Object.keys(eventHandlers).forEach((key) => {
+      if (props[key]) {
+        const handler = (e) => props[key](e);
+        newHandlers[key] = handler;
+        map.on(eventHandlers[key], handler);
+      }
+    });
+    handlersRef.current = newHandlers;
+
+    map.on(L.Draw.Event.CREATED, onDrawCreate);
+    
+    drawRef.current = new L.Control.Draw(createDrawOptions(props, context));
+    map.addControl(drawRef.current);
+    props.onMounted?.(drawRef.current);
+
     return () => {
-      drawRef.current.remove(map);
+      map.off(L.Draw.Event.CREATED, onDrawCreate);
+      Object.entries(handlersRef.current).forEach(([key, handler]) => {
+        map.off(eventHandlers[key], handler);
+      });
+      drawRef.current?.remove();
     };
-  }, [
-    props.draw, 
-    props.edit, 
-    props.position, 
-    props.onCreated,
-    props.onDeleted,
-    props.onEdited
-  ]);
+  }, [context, onDrawCreate]);
+
+  // Effect for draw options changes
+  useEffect(() => {
+    const { map } = context;
+    if (!map || !drawRef.current) return;
+
+    const prevOptions = drawRef.current.options;
+    const newOptions = createDrawOptions(props, context);
+
+    if (!isEqual(prevOptions, newOptions)) {
+      drawRef.current.remove();
+      drawRef.current = new L.Control.Draw(newOptions);
+      map.addControl(drawRef.current);
+    }
+  }, [props.draw, props.edit, props.position]);
+
   return null;
 }
