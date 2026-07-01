@@ -43,7 +43,7 @@ interface FieldFeatureGroupProps {
 }
 
 export default function FieldFeatureGroup({ onEditStart, onEditStop, extraPolygonProps }: FieldFeatureGroupProps) {
-  const { fields, selectedFieldIndex, enableInputs, disableInputs, replaceField } = useProject();
+  const { fields, selectedFieldIndex, replaceField } = useProject();
   const [polygonVersion, setPolygonVersion] = useState(1);
   
   const field = selectedFieldIndex !== null ? fields[selectedFieldIndex] : undefined;
@@ -53,10 +53,6 @@ export default function FieldFeatureGroup({ onEditStart, onEditStop, extraPolygo
   const editedRef = useRef(false);
   editedRef.current = false;
   const [editCancels, setEditCancels] = useState(0);
-  
-  // console.log(`edited: ${editedRef.current}`);
-  // console.log(`editCancels: ${editCancels}`);
-  // console.log(`polygonVersion: ${polygonVersion}`);
 
   // useMemo is necessary to stabilize fieldLatLngs, preventing desyncing between react state and 
   // leaflet layer on re-renders. On the other hand, fieldLatLngs should be recalculated when 
@@ -64,7 +60,6 @@ export default function FieldFeatureGroup({ onEditStart, onEditStop, extraPolygo
   // updates the array during edit and fails to revert repositioned vertexes after edit is canceled)
   const fieldLatLngs = useMemo(
     () => {
-      // console.log("recalc fieldLatLngs");
       const currentField = fieldRef.current;
       return currentField?.polygon && positionToLatLng(currentField.polygon.coordinates);
     },
@@ -77,24 +72,17 @@ export default function FieldFeatureGroup({ onEditStart, onEditStop, extraPolygo
   // const onPolygonEditStart = useCallback(disableInputs, [disableInputs]);
   // const onPolygonEditStop = useCallback(enableInputs, [enableInputs]);
 
-  const onPolygonEditStart = useCallback(() => {
-    // console.log('edit start');
-  }, []);
-
   const onPolygonEditStop = useCallback(() => {
-    // console.log('edit stop');
     const currentField = fieldRef.current;
     if (!currentField) return
 
     if (!editedRef.current) {
-      // console.log('edit canceled');
       setEditCancels(c => c + 1); // triggers fieldLatLngs recalc, discarding any change in state that leaflet failed to revert
-      setPolygonVersion(v => v + 1); // forces Polygon to remount, discarding any change in leaflet's layer that it failed to revert
     }
+    setPolygonVersion(v => v + 1); // forces Polygon to remount, ensuring up-to-date layer and discarding any canceled change that leaflet failed to revert
   }, []);
 
   const onPolygonEdited = useCallback((e: DrawEvents.Edited) => {
-    // console.log('edited');
     editedRef.current = true;
     const currentField = fieldRef.current;
     if (!currentField) return
@@ -105,7 +93,6 @@ export default function FieldFeatureGroup({ onEditStart, onEditStop, extraPolygo
         ...currentField,
         polygon: layer.toGeoJSON().geometry as GJPolygon
       });
-      setPolygonVersion((version) => version + 1);
     }
   }, [replaceField]);
 
@@ -148,7 +135,6 @@ export default function FieldFeatureGroup({ onEditStart, onEditStop, extraPolygo
           extraPolygonProps={extraPolygonProps}
           extraEditControlProps={{
             onEdited: onPolygonEdited,
-            onEditStart: onPolygonEditStart,
             onEditStop: onPolygonEditStop,
           }}
         />
@@ -180,8 +166,6 @@ function FieldPolygon({ id, version, positions, extraPolygonProps, extraEditCont
     const polygonArea = GeometryUtil.geodesicArea(polygonLatLngs[0]);
     return `${Math.round(polygonArea)} m²`;
   }
-
-  // console.log(`render polygon ${id} version ${version}`);
 
   return (
     <FeatureGroup>
