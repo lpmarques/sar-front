@@ -44,6 +44,8 @@ interface FieldsMapProps extends MapContainerProps {
   farmPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
   fieldPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
   selectedFieldPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
+  onFieldPolygonEditStart?: () => void,
+  onFieldPolygonEditStop?: () => void,
 }
 
 export default function FieldsMap({
@@ -54,6 +56,8 @@ export default function FieldsMap({
   farmPolygonProps,
   fieldPolygonProps,
   selectedFieldPolygonProps,
+  onFieldPolygonEditStart,
+  onFieldPolygonEditStop,
   ...mapContainerProps
 }: FieldsMapProps
 ) {
@@ -175,7 +179,11 @@ export default function FieldsMap({
       {farmFeatureGroup}
       {fieldsFeatureGroup}
       {focusField &&
-      <FieldFeatureGroup extraPolygonProps={fieldPolygonProps}/>}
+      <FieldFeatureGroup
+        onEditStart={onFieldPolygonEditStart}
+        onEditStop={onFieldPolygonEditStop}
+        extraPolygonProps={fieldPolygonProps}
+      />}
     </MapContainer>
   )
 }

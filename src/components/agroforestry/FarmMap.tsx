@@ -13,7 +13,6 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 
 import {
   DrawEvents,
-  GeometryUtil,
   LatLng,
   Polygon as PolygonLayer,
   latLngBounds,
@@ -21,7 +20,10 @@ import {
 import { FeatureGroup, MapContainer, MapContainerProps, Marker, MarkerProps, Polygon, PolygonProps, Tooltip } from "react-leaflet";
 import { EditControl, EditControlProps } from "react-leaflet-draw";
 import { MapStyle } from "@maptiler/leaflet-maptilersdk";
+import area from '@turf/area';
+import { polygon } from '@turf/helpers';
 import { DeviceLocationControl, MapBoundsFraming, MapCentering, MaptilerVectorLayer } from ".";
+import { latLngToPosition } from "../../utils/agroforestry";
 
 interface FarmMapProps extends MapContainerProps {
   farmLocation: LatLng | undefined,
@@ -53,9 +55,11 @@ export default function FarmMap({
   // (e.g. from interrupted/canceled edit events)
   const locationLatLng = farmLocation && farmLocation.clone();
   const polygonLatLngs = farmPolygon && [farmPolygon[0].map(point => point.clone())];
+  console.log(farmPolygon);
 
   const getPolygonAreaDisplay = (polygonLatLngs: LatLng[][]) => {
-    const polygonArea = GeometryUtil.geodesicArea(polygonLatLngs[0]);
+    const polygonArea = area(polygon(latLngToPosition(polygonLatLngs))); // more precise
+    // const polygonArea = GeometryUtil.geodesicArea(polygonLatLngs[0]);
     return `
       ${Math.round(polygonArea)} m²
       (${Math.round(polygonArea/100)/100} ha)

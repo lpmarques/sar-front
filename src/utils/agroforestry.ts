@@ -32,6 +32,18 @@ export function positionToLatLng(coords: Position | Position[] | Position[][]): 
   return coords.map(coords => positionToLatLng(coords as Position[]));
 }
 
+export function latLngToPosition(coords: LatLng): Position;
+export function latLngToPosition(coords: LatLng[]): Position[];
+export function latLngToPosition(coords: LatLng[][]): Position[][];
+export function latLngToPosition(coords: LatLng | LatLng[] | LatLng[][]): Position | Position[] | Position[][] {
+  if (coords instanceof LatLng)
+    return [coords.lng as number, coords.lat as number];
+  if (coords[0] instanceof LatLng)
+    return coords.map(coords => latLngToPosition(coords as LatLng));
+
+  return coords.map(coords => latLngToPosition(coords as LatLng[]));
+}
+
 // TODO: replace with component linking coordinates to google maps (https://maps.google.com/?q={lat},{long})
 export function latLngToString(latitude: number, longitude: number, decimalPlaces: number = 4) {
   const rndFctr = Math.pow(10, decimalPlaces);

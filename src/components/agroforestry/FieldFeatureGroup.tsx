@@ -19,20 +19,21 @@ import {
   LatLng,
   Polygon as PolygonLayer,
 } from "leaflet";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   FeatureGroup,
   Polygon,
   PolygonProps,
   Tooltip,
 } from "react-leaflet";
-import MapBoundsFraming from "./MapBoundsFraming";
-import { CroppingSummary, getCroppingPattern } from "../../apis/agroforestry";
-import { positionToLatLng } from "../../utils/agroforestry";
-import { useQuery } from "@tanstack/react-query";
-import { useProject } from "../../hooks/useProject";
-import { CroppingLayers, EditControl } from ".";
-import { useCallback, useMemo, useRef, useState } from "react";
 import { EditControlProps } from "react-leaflet-draw";
+import { useQuery } from "@tanstack/react-query";
+import area from '@turf/area';
+import { polygon } from '@turf/helpers';
+import { CroppingSummary, getCroppingPattern } from "../../apis/agroforestry";
+import { latLngToPosition, positionToLatLng } from "../../utils/agroforestry";
+import { useProject } from "../../hooks/useProject";
+import { CroppingLayers, EditControl, MapBoundsFraming } from ".";
 
 const MAX_ZOOM = 30;
 
@@ -42,7 +43,11 @@ interface FieldFeatureGroupProps {
   extraPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
 }
 
-export default function FieldFeatureGroup({ onEditStart, onEditStop, extraPolygonProps }: FieldFeatureGroupProps) {
+export default function FieldFeatureGroup({
+  onEditStart = () => {},
+  onEditStop = () => {},
+  extraPolygonProps,
+}: FieldFeatureGroupProps) {
   const { fields, selectedFieldIndex, replaceField } = useProject();
   const [polygonVersion, setPolygonVersion] = useState(1);
   
@@ -66,12 +71,6 @@ export default function FieldFeatureGroup({ onEditStart, onEditStop, extraPolygo
     [field?.polygon.coordinates, editCancels]
   );
 
-  // TODO: remove inputsEnabled from ProjectProvider to prevent re-rendering of FieldsMap during polygon edit.
-  // Instead, declare it directly in ProjectDashboard and pass only callbacks into FieldsMap/FieldFeatureGroup 
-  // as onEditStart and onEditStop props.
-  // const onPolygonEditStart = useCallback(disableInputs, [disableInputs]);
-  // const onPolygonEditStop = useCallback(enableInputs, [enableInputs]);
-
   const onPolygonEditStop = useCallback(() => {
     const currentField = fieldRef.current;
     if (!currentField) return
@@ -80,6 +79,7 @@ export default function FieldFeatureGroup({ onEditStart, onEditStop, extraPolygo
       setEditCancels(c => c + 1); // triggers fieldLatLngs recalc, discarding any change in state that leaflet failed to revert
     }
     setPolygonVersion(v => v + 1); // forces Polygon to remount, ensuring up-to-date layer and discarding any canceled change that leaflet failed to revert
+    onEditStop();
   }, []);
 
   const onPolygonEdited = useCallback((e: DrawEvents.Edited) => {
@@ -134,6 +134,7 @@ export default function FieldFeatureGroup({ onEditStart, onEditStop, extraPolygo
           positions={fieldLatLngs}
           extraPolygonProps={extraPolygonProps}
           extraEditControlProps={{
+            onEditStart: onEditStart,
             onEdited: onPolygonEdited,
             onEditStop: onPolygonEditStop,
           }}
@@ -163,7 +164,7 @@ interface FieldPolygonProps {
 
 function FieldPolygon({ id, version, positions, extraPolygonProps, extraEditControlProps }: FieldPolygonProps) {
   const getPolygonAreaDisplay = (polygonLatLngs: LatLng[][]) => {
-    const polygonArea = GeometryUtil.geodesicArea(polygonLatLngs[0]);
+    const polygonArea = area(polygon(latLngToPosition(polygonLatLngs)));
     return `${Math.round(polygonArea)} m²`;
   }
 

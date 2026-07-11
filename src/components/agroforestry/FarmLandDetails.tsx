@@ -19,6 +19,7 @@ import { FarmReadData } from "../../apis/agroforestry";
 const absentInfo = <Text span c="red">Não informado</Text>;
 
 export default function FarmLandDetails({ farm }: { farm: FarmReadData }) {
+  
   const farmCoords = latLngToString(farm.location.coordinates[1], farm.location.coordinates[0]);
   const farmArea = farm.areaM2 ? `${farm.areaM2} m² (${Math.round(farm.areaM2/100)/100} ha)` : absentInfo;
 

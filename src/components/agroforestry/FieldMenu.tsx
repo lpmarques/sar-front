@@ -26,14 +26,13 @@ import DeleteButton from "../common/DeleteButton";
 import FieldView from "../common/FieldView";
 import { showError, showSuccess } from "../common/notifications";
 
-export default function FieldMenu() {
+export default function FieldMenu({ inputsDisabled = false }: { inputsDisabled: boolean }) {
   const queryClient = useQueryClient();
   const {
     farm,
     fields,
     initialFieldValues,
     selectedFieldIndex,
-    inputsEnabled,
     unselectField,
     replaceField,
     removeField,
@@ -174,7 +173,7 @@ export default function FieldMenu() {
       size="lg"
       onClick={handleSubmitButtonClick}
       loading={fieldSubmit.isPending}
-      disabled={!inputsEnabled}
+      disabled={inputsDisabled}
     >
       Salvar SAF
     </Button> : undefined;
@@ -193,12 +192,12 @@ export default function FieldMenu() {
           <TextInput
             label="Nome do SAF"
             pb={10}
-            disabled={!inputsEnabled}
+            disabled={inputsDisabled}
             {...fieldForm.getInputProps("name")}
           />
           <CroppingControls
             fieldForm={fieldForm}
-            disabled={!inputsEnabled}
+            disabled={inputsDisabled}
           />
           {field!.cropping?.summary &&
           <CroppingSummaryDetails summary={field!.cropping.summary} />}
