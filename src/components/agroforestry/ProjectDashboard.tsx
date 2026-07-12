@@ -11,6 +11,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Container, Grid, Paper, Transition } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
@@ -18,7 +19,6 @@ import { getFarm, getFieldList } from "../../apis/agroforestry";
 import { ProjectProvider, useProject } from "../../hooks/useProject";
 import { QueryLoader } from "../common/QueryLoader";
 import { FieldMenu, FieldsMap } from ".";
-import { useState } from "react";
 
 export default function ProjectDashboard() {
   const { farmId } = useParams();

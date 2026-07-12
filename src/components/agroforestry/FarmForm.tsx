@@ -20,7 +20,7 @@ import {
   latLngBounds,
   Layer,
   Map,
-  Marker as MarkerLayer,
+  polygon,
   Polygon as PolygonLayer,
 } from "leaflet";
 import 'leaflet-geometryutil';
@@ -29,80 +29,60 @@ import { Alert, Button, Container, Paper, Space, Text, TextInput, Title } from "
 import { useField, useForm } from "@mantine/form";
 import { IconArrowBigLeft, IconEdit, IconInfoCircle, IconMapPinFilled, IconPentagonFilled, IconTrash } from "@tabler/icons-react";
 import { UseMutationResult, useQuery } from "@tanstack/react-query";
-import * as turf from "@turf/centroid";
+import area from "@turf/area";
+import * as turf from "@turf/helpers";
 import { FarmReadData, FarmWriteRequestData, FarmWriteResponseData, getFarmList, SiteTraitValueWriteRequestData } from "../../apis/agroforestry";
 import { showError } from "../common/notifications";
 import { FarmLandForm, FarmMap, SiteTraitValuesForm } from ".";
 import { SiteTraitField } from "./SiteTraitValuesForm";
 import { GenericResponse, WriteFnInput } from "../../apis/common";
-import { positionToLatLng } from "../../utils/agroforestry";
+import { latLngToPosition, positionToLatLng } from "../../utils/agroforestry";
 
 interface FarmFormProps {
   farm?: FarmReadData,
   mutation: UseMutationResult<FarmWriteResponseData | GenericResponse, Error, WriteFnInput<FarmWriteRequestData>, unknown>,
 }
 
+const RJ_CENTER = new LatLng(-22.279276, -42.8643083);
+
 export default function FarmForm({ farm, mutation }: FarmFormProps) {
   const [step, setStep] = useState<number>(0);
 
-  const defaultFarmPolygon = farm?.polygon ? positionToLatLng(farm.polygon.coordinates) : undefined;
-  const defaultFarmLocation = !defaultFarmPolygon && farm?.location ? positionToLatLng(farm.location.coordinates) : undefined;
+  const defaultPolygonCoords = farm?.polygon ? positionToLatLng(farm.polygon.coordinates) : undefined;
 
   const originalFarmCenter = farm && positionToLatLng(farm.location.coordinates);
-  const originalFarmArea = defaultFarmPolygon && GeometryUtil.geodesicArea(defaultFarmPolygon[0]);
+  const originalFarmArea = defaultPolygonCoords && GeometryUtil.geodesicArea(defaultPolygonCoords[0]);
 
-  const [farmPolygon, setFarmPolygon] = useState<LatLng[][] | undefined>(defaultFarmPolygon);
-  const [farmLocation, setFarmLocation] = useState<LatLng | undefined>(defaultFarmLocation);
-
-  const rjCenter = new LatLng(-22.279276, -42.8643083);
-  const [mapState, setMapState] = useState({
-    center: farm ? positionToLatLng(farm.location.coordinates) : rjCenter,
+  const [polygonCoords, setPolygonCoords] = useState<LatLng[][] | undefined>(defaultPolygonCoords);
+  
+  const mapViewProps = {
+    center: farm ? positionToLatLng(farm.location.coordinates) : RJ_CENTER,
     zoom: 7,
-  });
+  };
 
-  const setFarmLayer = (layer: Layer, map: Map) => {
+  const setCoords = (layer: Layer) => {
     if (layer instanceof PolygonLayer) {
-      const polygon = layer.toGeoJSON().geometry;
-      const polygonCenter = turf.centroid(polygon);
-      setFarmPolygon(layer.getLatLngs() as LatLng[][]);
-      farmForm.setFieldValue('polygon', polygon as GeoJsonPolygon);
-      setMapState({
-        center: latLng(polygonCenter.geometry.coordinates[1], polygonCenter.geometry.coordinates[0]),
-        zoom: map.getZoom(),
-      });
-    }
-    if (layer instanceof MarkerLayer) {
-      const point = layer.toGeoJSON().geometry;
-      setFarmLocation(layer.getLatLng());
-      farmForm.setFieldValue('location', point);
-      setMapState({
-        center: layer.getLatLng(),
-        zoom: map.getZoom(),
-      });
+      const polygon = layer.toGeoJSON().geometry as GeoJsonPolygon;
+      setPolygonCoords(positionToLatLng(polygon.coordinates));
     }
   }
 
-  const unsetFarmLayer = (layer: Layer) => {
+  const unsetCoords = (layer: Layer) => {
     if (layer instanceof PolygonLayer) {
-      setFarmPolygon(undefined);
-      farmForm.setFieldValue('polygon', undefined);
-    }
-    if (layer instanceof MarkerLayer) {
-      setFarmLocation(undefined);
-      farmForm.setFieldValue('location', undefined);
+      setPolygonCoords(undefined);
     }
   }
 
-  const onCreated = (e: DrawEvents.Created) => {
-    setFarmLayer(e.layer, e.target);
+  const onPolygonCreated = (e: DrawEvents.Created) => {
+    setCoords(e.layer);
   };
 
-  const onEdited = (e: DrawEvents.Edited) => {
-    setFarmLayer(e.layers.getLayers()[0], e.target);
+  const onPolygonEdited = (e: DrawEvents.Edited) => {
+    setCoords(e.layers.getLayers()[0]);
   };
 
-  const onDeleted = (e: DrawEvents.Deleted) => {
-    unsetFarmLayer(e.layers.getLayers()[0]);
+  const onPolygonDeleted = (e: DrawEvents.Deleted) => {
+    unsetCoords(e.layers.getLayers()[0]);
   };
 
   const farmsQueryOptions = {
@@ -111,8 +91,8 @@ export default function FarmForm({ farm, mutation }: FarmFormProps) {
   };
   const farms = useQuery(farmsQueryOptions);
 
-  const farmCenter = farmPolygon ? latLngBounds(farmPolygon[0]).getCenter() : mapState.center;
-  const farmArea = farmPolygon && GeometryUtil.geodesicArea(farmPolygon[0]);
+  const farmCenter = polygonCoords ? latLngBounds(polygonCoords[0]).getCenter() : mapViewProps.center;
+  const farmArea = polygonCoords && area(turf.polygon(latLngToPosition(polygonCoords)));
 
   const centerChanged = originalFarmCenter ? farmCenter.distanceTo(originalFarmCenter) > 100 : true;
   const areaChanged = originalFarmArea ? farmArea !== originalFarmArea : true;
@@ -156,10 +136,9 @@ export default function FarmForm({ farm, mutation }: FarmFormProps) {
 
   const validateFarmGeometry = () => {
     const formValues = farmForm.getValues();
-    const errMsg = "A localização ou o polígono da propriedade precisam ser indicados no mapa.";
-    if (!(formValues.location || formValues.polygon)) {
+    const errMsg = "O perímetro da propriedade precisa ser desenhado no mapa.";
+    if (!formValues.polygon) {
       const geomErrors = {
-        location: errMsg,
         polygon: errMsg,
       };
 
@@ -173,6 +152,11 @@ export default function FarmForm({ farm, mutation }: FarmFormProps) {
 
     farmForm.setFieldValue('name', nameField.getValue()); // paliativo até entender por que o farmForm.getInputProps('name').error não está atualizando corretamente
     const nameFieldError = await nameField.validate();
+
+    if (polygonCoords) {
+      const polygonLayer = polygon(polygonCoords);
+      farmForm.setFieldValue('polygon', polygonLayer.toGeoJSON().geometry as GeoJsonPolygon);
+    }
     
     const farmValidation = farmForm.validate();
     const farmUniquenessErrors = validateFarmNameUniqueness(farms.data!);
@@ -233,8 +217,7 @@ export default function FarmForm({ farm, mutation }: FarmFormProps) {
       data: {
         name: farmForm.getTransformedValues()['name'],
         municipalityId: Number(farmForm.getValues()['municipalityId']),
-        ...(farmLocation && {location: farmForm.getValues()['location']}),
-        ...(farmPolygon && {polygon: farmForm.getValues()['polygon']}),
+        ...(polygonCoords && {polygon: farmForm.getValues()['polygon']}),
         traitValues: traitValues,
       },
     });
@@ -274,15 +257,14 @@ export default function FarmForm({ farm, mutation }: FarmFormProps) {
       />
       <Text fz="lg" mb={5}>Mapa da propriedade</Text>
       <FarmMap
-        center={mapState.center}
-        zoom={mapState.zoom}
-        farmLocation={farmLocation}
-        farmPolygon={farmPolygon}
+        center={mapViewProps.center}
+        zoom={mapViewProps.zoom}
+        polygonCoords={polygonCoords}
         showPolygonArea
         editControlProps={{
-          onCreated: onCreated,
-          onEdited: onEdited,
-          onDeleted: onDeleted,
+          onCreated: onPolygonCreated,
+          onEdited: onPolygonEdited,
+          onDeleted: onPolygonDeleted,
         }}
       />
       <Text size="md" c="red">{farmForm.getInputProps('location').error}</Text>
@@ -303,18 +285,17 @@ export default function FarmForm({ farm, mutation }: FarmFormProps) {
     <>
       <Alert variant="light" color="blue" mb={15} icon={<IconInfoCircle />}>
         {farm ? <>
-        <Text>Se quiser alterar a localização ou a área da propriedade no mapa, use o botão Editar (<IconEdit size={18} />), 
+        <Text>Se quiser alterar o perímetro da propriedade, use o botão Editar (<IconEdit size={18} />), 
         mude a forma como quiser e, quando terminar, selecione "Guardar".</Text>
         <Space h={5}/>
-        <Text>Mas, se você só indicou a localização com um marcador (<IconMapPinFilled size={14}/>) e quer informar a área da propriedade, primeiro use o botão Eliminar (<IconTrash size={18} />)
-        , selecione "Limpar tudo" e, enfim, o botão de polígono (<IconPentagonFilled size={14} />) para desenhar a área.</Text>
+        <Text>Se deseja começar do zero, tente o botão Eliminar (<IconTrash size={18} />)
+        , selecione "Limpar tudo" e, enfim, o botão de polígono (<IconPentagonFilled size={14} />) para desenhar novamente.</Text>
         </> : <>
         <Text>Para trazer as melhores recomendações para o seu projeto, precisamos conhecer a propriedade onde você quer implantá-lo.</Text>
         <Space h={5}/>
-        <Text>Para começar, <Text span fw={700}>indique a localização com um marcador (<IconMapPinFilled size={14}/>) 
-          ou desenhe o polígono (<IconPentagonFilled size={14} />) da propriedade</Text>, no mapa abaixo.</Text>
+        <Text>Para começar, <Text span fw={700}> desenhe o perímetro da propriedade (<IconPentagonFilled size={14} /></Text>) no mapa abaixo.
+        Ele nos ajuda a calcular a área e o número de módulos fiscais da propriedade para você.</Text>
         <Space h={5}/>
-        <Text>Ao desenhar o polígono, você nos ajuda a calcular a área e o número de módulos fiscais para você.</Text>
         </>}
       </Alert>
       {farmMapForm}

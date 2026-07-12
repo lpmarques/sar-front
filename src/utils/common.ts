@@ -11,7 +11,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
-import { UserReadData } from "../apis/core";
+export type Optionalize<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 export function sortValueFirst(a: string, b: string, value: string): number;
 export function sortValueFirst(a: number, b: number, value: number): number;

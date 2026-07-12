@@ -36,6 +36,7 @@ import SiteTraitValueDisplay from './SiteTraitValueDisplay';
 import SiteTraitValueInput from './SiteTraitValueInput';
 import SiteTraitValuesForm from './SiteTraitValuesForm';
 import EditControl from './EditControl';
+import PolygonDrawing from './PolygonDrawing';
 
 export {
   ButtonControl,
@@ -58,6 +59,7 @@ export {
   MapCentering,
   MapControl,
   MaptilerVectorLayer,
+  PolygonDrawing,
   ProjectDashboard,
   SiteTraitsDetails,
   SiteTraitValueDisplay,

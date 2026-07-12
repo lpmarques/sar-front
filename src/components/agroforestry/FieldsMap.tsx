@@ -89,8 +89,6 @@ export default function FieldsMap({
       addField({ polygon: geoJson.geometry as GJPolygon });
       setDrawingNewField(false);
     }
-
-    e.layer.remove();
   };
 
   const otherFields = fields.filter((_, index) => index !== focusIndex);

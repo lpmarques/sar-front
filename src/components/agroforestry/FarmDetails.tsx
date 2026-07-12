@@ -73,10 +73,11 @@ export default function FarmDetails() {
           </Group>
           <Container px={10}>
             <FarmMap
-              farmLocation={location}
-              farmPolygon={polygon}
+              polygonCoords={polygon}
               style={{ height: '400px', width: '100%' }}
               dragging={false}
+              showPolygonArea={false}
+              editControl={false}
               zoomControl={false}
               locationControl={false}
               scrollWheelZoom={false}
