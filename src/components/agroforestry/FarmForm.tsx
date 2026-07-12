@@ -15,11 +15,9 @@ import { Polygon as GeoJsonPolygon } from "geojson";
 import {
   DrawEvents,
   GeometryUtil,
-  latLng,
   LatLng,
   latLngBounds,
   Layer,
-  Map,
   polygon,
   Polygon as PolygonLayer,
 } from "leaflet";
@@ -27,7 +25,7 @@ import 'leaflet-geometryutil';
 import { useState } from "react";
 import { Alert, Button, Container, Paper, Space, Text, TextInput, Title } from "@mantine/core";
 import { useField, useForm } from "@mantine/form";
-import { IconArrowBigLeft, IconEdit, IconInfoCircle, IconMapPinFilled, IconPentagonFilled, IconTrash } from "@tabler/icons-react";
+import { IconArrowBigLeft, IconEdit, IconInfoCircle, IconPentagonFilled, IconTrash } from "@tabler/icons-react";
 import { UseMutationResult, useQuery } from "@tanstack/react-query";
 import area from "@turf/area";
 import * as turf from "@turf/helpers";

@@ -20,15 +20,11 @@ import {
   FeatureGroup,
   Polygon,
   PolygonProps,
-  Tooltip,
-  TooltipProps,
 } from "react-leaflet";
 import { EditControlProps } from "react-leaflet-draw";
-import area from '@turf/area';
-import { polygon } from '@turf/helpers';
-import { latLngCentroid, latLngToPosition } from "../../utils/agroforestry";
-import { EditControl } from ".";
+import { latLngCentroid } from "../../utils/agroforestry";
 import { Optionalize } from "../../utils/common";
+import { EditControl } from ".";
 
 // The key to avoid desyncing between react state and leaflet DOM elements is in 
 // ensuring that react-leaflet-draw's EditControl never re-renders during an edit, 

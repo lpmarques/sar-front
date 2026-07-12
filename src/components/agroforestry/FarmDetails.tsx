@@ -35,7 +35,6 @@ export default function FarmDetails() {
   const farm = useQuery(farmQueryOptions);
 
   const polygon = farm.data?.polygon ? positionToLatLng(farm.data.polygon.coordinates) : undefined;
-  const location = !polygon && farm.data?.location ? positionToLatLng(farm.data.location.coordinates) : undefined;
 
   const handleProjectButtonClick = () => {
     navigate('project');

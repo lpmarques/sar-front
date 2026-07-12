@@ -199,7 +199,7 @@ export default function FieldMenu({ inputsDisabled = false }: { inputsDisabled: 
             fieldForm={fieldForm}
             disabled={inputsDisabled}
           />
-          {field!.cropping?.summary &&
+          {field!.cropping?.summary && field!.cropping?.patternId &&
           <CroppingSummaryDetails summary={field!.cropping.summary} />}
           {/* {initialField &&
           <PlantFitnessButton farm={farm} />} */}
