@@ -165,7 +165,15 @@ export interface CropSummary {
   metrics: CropSummaryMetrics;
 }
 
-export type CroppingSummary = {[key: string]: CropSummary};
+export type CroppingSummaryCrops = {
+  [key: string]: CropSummary
+};
+
+export interface CroppingSummary {
+  individualsCount: number;
+  densityPerHa: number;
+  crops: CroppingSummaryCrops;
+};
 
 export interface Cropping {
   patternId: number;

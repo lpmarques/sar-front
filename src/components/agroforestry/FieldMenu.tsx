@@ -199,8 +199,8 @@ export default function FieldMenu({ inputsDisabled = false }: { inputsDisabled: 
             fieldForm={fieldForm}
             disabled={inputsDisabled}
           />
-          {field!.cropping?.summary && field!.cropping?.patternId &&
-          <CroppingSummaryDetails summary={field!.cropping.summary} />}
+          {field!.cropping?.summary && field!.cropping?.patternId ?
+          <CroppingSummaryDetails summary={field!.cropping.summary} /> : undefined}
           {/* {initialField &&
           <PlantFitnessButton farm={farm} />} */}
         </Stack>
@@ -212,39 +212,63 @@ export default function FieldMenu({ inputsDisabled = false }: { inputsDisabled: 
 }
 
 function CroppingSummaryDetails({ summary }: { summary: CroppingSummary }) {
-  const CropLegend = ({ plant }: { plant: PlantReadData }) => (
-    <Group justify="left" gap="xs">
-      <IconCircleFilled color={plant.colorHex} size={15} />
-      {plant.acceptedTaxonName}
-    </Group>
+  function CropLegend({ plant }: { plant: PlantReadData }) {
+    return (
+      <Group justify="left" gap="xs">
+        <IconCircleFilled color={plant.colorHex} size={15} />
+        {plant.acceptedTaxonName}
+      </Group>
+    )
+  };
+
+  const summaryTotals = (
+    <Fieldset key="totals" legend="Total" fw={500} p={10} mb={10}>
+      <Group gap="xs">
+        <FieldView
+          label="Quant."
+          fz={14}
+          legendProps={{fw: 500, c: "var(--mantine-color-gray-7)"}}
+          >
+          {summary.individualsCount} pés
+        </FieldView>
+        <FieldView
+          label="Densidade"
+          fz={14}
+          legendProps={{fw: 500, c: "var(--mantine-color-gray-7)"}}
+          >
+          {summary.densityPerHa} pés/ha
+        </FieldView>
+      </Group>
+    </Fieldset>
   );
-  
-  const cropSummaries = Object.keys(summary).sort().map(
+
+  const summaryCrops = Object.keys(summary.crops).sort().map(
     (key) => (
-      <Fieldset key={key} legend={<CropLegend plant={summary[key].plant} />} fw={500} p={10} mb={10}>
+      <Fieldset key={key} legend={<CropLegend plant={summary.crops[key].plant} />} fw={500} p={10} mb={10}>
         <Group gap="xs">
           <FieldView
             label="Quant."
             fz={14}
             legendProps={{fw: 500, c: "var(--mantine-color-gray-7)"}}
             >
-            {summary[key].metrics.individualsCount} pés
+            {summary.crops[key].metrics.individualsCount} pés
           </FieldView>
           <FieldView
             label="Densidade"
             fz={14}
             legendProps={{fw: 500, c: "var(--mantine-color-gray-7)"}}
             >
-            {summary[key].metrics.densityPerHa} pés/ha
+            {summary.crops[key].metrics.densityPerHa} pés/ha
           </FieldView>
         </Group>
       </Fieldset>
     )
-  )
+  );
   
   return (
     <Fieldset fz="h3" legend="Resumo do cultivo">
-      {cropSummaries}
+      {summaryTotals}
+      {summaryCrops}
     </Fieldset>
   );
 }

@@ -15,7 +15,7 @@ import { GeometryUtil, LatLng } from "leaflet";
 import 'leaflet-geometryutil';
 import { clipLineToPoly, DEG2RAD, getBBox, latLngCentroid, latLngToMeters, metersToLatLng, Point2D, pointInPoly } from "../../utils/agroforestry";
 import { CircleMarker, Polyline, Tooltip } from "react-leaflet";
-import { CroppingSummary, PatternCrop, PatternRow } from "../../apis/agroforestry";
+import { CroppingSummary, CroppingSummaryCrops, PatternCrop, PatternRow } from "../../apis/agroforestry";
 import { useEffect, useMemo } from "react";
 
 const SQ_METERS_PER_HECTARE = 10000;
@@ -109,24 +109,36 @@ function computeCroppingSummary(
     };
   }
 
-  const croppingSummary = cropLayers.reduce(
-    (summary: CroppingSummary, crop) => {
+  const summaryCrops = cropLayers.reduce(
+    (crops: CroppingSummaryCrops, crop) => {
       const patternRow = patternRows[crop.patternRowPos-1]
       const patternCrop = patternRow.crops[crop.patternCropPos-1];
       const cropKey = patternCrop.plant.acceptedTaxonName;
-      if (!Object.keys(summary).includes(cropKey))
-        summary[cropKey] = initCropSummary(patternRow, patternCrop);
+      if (!Object.keys(crops).includes(cropKey))
+        crops[cropKey] = initCropSummary(patternRow, patternCrop);
 
-      const { individualsCount, occupiedAreaSqrm } = summary[cropKey].metrics;
-      summary[cropKey].metrics = {
+      const { individualsCount, occupiedAreaSqrm } = crops[cropKey].metrics;
+      crops[cropKey].metrics = {
         individualsCount: individualsCount + 1,
         occupiedAreaSqrm: occupiedAreaSqrm + computeIndividualCropArea(patternRow, patternCrop),
         densityPerHa: computeCropDensity(individualsCount + 1),
       };
 
-      return summary;
+      return crops;
     }, {}
   );
+
+  const croppingSummary = Object.values(summaryCrops).reduce(
+    (summary: CroppingSummary, crop) => {
+      summary.individualsCount += crop.metrics.individualsCount;
+      summary.densityPerHa += crop.metrics.densityPerHa;
+
+      return summary;
+    }, {
+    individualsCount: 0,
+    densityPerHa: 0,
+    crops: summaryCrops,
+  });
 
   return croppingSummary;
 }
