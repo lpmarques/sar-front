@@ -11,9 +11,10 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
-import { Button, Container, Fieldset, Group, NativeSelect, NativeSelectProps, NumberInput, ScrollArea, Stack, Text, TextInput, Tooltip } from "@mantine/core";
+import { BoxProps, Button, Container, Fieldset, Group, NumberInput, ScrollArea, Stack, Text, TextInput, Tooltip } from "@mantine/core";
 import { useForm, UseFormReturnType } from "@mantine/form";
-import { IconCircleFilled, IconInfoCircle, IconX } from "@tabler/icons-react";
+import { modals } from "@mantine/modals";
+import { IconCircleFilled, IconChevronRight, IconInfoCircle, IconX } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import booleanEqual from "@turf/boolean-equal";
 import { createField, CroppingSummary, deleteField, FieldWriteRequestData, getCroppingPatternList, updateField } from "../../apis/agroforestry";
@@ -25,6 +26,8 @@ import ConfirmingButton from "../common/ConfirmingButton";
 import DeleteButton from "../common/DeleteButton";
 import FieldView from "../common/FieldView";
 import { showError, showSuccess } from "../common/notifications";
+import CroppingPatternsTable from "./CroppingPatternsTable";
+import { useCallback, useMemo } from "react";
 
 export default function FieldMenu({ inputsDisabled = false }: { inputsDisabled: boolean }) {
   const queryClient = useQueryClient();
@@ -362,11 +365,14 @@ function CroppingControls({ fieldForm, disabled }: CroppingControlsProps) {
   );
 }
 
-interface CroppingPatternSelectProps extends NativeSelectProps {
+interface CroppingPatternSelectProps {
   fieldForm: UseFormReturnType<FieldWriteRequestData>,
+  label?: string,
+  disabled?: boolean,
+  mb?: BoxProps['mb'],
 }
 
-function CroppingPatternSelect({ fieldForm, ...selectProps }: CroppingPatternSelectProps) {
+function CroppingPatternSelect({ fieldForm, label, disabled, mb }: CroppingPatternSelectProps) {
   const { user } = useAuth();
 
   const publicPatternsQueryOptions = {
@@ -389,50 +395,54 @@ function CroppingPatternSelect({ fieldForm, ...selectProps }: CroppingPatternSel
   const userPatterns = useQuery(userPatternsQueryOptions);
   const publicPatterns = useQuery(publicPatternsQueryOptions);
 
-  const userOptions = userPatterns.data?.map(
-    pattern => ({
-      value: pattern.id.toString(),
-      label: pattern.name
-    })
-  );
+  const selectedPatternId = fieldForm.getValues().cropping?.patternId;
 
-  const otherOptions = publicPatterns.data?.reduce(
-    (others: { value: string, label: string }[], pattern) => {
-      if (pattern.author.id !== user!.id)
-        others.push({
-            value: pattern.id.toString(),
-            label: `${pattern.name} - ${pattern.author.firstName} ${pattern.author.lastName}`
-        });
+  const selectedPattern = useMemo(() => {
+    const allPatterns = [
+      ...(userPatterns.data ?? []),
+      ...(publicPatterns.data ?? []),
+    ];
+    return allPatterns.find(pattern => pattern.id === selectedPatternId);
+  }, [userPatterns.data, publicPatterns.data, selectedPatternId]);
 
-      return others;
-    }, []
-  );
+  const buttonLabel = selectedPattern?.name ?? 'Selecione um padrão';
+  const tooltipLabel = selectedPattern?.name ?? 'Ver padrões disponíveis';
 
-  const options = userOptions && otherOptions ? [
-    {
-      value: '0',
-      label: ''
-    },{
-      group: 'Seus padrões',
-      items: userOptions
-    },{
-      group: 'Outros',
-      items: otherOptions
-    },
-  ] : [];
-  
-  const changeValue = (path: string) => {
-    return (e: React.ChangeEvent<HTMLSelectElement>) => fieldForm.setFieldValue(path, Number(e.target.value));
-  };
+  const openPreviewModal = () => modals.open({
+    title: 'Padrões de cultivo disponíveis',
+    size: 'xl',
+    children: (
+      <CroppingPatternsTable
+        selectedPatternId={selectedPatternId}
+        onSelect={(patternId) => {
+          fieldForm.setFieldValue('cropping.patternId', patternId);
+          modals.closeAll();
+        }}
+        onUnselect={() => {
+          fieldForm.setFieldValue('cropping.patternId', 0);
+          modals.closeAll();
+        }}
+      />
+    ),
+  });
 
   return (
-    <NativeSelect
-      key={fieldForm.key('cropping.patternId')}
-      data={options}
-      {...fieldForm.getInputProps('cropping.patternId')}
-      onChange={changeValue('cropping.patternId')}
-      {...selectProps}
-    />
+    <Stack gap={4} mb={mb}>
+      {label && <Text fz="sm" fw={500}>{label}</Text>}
+      <Tooltip label={tooltipLabel}>
+        <Button
+          variant="default"
+          onClick={openPreviewModal}
+          disabled={disabled}
+          fullWidth
+          justify="space-between"
+          fw="initial"
+          rightSection={<IconChevronRight size={16} />}
+        >
+          {buttonLabel}
+        </Button>
+      </Tooltip>
+    </Stack>
   )
 }
 
