@@ -26,7 +26,7 @@ import ConfirmingButton from "../common/ConfirmingButton";
 import DeleteButton from "../common/DeleteButton";
 import FieldView from "../common/FieldView";
 import { showError, showSuccess } from "../common/notifications";
-import CroppingPatternsTable from "./CroppingPatternsTable";
+import CroppingPatternsPreviewModal from "./CroppingPatternsPreviewModal";
 import { useCallback, useMemo } from "react";
 
 export default function FieldMenu({ inputsDisabled = false }: { inputsDisabled: boolean }) {
@@ -412,16 +412,10 @@ function CroppingPatternSelect({ fieldForm, label, disabled, mb }: CroppingPatte
     title: 'Padrões de cultivo disponíveis',
     size: 'xl',
     children: (
-      <CroppingPatternsTable
+      <CroppingPatternsPreviewModal
         selectedPatternId={selectedPatternId}
-        onSelect={(patternId) => {
-          fieldForm.setFieldValue('cropping.patternId', patternId);
-          modals.closeAll();
-        }}
-        onUnselect={() => {
-          fieldForm.setFieldValue('cropping.patternId', 0);
-          modals.closeAll();
-        }}
+        onSelect={(patternId) => fieldForm.setFieldValue('cropping.patternId', patternId)}
+        onUnselect={() => fieldForm.setFieldValue('cropping.patternId', 0)}
       />
     ),
   });
