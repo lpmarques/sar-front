@@ -46,16 +46,24 @@ interface CroppingPatternPreviewProps {
   onBackToList?: () => void;
 }
 
-const ROW_LEFT_PADDING_M = 4;
+const PX_PER_M = 30;
+const ROW_LEFT_PADDING_M = 6;
 const ROW_BOTTOM_PADDING_M = 4;
 const ROW_RIGHT_PADDING_M = 4;
-const ROW_TOP_PADDING_M = 6;
-const CROP_SPACING_LABEL_GAP_M = 1.5;
-const ROW_SPACING_PADDING_M = 2;
-const ROW_START_OFFSET_LABEL_GAP_M = 1.5;
+const ROW_TOP_PADDING_M = 2;
+const CROP_SPACING_LABEL_GAP_M = 0.3;
+const ROW_SPACING_PADDING_M = 0.5;
+const ROW_START_OFFSET_LABEL_GAP_M = 0.4;
 const CROP_RADIUS_M = 0.6;
 
-const TEXT_PX = 11;
+// Text, line and circle sizes are expressed in metres (SVG units). They are
+// independent of geometry distances so labels stay readable on any pattern.
+const ROW_LABEL_FONT_SIZE_M = 0.45;
+const SPACING_FONT_SIZE_M = 0.35;
+const LINE_WIDTH_M = 0.05;
+const ROW_LINE_INVISIBLE_WIDTH_M = 0.4;
+const ROW_SELECTED_STROKE_M = 0.15;
+
 const TEXT_COLOR = "var(--mantine-color-dark-7)";
 const TEXT_COLOR_MUTED = "var(--mantine-color-gray-7)";
 const SPACING_COLOR = "var(--mantine-color-gray-7)";
@@ -105,7 +113,11 @@ function buildPreviewGeometry(pattern: CroppingPatternReadData) {
   });
 
   const totalXM = xCursorM + ROW_RIGHT_PADDING_M;
-  const totalYM = ROW_TOP_PADDING_M + ROW_BOTTOM_PADDING_M;
+  const longestLineM = Math.max(
+    0,
+    ...rowLayouts.map((r) => r.lineLengthM + r.row.cropsOffsetM)
+  );
+  const totalYM = ROW_TOP_PADDING_M + longestLineM + ROW_BOTTOM_PADDING_M;
 
   return { rowLayouts, totalXM, totalYM };
 }
@@ -242,7 +254,8 @@ function CroppingPatternPreviewBody({pattern, onBackToList, onSelect}: CroppingP
     [pattern]
   );
 
-  const previewPanelHeightPx = Math.max(280, totalYM * 14 + 60);
+  const panelHeightPx = Math.max(280, totalYM * PX_PER_M);
+  const panelWidthPx = Math.max(480, totalXM * PX_PER_M);
 
   return (
     <Stack gap="md">
@@ -260,15 +273,20 @@ function CroppingPatternPreviewBody({pattern, onBackToList, onSelect}: CroppingP
         <div /> {/* spacer to keep title centered */}
       </Group>}
 
-      <Group align="flex-start" gap="md" wrap="nowrap">        
-        <ScrollArea h={previewPanelHeightPx} style={{ flex: 1 }}>
+      <Group align="flex-start" gap="md" wrap="nowrap">
+        <ScrollArea
+          h={panelHeightPx}
+          style={{ flex: 1, minWidth: 0 }}
+        >
           <PatternPreviewPanel
             pattern={pattern}
             rows={rows}
             selectedCrop={selectedCrop}
             onCropSelect={(crop: RenderedCrop) => setSelectedCrop(crop)}
             svgProps={{
-              viewBox: `0 0 ${totalXM} ${totalYM}`
+              viewBox: `0 0 ${totalXM} ${totalYM}`,
+              width: panelWidthPx,
+              height: panelHeightPx,
             }}
           />
         </ScrollArea>
@@ -277,7 +295,7 @@ function CroppingPatternPreviewBody({pattern, onBackToList, onSelect}: CroppingP
           withBorder
           p="sm"
           w={260}
-          style={{ flexShrink: 0, minHeight: previewPanelHeightPx }}
+          style={{ flexShrink: 0, minHeight: panelHeightPx }}
         >
           {selectedCrop ? (
             <PlantInfoPanel plant={selectedCrop.crop.plant} />
@@ -298,13 +316,12 @@ function CroppingPatternPreviewBody({pattern, onBackToList, onSelect}: CroppingP
             Selecionar padrão
           </Button>}
           <Button variant="default" disabled>
-            Editar padrão
-          </Button>
-          <Button variant="default" disabled>
             Clonar padrão
           </Button>
-        </Group>
-        {isAuthor && (
+        {isAuthor && <>
+          <Button variant="default" disabled>
+            Editar padrão
+          </Button>
           <Tooltip label="Excluir padrão">
             <ActionIcon
               variant="outline"
@@ -317,7 +334,8 @@ function CroppingPatternPreviewBody({pattern, onBackToList, onSelect}: CroppingP
               <IconTrash size={18} />
             </ActionIcon>
           </Tooltip>
-        )}
+          </>}
+        </Group>
       </Group>
     </Stack>
   );
@@ -335,151 +353,142 @@ function PatternPreviewPanel({ pattern, rows, selectedCrop, onCropSelect, svgPro
 
   return (
     <svg
-      width="100%"
-      preserveAspectRatio="xMinYMin meet"
       style={{ display: "block" }}
       {...svgProps}
     >
-      {/* Row labels + start-offset line + row line (invisible) */}
+      {/* Row labels — one per row, anchored above the geometry at the row's X */}
       {rows.map((r) => {
         const row = pattern.rows[r.rowIndex];
         return (
-          <g key={`row-${r.rowIndex}`}>
-            {/* Top label: "Linha N — purpose" */}
-            <text
-              x={r.rowXM}
-              y={Math.max(r.rowStartYM - 1.5, 0.5)}
-              fontSize={TEXT_PX * 0.13}
-              fill={TEXT_COLOR}
-              fontWeight={600}
-              textAnchor="middle"
-            >
-              {`Linha ${row.position}`}
-              {/* {`Linha ${row.position} — ${describeRowPurpose(row)}`} */}
-            </text>
+          <text
+            key={`row-label-${r.rowIndex}`}
+            x={r.rowXM}
+            y={ROW_TOP_PADDING_M - CROP_SPACING_LABEL_GAP_M}
+            fontSize={ROW_LABEL_FONT_SIZE_M}
+            fill={TEXT_COLOR}
+            fontWeight={600}
+            textAnchor="middle"
+            dominantBaseline="alphabetic"
+          >
+            {`Linha ${row.position}`}
+            {/* {`Linha ${row.position} — ${describeRowPurpose(row)}`} */}
+          </text>
+        );
+      })}
 
-            {/* Start-offset line (top → cropsOffsetM) */}
-            <line
-              x1={r.rowXM}
-              y1={ROW_TOP_PADDING_M}
-              x2={r.rowXM}
-              y2={r.rowStartYM}
-              stroke={SPACING_COLOR}
-              strokeDasharray="0.4 0.3"
-              strokeWidth={0.05}
-            />
+      {/* Per-row geometry: start-offset line, invisible row line, crops, crop spacing */}
+      {rows.map((r) => (
+        <g key={`row-${r.rowIndex}`}>
+          {/* Start-offset line (y=0 → cropsOffsetM), with label to its left */}
+          <line
+            x1={r.rowXM}
+            y1={ROW_TOP_PADDING_M}
+            x2={r.rowXM}
+            y2={r.rowStartYM}
+            stroke={SPACING_COLOR}
+            strokeDasharray="0.4 0.3"
+            strokeWidth={LINE_WIDTH_M}
+          />
+          {r.rowStartOffsetM > 0 && (
             <text
               x={r.rowXM - ROW_START_OFFSET_LABEL_GAP_M}
               y={(ROW_TOP_PADDING_M + r.rowStartYM) / 2}
-              fontSize={TEXT_PX * 0.12}
+              fontSize={SPACING_FONT_SIZE_M}
               fill={TEXT_COLOR_MUTED}
               textAnchor="end"
               dominantBaseline="middle"
             >
               {formatLengthM(r.rowStartOffsetM)}
             </text>
+          )}
 
-            {/* Row line itself (invisible) */}
-            <line
-              x1={r.rowXM}
-              y1={r.rowStartYM}
-              x2={r.rowXM}
-              y2={r.rowEndYM}
-              stroke="transparent"
-              strokeWidth={0.4}
-            />
+          {/* Row line itself (invisible, per spec) */}
+          <line
+            x1={r.rowXM}
+            y1={r.rowStartYM}
+            x2={r.rowXM}
+            y2={r.rowEndYM}
+            stroke="transparent"
+            strokeWidth={ROW_LINE_INVISIBLE_WIDTH_M}
+          />
 
-            {/* Crop circles + hover/click */}
-            {r.crops.map((c) => {
-              const isSelected =
-                selectedCrop?.rowIndex === c.rowIndex &&
-                selectedCrop?.cropIndex === c.cropIndex;
-              return (
-                <g key={`crop-${r.rowIndex}-${c.cropIndex}`}>
-                  <circle
-                    cx={c.xM}
-                    cy={c.yM}
-                    r={CROP_RADIUS_M}
-                    fill={c.crop.plant.colorHex}
-                    stroke={isSelected ? TEXT_COLOR : "transparent"}
-                    strokeWidth={isSelected ? 0.15 : 0}
-                    style={{ cursor: "pointer" }}
-                    onClick={() => onCropSelect(c)}
-                  >
-                    <title>
-                      {`${c.crop.plant.acceptedTaxonName}` +
-                        (c.crop.plant.popularNames?.[0]
-                          ? ` — ${c.crop.plant.popularNames[0]}`
-                          : "")}
-                    </title>
-                  </circle>
-                </g>
-              );
-            })}
+          {/* Crop circles */}
+          {r.crops.map((c) => {
+            const isSelected =
+              selectedCrop?.rowIndex === c.rowIndex &&
+              selectedCrop?.cropIndex === c.cropIndex;
+            return (
+              <circle
+                key={`crop-${r.rowIndex}-${c.cropIndex}`}
+                cx={c.xM}
+                cy={c.yM}
+                r={CROP_RADIUS_M}
+                fill={c.crop.plant.colorHex}
+                stroke={isSelected ? TEXT_COLOR : "transparent"}
+                strokeWidth={isSelected ? ROW_SELECTED_STROKE_M : 0}
+                style={{ cursor: "pointer" }}
+                onClick={() => onCropSelect(c)}
+              >
+                <title>
+                  {`${c.crop.plant.acceptedTaxonName}` +
+                    (c.crop.plant.popularNames?.[0]
+                      ? ` — ${c.crop.plant.popularNames[0]}`
+                      : "")}
+                </title>
+              </circle>
+            );
+          })}
 
-            {/* Per-crop spacing lines */}
-            {r.cropSpacings.map((s) => (
-              <g key={`cs-${r.rowIndex}-${s.cropIndex}`}>
-                <line
-                  x1={s.xM}
-                  y1={s.yM}
-                  x2={s.xM}
-                  y2={s.yM + Math.max(s.lengthM, 0.05)}
-                  stroke={SPACING_COLOR}
-                  strokeWidth={0.05}
-                />
-                <text
-                  x={s.xM + ROW_START_OFFSET_LABEL_GAP_M}
-                  y={s.yM + Math.max(s.lengthM, 0.05) / 2}
-                  fontSize={TEXT_PX * 0.11}
-                  fill={TEXT_COLOR_MUTED}
-                  textAnchor="start"
-                  dominantBaseline="middle"
-                >
-                  {s.label}
-                </text>
-              </g>
-            ))}
-          </g>
-        );
-      })}
-
-      {/* Row-spacing (distanceToNextRowM) lines, drawn last so they sit on top */}
-      {rows.map((r) => (
-        <g key={`rs-${r.rowIndex}`}>
-          {r.rowIndex < rows.length - 1 ? (
-            <>
+          {/* Per-crop spacing lines */}
+          {r.cropSpacings.map((s) => (
+            <g key={`cs-${r.rowIndex}-${s.cropIndex}`}>
               <line
-                x1={r.rowSpacingXM + ROW_SPACING_PADDING_M}
-                y1={r.rowSpacingYM}
-                x2={r.rowSpacingEndXM - ROW_SPACING_PADDING_M}
-                y2={r.rowSpacingYM}
+                x1={s.xM}
+                y1={s.yM}
+                x2={s.xM}
+                y2={s.yM + Math.max(s.lengthM, 0.1)}
                 stroke={SPACING_COLOR}
-                strokeWidth={0.07}
+                strokeWidth={LINE_WIDTH_M}
               />
               <text
-                x={(r.rowSpacingXM + r.rowSpacingEndXM) / 2}
-                y={r.rowSpacingYM - ROW_START_OFFSET_LABEL_GAP_M}
-                fontSize={TEXT_PX * 0.12}
+                x={s.xM + CROP_SPACING_LABEL_GAP_M}
+                y={s.yM + Math.max(s.lengthM, 0.1) / 2}
+                fontSize={SPACING_FONT_SIZE_M}
                 fill={TEXT_COLOR_MUTED}
-                textAnchor="middle"
+                textAnchor="start"
+                dominantBaseline="middle"
               >
-                {r.rowSpacingLabel}
+                {s.label}
               </text>
-            </>
-          ) : (
-            <text
-              x={r.rowSpacingXM}
-              y={r.rowSpacingYM + ROW_SPACING_PADDING_M * 1.5}
-              fontSize={TEXT_PX * 0.1}
-              fill={TEXT_COLOR_MUTED}
-              textAnchor="start"
-            >
-              (última linha)
-            </text>
-          )}
+            </g>
+          ))}
         </g>
       ))}
+
+      {/* Row-to-row spacing lines (horizontal, between adjacent rows) */}
+      {rows.map((r) =>
+        r.rowIndex < rows.length - 1 ? (
+          <g key={`rs-${r.rowIndex}`}>
+            <line
+              x1={r.rowSpacingXM + ROW_SPACING_PADDING_M}
+              y1={r.rowSpacingYM}
+              x2={r.rowSpacingEndXM - ROW_SPACING_PADDING_M}
+              y2={r.rowSpacingYM}
+              stroke={SPACING_COLOR}
+              strokeWidth={LINE_WIDTH_M * 1.5}
+            />
+            <text
+              x={(r.rowSpacingXM + r.rowSpacingEndXM) / 2}
+              y={r.rowSpacingYM - CROP_SPACING_LABEL_GAP_M}
+              fontSize={SPACING_FONT_SIZE_M}
+              fill={TEXT_COLOR_MUTED}
+              textAnchor="middle"
+            >
+              {r.rowSpacingLabel}
+            </text>
+          </g>
+        ) : null
+      )}
     </svg>
   )
 }
