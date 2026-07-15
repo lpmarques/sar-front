@@ -11,21 +11,24 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Button, Center, CloseButton, Loader, Table, Tooltip } from "@mantine/core";
+import { ActionIcon, Center, CloseButton, Group, Loader, Table, Tooltip } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
+import { IconArrowsMaximize } from "@tabler/icons-react";
 import { CroppingPatternReadData, getCroppingPatternList } from "../../apis/agroforestry";
 import { useAuth } from "../../hooks/useAuth";
 import { StickyHeaderTable } from "../common/StickyHeaderTable";
 import { UserAvatar } from "../user";
 import ClickableRow from "../common/ClickableRow";
+import { QueryLoader } from "../common/QueryLoader";
 
 interface CroppingPatternsTableProps {
   selectedPatternId?: number,
   onSelect: (patternId: number) => void,
   onUnselect: () => void,
+  onPreview: (pattern: CroppingPatternReadData) => void,
 }
 
-export default function CroppingPatternsTable({ selectedPatternId, onSelect, onUnselect }: CroppingPatternsTableProps) {
+export default function CroppingPatternsTable({ selectedPatternId, onSelect, onUnselect, onPreview }: CroppingPatternsTableProps) {
   const { user } = useAuth();
 
   const userPatternsQueryOptions = {
@@ -48,10 +51,18 @@ export default function CroppingPatternsTable({ selectedPatternId, onSelect, onU
   const userPatterns = useQuery(userPatternsQueryOptions);
   const publicPatterns = useQuery(publicPatternsQueryOptions);
 
-  if (userPatterns.isLoading || publicPatterns.isLoading) {
+  if (userPatterns.isLoading) {
     return (
       <Center>
-        <Loader />
+        <QueryLoader  {...userPatternsQueryOptions}/>
+      </Center>
+    );
+  }
+
+  if (publicPatterns.isLoading) {
+    return (
+      <Center>
+        <QueryLoader {...publicPatternsQueryOptions} />
       </Center>
     );
   }
@@ -63,7 +74,7 @@ export default function CroppingPatternsTable({ selectedPatternId, onSelect, onU
       <Table.Th>Nome</Table.Th>
       <Table.Th>Autor</Table.Th>
       <Table.Th>Diversidade de espécies</Table.Th>
-      {/* <Table.Th w={140}></Table.Th> */}
+      <Table.Th w={100}>Ações</Table.Th>
     </Table.Tr>
   );
 
@@ -72,16 +83,21 @@ export default function CroppingPatternsTable({ selectedPatternId, onSelect, onU
     onUnselect();
   };
 
+  const handlePreview = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, pattern: CroppingPatternReadData) => {
+    e.stopPropagation();
+    onPreview(pattern);
+  };
+
   const selectionColor = 'var(--mantine-color-blue-light)';
-  
+
   const rows = patterns.map((pattern) => {
     const isSelected = pattern.id === selectedPatternId;
     const backgroundColor = isSelected ? selectionColor : undefined;
-    
+
     return <ClickableRow
       key={pattern.id}
       onClick={() => onSelect(pattern.id)}
-      style={{'backgroundColor': backgroundColor, '--hover-color': selectionColor}} 
+      style={{'backgroundColor': backgroundColor, '--hover-color': selectionColor}}
     >
       <Table.Td>{pattern.name}</Table.Td>
       <Table.Td>
@@ -89,14 +105,25 @@ export default function CroppingPatternsTable({ selectedPatternId, onSelect, onU
       </Table.Td>
       <Table.Td>{distinctPlantCount(pattern)}</Table.Td>
       <Table.Td>
-        {isSelected &&
-        <Tooltip label="Desmarcar">
-          <CloseButton
-            size="sm"
-            onClick={handleUnselect}
-          />
-        </Tooltip>
-        }
+        <Group gap="xs" justify="flex-end" wrap="nowrap">
+          {isSelected &&
+          <Tooltip label="Desmarcar">
+            <CloseButton
+              size="sm"
+              onClick={handleUnselect}
+            />
+          </Tooltip>
+          }
+          <Tooltip label="Pré-visualizar padrão">
+            <ActionIcon
+              variant="subtle"
+              size="sm"
+              onClick={(e) => handlePreview(e, pattern)}
+            >
+              <IconArrowsMaximize size={14} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
       </Table.Td>
     </ClickableRow>
   });

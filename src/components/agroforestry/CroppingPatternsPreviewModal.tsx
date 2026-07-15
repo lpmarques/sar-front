@@ -11,8 +11,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { useState } from "react";
 import { modals } from "@mantine/modals";
 import CroppingPatternsTable from "./CroppingPatternsTable";
+import CroppingPatternPreview from "./CroppingPatternPreview";
+import { CroppingPatternReadData } from "../../apis/agroforestry";
 
 interface CroppingPatternsPreviewModalProps {
   selectedPatternId?: number;
@@ -20,11 +23,34 @@ interface CroppingPatternsPreviewModalProps {
   onUnselect: () => void;
 }
 
+type View = { kind: "list" } | { kind: "preview"; pattern: CroppingPatternReadData };
+
+/**
+ * Contents of the cropping-patterns preview modal.
+ *
+ * Holds the modal's internal view (list ↔ single-pattern preview) so callers
+ * only ever supply a pattern id and a select/unselect callback.
+ */
 export default function CroppingPatternsPreviewModal({
   selectedPatternId,
   onSelect,
   onUnselect,
 }: CroppingPatternsPreviewModalProps) {
+  const [view, setView] = useState<View>({ kind: "list" });
+
+  if (view.kind === "preview") {
+    return (
+      <CroppingPatternPreview
+        pattern={view.pattern}
+        onSelect={(patternId) => {
+          onSelect(patternId);
+          modals.closeAll();
+        }}
+        onBackToList={() => setView({ kind: "list" })}
+      />
+    );
+  }
+
   return (
     <CroppingPatternsTable
       selectedPatternId={selectedPatternId}
@@ -36,6 +62,8 @@ export default function CroppingPatternsPreviewModal({
         onUnselect();
         modals.closeAll();
       }}
+      onPreview={(pattern) => setView({ kind: "preview", pattern })}
+      // onPreview={(pattern) => window.open(`/cropping-patterns/${pattern.id}`)}
     />
   );
 }

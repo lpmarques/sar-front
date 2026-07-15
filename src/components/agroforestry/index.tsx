@@ -13,6 +13,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 
 import ButtonControl from './ButtonControl';
 import CroppingLayers from './CroppingLayers';
+import CroppingPatternPreview from './CroppingPatternPreview';
 import CroppingPatternsPreviewModal from './CroppingPatternsPreviewModal';
 import CroppingPatternsTable from './CroppingPatternsTable';
 import DeviceLocationControl from './DeviceLocationControl';
@@ -43,6 +44,7 @@ import PolygonDrawing from './PolygonDrawing';
 export {
   ButtonControl,
   CroppingLayers,
+  CroppingPatternPreview,
   CroppingPatternsPreviewModal,
   CroppingPatternsTable,
   DeviceLocationControl,
