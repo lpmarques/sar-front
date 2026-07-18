@@ -50,11 +50,11 @@ export interface FarmWriteResponseData extends GenericResponse {
 }
 
 export async function createFarm({ data }: WriteFnInput<FarmWriteRequestData>): Promise<FarmWriteResponseData> {
-  return defaultPostFn({ endpoint: "/agroforestry/farms", data: data });
+  return defaultPostFn({ endpoint: "/agroforestry/farms", data });
 }
 
 export async function updateFarm({ id, data }: WriteFnInput<FarmWriteRequestData>): Promise<GenericResponse> {
-  return defaultPutFn({ endpoint: `/agroforestry/farms/${id}`, data: data });
+  return defaultPutFn({ endpoint: `/agroforestry/farms/${id}`, data });
 }
 
 export async function deleteFarm(farmId: number): Promise<GenericResponse> {
@@ -74,11 +74,11 @@ export interface FieldWriteResponseData extends GenericResponse {
 }
 
 export async function createField({ data }: WriteFnInput<FieldWriteRequestData>): Promise<FieldWriteResponseData> {
-  return defaultPostFn({ endpoint: "/agroforestry/fields", data: data });
+  return defaultPostFn({ endpoint: "/agroforestry/fields", data });
 }
 
 export async function updateField({ id, data }: WriteFnInput<FieldWriteRequestData>): Promise<FieldWriteResponseData> {
-  return defaultPutFn({ endpoint: `/agroforestry/fields/${id}`, data: data });
+  return defaultPutFn({ endpoint: `/agroforestry/fields/${id}`, data });
 }
 
 export async function deleteField(fieldId: number): Promise<GenericResponse> {
@@ -96,11 +96,11 @@ export interface SiteTraitValueWriteResponseData extends GenericResponse {
 }
 
 export async function createSiteTraitValue({ data }: WriteFnInput<SiteTraitValueWriteRequestData>): Promise<FieldWriteResponseData> {
-  return defaultPostFn({ endpoint: "/agroforestry/site-trait-value", data: data });
+  return defaultPostFn({ endpoint: "/agroforestry/site-trait-value", data });
 }
 
 export async function updateSiteTraitValue({ id, data }: WriteFnInput<SiteTraitValueWriteRequestData>): Promise<FieldWriteResponseData> {
-  return defaultPutFn({ endpoint: `/agroforestry/site-trait-value/${id}`, data: data });
+  return defaultPutFn({ endpoint: `/agroforestry/site-trait-value/${id}`, data });
 }
 
 export async function deleteSiteTraitValue(siteTraitValueId: number): Promise<GenericResponse> {
@@ -139,7 +139,7 @@ export async function getFarmList({ queryKey: [_, ...params] }: QueryFnInput ): 
 
 type EicatCategory = "Moderate" | "Major" | "Massive";
 
-interface PlantFitnessTraitValues {
+interface PlantFitness {
   isNative: boolean;
   isInvasive: boolean;
   eicatCategory: EicatCategory | null;
@@ -160,7 +160,7 @@ interface CropSummaryMetrics {
 
 export interface CropSummary {
   plant: PlantReadData;
-  fitness?: PlantFitnessTraitValues;
+  fitness?: PlantFitness;
   usage?: CropUsageTraitValues;
   metrics: CropSummaryMetrics;
 }
@@ -202,7 +202,7 @@ export async function getFieldList({ queryKey: [_, farmId, ...params] }: QueryFn
 
 /** A single crop slot within a row: what plant it is and its position relative to other crops. */
 export interface PatternCrop {
-  plant: PlantReadData,
+  plant: PlantReadData;
   position: number;
   distanceToNextCropM: number;
 }
@@ -214,6 +214,7 @@ export interface PatternCrop {
 export interface PatternRow {
   crops: PatternCrop[];
   position: number;
+  purpose: string;
   cropsOffsetM: number;
   distanceToNextRowM: number;
 }
@@ -282,7 +283,7 @@ export async function getFieldTraitValueList({ queryKey: [_, fieldId, ...params]
   return defaultQueryFn({ endpoint: `/agroforestry/fields/${fieldId}/site-trait-values`, params });
 }
 
-export interface SitePlantFitness extends PlantFitnessTraitValues {
+export interface SitePlantFitness extends PlantFitness {
   plantId: number,
   acceptedTaxonName: string,
   colorHex: string,

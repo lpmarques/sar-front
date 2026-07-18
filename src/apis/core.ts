@@ -12,7 +12,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
 import axios from 'axios';
-import { camelToSnakeCase, GenericResponse, JsonSchema, QueryFnInput, snakeToCamelCase } from './common';
+import { camelToSnakeCase, defaultDeleteFn, defaultPostFn, defaultQueryFn, GenericResponse, JsonSchema, QueryFnInput, snakeToCamelCase } from './common';
 
 // MUTATIONS
 
@@ -38,11 +38,7 @@ export interface UserWriteRequestData {
 }
 
 export async function createUser(data: UserWriteRequestData): Promise<GenericResponse> {
-  const requestBody = camelToSnakeCase(data);
-
-  const res = await axios.post("/core/user", requestBody);
-
-  return res.data;
+  return defaultPostFn({ endpoint: "/core/user", data });
 }
 
 export interface UserEditData {
@@ -56,22 +52,13 @@ export interface UserEditData {
 };
 
 export async function editUser(data: UserEditData): Promise<GenericResponse> {
-  const requestBody = {
-    first_name: data.firstName,
-    last_name: data.lastName,
-    occupation: data.occupation,
-    company: data.company,
-    country: data.country,
-    state: data.state,
-    municipality: data.municipality,
-  };
+  const requestBody = camelToSnakeCase(data);
 
   return await axios.patch("/core/user", requestBody);
 }
 
 export async function deleteUser(): Promise<GenericResponse> {
-
-  return await axios.delete("/core/user");
+  return defaultDeleteFn({ endpoint: "/core/user" });
 }
 
 interface UserTokenRequestData {
@@ -85,23 +72,11 @@ export interface UserTokenResponseData extends GenericResponse {
 }
 
 export async function createUserToken(data: UserTokenRequestData): Promise<UserTokenResponseData> {
-  const requestBody = {
-    email: data.email,
-    password: data.password,
-  };
-
-  let res = await axios.post("/core/user/token", requestBody);
-
-  return {
-    token: res.data.token,
-    user: snakeToCamelCase(res.data.user),
-    msg: res.data.msg
-  }
+  return defaultPostFn({ endpoint: "/core/user/token", data });
 }
 
 export async function deleteUserToken(): Promise<GenericResponse> {
-
-  return await axios.delete("/core/user/token");
+  return defaultDeleteFn({ endpoint: "/core/user/token" });
 }
 
 export interface EndorsementWriteRequestData {
@@ -113,16 +88,11 @@ export interface EndorsementWriteResponseData extends GenericResponse {
 }
 
 export async function createEndorsement(data: EndorsementWriteRequestData): Promise<EndorsementWriteResponseData> {  
-  const body = { content_id: data.contentId };
-  let res = await axios.post('/core/endorsements', body);
-
-  return snakeToCamelCase(res.data);
+  return defaultPostFn({ endpoint: '/core/endorsements', data });
 }
 
 export async function deleteEndorsement(endorsementId: number): Promise<GenericResponse> {
-  let res = await axios.delete(`/core/endorsements/${endorsementId}`);
-
-  return res.data;
+  return defaultDeleteFn({ endpoint: `/core/endorsements/${endorsementId}`});
 }
 
 export type SourceValue = number | string | string[];
@@ -143,10 +113,7 @@ export interface SourceWriteResponseData extends GenericResponse {
 }
 
 export async function createSource(data: SourceWriteRequestData): Promise<SourceWriteResponseData> {  
-  const body = camelToSnakeCase(data);
-  let res = await axios.post('/core/sources', body);
-
-  return snakeToCamelCase(res.data);
+  return defaultPostFn({ endpoint: '/core/sources', data });
 }
 
 
@@ -181,15 +148,11 @@ export interface ContentPreviewReadData {
 }
 
 export async function getContentPreview({ queryKey: [_, contentId] }: QueryFnInput): Promise<ContentPreviewReadData> {
-  const res = await axios.get(`/core/contents/${contentId}`);
-
-  return snakeToCamelCase(res.data);
+  return defaultQueryFn({ endpoint: `/core/contents/${contentId}` });
 }
 
 export async function getContentPreviewList({ queryKey: [_, ...params] }: QueryFnInput): Promise<ContentPreviewReadData[]> {
-  const res = await axios.get(`/core/contents` + (params && `?${params.join('&')}`));
-
-  return snakeToCamelCase(res.data);
+  return defaultQueryFn({ endpoint: `/core/contents`, params });
 }
 
 interface SourceFieldValueReadData {
@@ -210,15 +173,11 @@ export interface SourceReadData {
 }
 
 export async function getSource({ queryKey: [_, sourceId] }: QueryFnInput): Promise<SourceReadData> {
-  const res = await axios.get(`/core/sources/${sourceId}`);
-
-  return snakeToCamelCase(res.data);
+  return defaultQueryFn({ endpoint: `/core/sources/${sourceId}` });
 }
 
 export async function getSourceList(_: QueryFnInput): Promise<SourceReadData[]> {
-  const res = await axios.get("/core/sources");
-
-  return snakeToCamelCase(res.data);
+  return defaultQueryFn({ endpoint: "/core/sources" });
 }
 
 export interface SourceField {
@@ -240,15 +199,11 @@ export interface SourceTypeReadData {
 }
 
 export async function getSourceTypeList({ queryKey: [_] }: QueryFnInput): Promise<SourceTypeReadData[]> {
-  const res = await axios.get("/core/source-types");
-
-  return snakeToCamelCase(res.data);
+  return defaultQueryFn({ endpoint: "/core/source-types" });
 }
 
 export async function getSourceSubtypeList({ queryKey: [_, typeId] }: QueryFnInput): Promise<SourceTypeReadData[]> {
-  const res = await axios.get(`/core/source-types/${typeId}/subtypes`);
-
-  return snakeToCamelCase(res.data);
+  return defaultQueryFn({ endpoint: `/core/source-types/${typeId}/subtypes` });
 }
 
 export interface UserReadData {
@@ -264,12 +219,12 @@ export interface UserReadData {
   municipality?: string,
 };
 
+export async function getOwnUser({ queryKey: [_, ...params] }: QueryFnInput): Promise<UserReadData> {
+  return defaultQueryFn({ endpoint: "/core/user", params });
+}
+
 export async function getUser({ queryKey: [_, ...params] }: QueryFnInput): Promise<UserReadData> {
-  const endpoint = params.length > 0 ? "/core/users" + (params && `?${params.join('&')}`) : "/core/user";
-
-  let res = await axios.get(endpoint);
-
-  return snakeToCamelCase(res.data);
+  return defaultQueryFn({ endpoint: "/core/users", params });
 }
 
 export interface EndorsementReadData {
@@ -280,34 +235,9 @@ export interface EndorsementReadData {
 }
 
 export async function getEndorsements({ queryKey: [_, contentId] }: QueryFnInput): Promise<EndorsementReadData[]> {
-  const endpoint = `/core/endorsements?content_id=${contentId}`;
-
-  let res = await axios.get(endpoint);
-  
-  let data = res.data.map((item: any) => (
-    {
-      id: item.id,
-      endorser: snakeToCamelCase(item.endorser),
-      contentId: item.content_id,
-      createdAt: item.created_at,
-    }
-  ))
-
-  return data;
+  return defaultQueryFn({ endpoint: `/core/endorsements?content_id=${contentId}` });
 }
 
 export async function getUserEndorsements({ queryKey: [_, contentId] }: QueryFnInput): Promise<EndorsementReadData[]> {
-  const endpoint = `/core/user/endorsements?content_id=${contentId}`;
-
-  let res = await axios.get(endpoint);
-  
-  let data = res.data.map((item: any) => (
-    {
-      id: item.id,
-      contentId: item.content_id,
-      createdAt: item.created_at,
-    }
-  ))
-
-  return data;
+  return defaultQueryFn({ endpoint: `/core/user/endorsements?content_id=${contentId}` });
 }

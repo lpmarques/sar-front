@@ -11,8 +11,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
-import axios from 'axios';
-import { defaultQueryFn, EmptyObject, MonthNumber, QueryFnInput, snakeToCamelCase } from './common';
+import { defaultQueryFn, EmptyObject, MonthNumber, QueryFnInput } from './common';
 
 export const geoDataToOptions = (data: CountryData[] | StateData[] | MunicipalityData[]) => {
   return data.map(
@@ -29,11 +28,11 @@ export interface CountryData {
 }
 
 export async function getCountryList(): Promise<CountryData[]> {
-  return (await axios.get('/geography/land/countries')).data;
+  return defaultQueryFn({ endpoint: '/geography/land/countries' });
 }
 
 export async function getCountry({ queryKey: [_, countryId] }: QueryFnInput): Promise<CountryData> {
-  return (await axios.get(`/geography/land/countries/${countryId}`)).data;
+  return defaultQueryFn({ endpoint: `/geography/land/countries/${countryId}` });
 }
 
 export interface StateData {
@@ -44,15 +43,11 @@ export interface StateData {
 }
 
 export async function getStateList({ queryKey: [_, countryId, ...params] }: QueryFnInput): Promise<StateData[]> {
-  const res = await axios.get(`/geography/land/countries/${countryId}/states` + (params && `?${params.join('&')}`));
-  
-  return snakeToCamelCase(res.data);
+  return defaultQueryFn({ endpoint: `/geography/land/countries/${countryId}/states` + (params && `?${params.join('&')}`) });
 }
 
 export async function getState({ queryKey: [_, stateId] }: QueryFnInput): Promise<StateData> {
-  const res = await axios.get(`/geography/land/states/${stateId}`);
-  
-  return snakeToCamelCase(res.data);
+  return defaultQueryFn({ endpoint: `/geography/land/states/${stateId}` });
 }
 
 export interface MunicipalityData {
@@ -63,15 +58,11 @@ export interface MunicipalityData {
 }
 
 export async function getMunicipalityList({ queryKey: [_, stateId] }: QueryFnInput): Promise<MunicipalityData[]> {
-  const res = await axios.get(`/geography/land/states/${stateId}/municipalities`);
-  
-  return snakeToCamelCase(res.data);
+  return defaultQueryFn({ endpoint: `/geography/land/states/${stateId}/municipalities` });
 }
 
 export async function getMunicipality({ queryKey: [_, municipalityId] }: QueryFnInput): Promise<MunicipalityData> {
-  const res = await axios.get(`/geography/land/municipalities/${municipalityId}`);
-  
-  return snakeToCamelCase(res.data);
+  return defaultQueryFn({ endpoint: `/geography/land/municipalities/${municipalityId}` });
 }
 
 export interface BiomeData {
@@ -81,9 +72,7 @@ export interface BiomeData {
 }
 
 export async function getBiomeList({ queryKey: [_, countryId, ...params] }: QueryFnInput): Promise<BiomeData[]> {
-  const res = await axios.get(`/geography/land/countries/${countryId}/biomes` + (params && `?${params.join('&')}`));
-  
-  return snakeToCamelCase(res.data);
+  return defaultQueryFn({ endpoint: `/geography/land/countries/${countryId}/biomes` + (params && `?${params.join('&')}`) });
 }
 
 export interface VegetationTypeData {
@@ -93,9 +82,7 @@ export interface VegetationTypeData {
 }
 
 export async function getVegetationTypeList({ queryKey: [_, countryId, ...params] }: QueryFnInput): Promise<VegetationTypeData[]> {
-  const res = await axios.get(`/geography/land/countries/${countryId}/vegetation-types` + (params && `?${params.join('&')}`));
-  
-  return snakeToCamelCase(res.data);
+  return defaultQueryFn({ endpoint: `/geography/land/countries/${countryId}/vegetation-types` + (params && `?${params.join('&')}`) });
 }
 
 export interface LandSummaryData {
