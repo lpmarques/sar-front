@@ -11,17 +11,27 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useMemo, useState } from "react";
+import * as L from "leaflet";
+import { useEffect, useMemo, useState } from "react";
+import {
+  CircleMarker,
+  MapContainer,
+  Marker,
+  Tooltip as LeafletTooltip,
+  useMap,
+  FeatureGroup,
+} from "react-leaflet";
 import {
   ActionIcon,
+  Box,
   Button,
-  Center,
   Group,
   Paper,
-  ScrollArea,
   Stack,
   Text,
-  Tooltip,
+  Tooltip as MantineTooltip,
+  Textarea,
+  SimpleGrid,
 } from "@mantine/core";
 import {
   IconChevronLeft,
@@ -30,42 +40,43 @@ import {
 } from "@tabler/icons-react";
 import {
   CroppingPatternReadData,
-  getCroppingPattern,
+  getFarmPlantFitness,
   PatternCrop,
   PatternRow,
 } from "../../apis/agroforestry";
-import { PlantReadData } from "../../apis/catalog";
+import { getPlantPopularNameList, PlantReadData } from "../../apis/catalog";
 import { useAuth } from "../../hooks/useAuth";
+import MapBoundsFraming from "./MapBoundsFraming";
+import ArrowPolyline from "./ArrowPolyline";
+import { PlantFullNameLabel } from "../catalog";
 import { useQuery } from "@tanstack/react-query";
 import { QueryLoader } from "../common/QueryLoader";
-import { useParams } from "react-router-dom";
+import { useProject } from "../../hooks/useProject";
+import NativityBadge from "./NativityBadge";
+import FieldView from "../common/FieldView";
+import { UserName } from "../user";
+import CropLegend from "./CropLegend";
 
 interface CroppingPatternPreviewProps {
-  pattern?: CroppingPatternReadData;
+  pattern: CroppingPatternReadData;
   onSelect?: (patternId: number) => void;
   onBackToList?: () => void;
 }
 
+const BACKGROUND_COLOR_HEX = "#fafafa";
 const PX_PER_M = 30;
-const ROW_LEFT_PADDING_M = 6;
-const ROW_BOTTOM_PADDING_M = 4;
-const ROW_RIGHT_PADDING_M = 4;
-const ROW_TOP_PADDING_M = 2;
-const CROP_SPACING_LABEL_GAP_M = 0.3;
-const ROW_SPACING_PADDING_M = 0.5;
+const PATTERN_LEFT_PADDING_M = 1.4;
+const PATTERN_BOTTOM_PADDING_M = 0;
+const PATTERN_RIGHT_PADDING_M = 1;
+const PATTERN_TOP_PADDING_M = 1.5;
 const ROW_START_OFFSET_LABEL_GAP_M = 0.4;
-const CROP_RADIUS_M = 0.6;
-
-// Text, line and circle sizes are expressed in metres (SVG units). They are
-// independent of geometry distances so labels stay readable on any pattern.
-const ROW_LABEL_FONT_SIZE_M = 0.45;
-const SPACING_FONT_SIZE_M = 0.35;
-const LINE_WIDTH_M = 0.05;
-const ROW_LINE_INVISIBLE_WIDTH_M = 0.4;
-const ROW_SELECTED_STROKE_M = 0.15;
+const ROW_SPACING_PADDING_M = 0.45;
+const ROW_LABEL_GAP_M = 1.25;
+const CROP_RADIUS_M = 0.35;
+const CROP_SPACING_PADDING_M = 0.1;
+const CROP_SPACING_LABEL_GAP_M = 0.3;
 
 const TEXT_COLOR = "var(--mantine-color-dark-7)";
-const TEXT_COLOR_MUTED = "var(--mantine-color-gray-7)";
 const SPACING_COLOR = "var(--mantine-color-gray-7)";
 
 /**
@@ -101,23 +112,23 @@ function buildPreviewGeometry(pattern: CroppingPatternReadData) {
 
   // Pre-compute per-row line length (sum of crop distances) and the
   // X offset accumulated from previous rows' inter-row distances.
-  let xCursorM = ROW_LEFT_PADDING_M;
+  let xCursorM = PATTERN_LEFT_PADDING_M;
   const rowLayouts = rows.map((row) => {
     const rowXM = xCursorM;
-    const lineLengthM = row.crops.reduce(
+    const rowLengthM = row.crops.reduce(
       (sum, crop) => sum + crop.distanceToNextCropM,
       0
     );
     xCursorM += row.distanceToNextRowM;
-    return { row, rowXM, lineLengthM };
+    return { row, rowXM, rowLengthM };
   });
 
-  const totalXM = xCursorM + ROW_RIGHT_PADDING_M;
+  const totalXM = xCursorM + PATTERN_RIGHT_PADDING_M;
   const longestLineM = Math.max(
     0,
-    ...rowLayouts.map((r) => r.lineLengthM + r.row.cropsOffsetM)
+    ...rowLayouts.map((r) => r.rowLengthM + r.row.cropsOffsetM)
   );
-  const totalYM = ROW_TOP_PADDING_M + longestLineM + ROW_BOTTOM_PADDING_M;
+  const totalYM = PATTERN_TOP_PADDING_M + ROW_LABEL_GAP_M + longestLineM + PATTERN_BOTTOM_PADDING_M;
 
   return { rowLayouts, totalXM, totalYM };
 }
@@ -136,17 +147,18 @@ interface RenderedRow {
   rowStartYM: number;
   rowEndYM: number;
   rowStartOffsetM: number;
-  rowSpacingLabel: string;
   rowSpacingYM: number;
-  rowSpacingLabelText: string;
-  rowSpacingXM: number;
+  rowSpacingStartXM: number;
   rowSpacingEndXM: number;
-  lineLengthM: number;
+  rowSpacingLengthM: number;
+  rowSpacingLabel: string;
+  rowLengthM: number;
   crops: RenderedCrop[];
   cropSpacings: {
     cropIndex: number;
     xM: number;
-    yM: number;
+    startYM: number;
+    endYM: number;
     lengthM: number;
     label: string;
   }[];
@@ -157,55 +169,51 @@ function renderRows(
 ): { rows: RenderedRow[]; totalXM: number; totalYM: number } {
   const { rowLayouts, totalXM, totalYM } = buildPreviewGeometry(pattern);
 
-  let runningPrevRowXM = ROW_LEFT_PADDING_M;
-
-  const rows: RenderedRow[] = rowLayouts.map(({ row, rowXM, lineLengthM }, i) => {
-    const rowStartYM = ROW_TOP_PADDING_M;
-    const rowEndYM = rowStartYM + lineLengthM;
-    const rowSpacingYM = (rowStartYM + rowEndYM) / 2;
-    const nextRowXM = rowLayouts[i + 1]?.rowXM ?? totalXM - ROW_RIGHT_PADDING_M;
-    const rowSpacingLengthM = Math.max(0, nextRowXM - rowXM);
-    const rowSpacingXM = rowXM;
+  const rows: RenderedRow[] = rowLayouts.map(({ row, rowXM, rowLengthM }, rowIndex) => {
+    const rowStartYM = PATTERN_TOP_PADDING_M;
+    const rowEndYM = rowStartYM + rowLengthM;
+    const rowSpacingYM = rowStartYM;
+    const rowSpacingLengthM = row.distanceToNextRowM;
+    const rowSpacingStartXM = rowXM;
     const rowSpacingEndXM = rowXM + rowSpacingLengthM;
 
     const crops: RenderedCrop[] = [];
     const cropSpacings: RenderedRow["cropSpacings"] = [];
 
-    let runningCropYM = rowStartYM + row.cropsOffsetM;
+    let cropYM = rowStartYM + row.cropsOffsetM;
     row.crops.forEach((crop, cropIndex) => {
-      const cropY = runningCropYM;
       crops.push({
         crop,
-        rowIndex: i,
+        rowIndex,
         cropIndex,
         xM: rowXM,
-        yM: cropY,
+        yM: cropYM,
       });
 
       cropSpacings.push({
         cropIndex,
         xM: rowXM,
-        yM: cropY + CROP_RADIUS_M + CROP_SPACING_LABEL_GAP_M,
+        startYM: cropYM,
+        endYM: cropYM + crop.distanceToNextCropM,
         lengthM: crop.distanceToNextCropM,
         label: formatLengthM(crop.distanceToNextCropM),
       });
 
-      runningCropYM += crop.distanceToNextCropM;
+      cropYM += crop.distanceToNextCropM;
     });
 
     return {
-      rowIndex: i,
+      rowIndex,
       rowXM,
       rowStartYM,
       rowEndYM,
       rowStartOffsetM: row.cropsOffsetM,
       rowSpacingYM,
-      rowSpacingXM,
+      rowSpacingStartXM,
       rowSpacingEndXM,
       rowSpacingLengthM,
       rowSpacingLabel: formatLengthM(row.distanceToNextRowM),
-      rowSpacingLabelText: formatLengthM(row.distanceToNextRowM),
-      lineLengthM,
+      rowLengthM,
       crops,
       cropSpacings,
     };
@@ -214,48 +222,41 @@ function renderRows(
   return { rows, totalXM, totalYM };
 }
 
-export default function CroppingPatternPreview({
-  pattern,
-  ...props
-}: CroppingPatternPreviewProps) {
-  let { patternId } = useParams();
-  
-  const patternQueryOptions = {
-    queryKey: ['croppingPattern', patternId?.toString() ?? '0'],
-    queryFn: getCroppingPattern,
-    enabled: pattern === undefined,
-  };
-  const patternQuery = useQuery(patternQueryOptions);
-
-  if (patternQuery.isEnabled && !patternQuery.data)
-    return (
-      <Center>
-        <QueryLoader {...patternQueryOptions} />
-      </Center>
-    );
-    
-  const patternData = patternQuery.data ?? pattern!;
-
-  return <CroppingPatternPreviewBody pattern={patternData} {...props} />
-}
-
-interface CroppingPatternPreviewBodyProps extends CroppingPatternPreviewProps {
-  pattern: CroppingPatternReadData,
-}
-
-function CroppingPatternPreviewBody({pattern, onBackToList, onSelect}: CroppingPatternPreviewBodyProps) {
+export default function CroppingPatternPreview({pattern, onBackToList, onSelect}: CroppingPatternPreviewProps) {
   const { user } = useAuth();
+  const [selectedRow, setSelectedRow] = useState<RenderedRow | null>(null);
   const [selectedCrop, setSelectedCrop] = useState<RenderedCrop | null>(null);
 
   const isAuthor = user?.id === pattern.author.id;
+
+  const handleCropSelect = (c: RenderedCrop) => {
+    setSelectedRow(null);
+    const repeatedSelection = selectedCrop &&
+      selectedCrop.crop.plant.acceptedTaxonName === c.crop.plant.acceptedTaxonName;
+    
+    if (repeatedSelection)
+      return setSelectedCrop(null);
+    
+    setSelectedCrop(c);
+  }
+
+  const handleRowSelect = (r: RenderedRow) => {
+    setSelectedCrop(null);
+    const repeatedSelection = selectedRow &&
+      selectedRow.rowIndex === r.rowIndex;
+    
+    if (repeatedSelection)
+      return setSelectedRow(null);
+    
+    setSelectedRow(r);
+  }
 
   const { rows, totalXM, totalYM } = useMemo(
     () => renderRows(pattern),
     [pattern]
   );
 
-  const panelHeightPx = Math.max(280, totalYM * PX_PER_M);
-  const panelWidthPx = Math.max(480, totalXM * PX_PER_M);
+  const panelHeightPx = Math.max(400, totalYM * PX_PER_M);
 
   return (
     <Stack gap="md">
@@ -264,47 +265,48 @@ function CroppingPatternPreviewBody({pattern, onBackToList, onSelect}: CroppingP
         <Button
           variant="subtle"
           size="xs"
+          w={160}
           leftSection={<IconChevronLeft size={16} />}
           onClick={onBackToList}
         >
           Voltar para a lista
         </Button>
-        <Text fw={600} fz="md">{pattern.name}</Text>
-        <div /> {/* spacer to keep title centered */}
+        <Text p={0} fw={600} fz="md">{pattern.name}</Text>
+        <div style={{width: 160}}/> {/* spacer to keep title centered */}
       </Group>}
 
       <Group align="flex-start" gap="md" wrap="nowrap">
-        <ScrollArea
-          h={panelHeightPx}
-          style={{ flex: 1, minWidth: 0 }}
+        <Box
+          style={{
+            flex: 1,
+            minWidth: 0,
+            height: panelHeightPx,
+          }}
         >
           <PatternPreviewPanel
             pattern={pattern}
-            rows={rows}
+            renderedRows={rows}
+            selectedRow={selectedRow}
             selectedCrop={selectedCrop}
-            onCropSelect={(crop: RenderedCrop) => setSelectedCrop(crop)}
-            svgProps={{
-              viewBox: `0 0 ${totalXM} ${totalYM}`,
-              width: panelWidthPx,
-              height: panelHeightPx,
-            }}
+            onRowSelect={(row: RenderedRow) => handleRowSelect(row)}
+            onCropSelect={(crop: RenderedCrop) => handleCropSelect(crop)}
+            totalXM={totalXM}
+            totalYM={totalYM}
           />
-        </ScrollArea>
+        </Box>
 
         <Paper
           withBorder
           p="sm"
-          w={260}
-          style={{ flexShrink: 0, minHeight: panelHeightPx }}
+          w={280}
+          style={{ minHeight: panelHeightPx }}
         >
           {selectedCrop ? (
             <PlantInfoPanel plant={selectedCrop.crop.plant} />
+          ) : selectedRow ? (
+            <RowInfoPanel row={pattern.rows[selectedRow.rowIndex]} />
           ) : (
-            <Stack gap="xs" align="center" justify="center" h="100%">
-              <Text fz="sm" c="dimmed" ta="center">
-                Clique em um cultivo para ver detalhes da planta.
-              </Text>
-            </Stack>
+            <PatternInfoPanel pattern={pattern} />
           )}
         </Paper>
       </Group>
@@ -322,7 +324,7 @@ function CroppingPatternPreviewBody({pattern, onBackToList, onSelect}: CroppingP
           <Button variant="default" disabled>
             Editar padrão
           </Button>
-          <Tooltip label="Excluir padrão">
+          <MantineTooltip label="Excluir padrão">
             <ActionIcon
               variant="outline"
               color="red"
@@ -333,7 +335,7 @@ function CroppingPatternPreviewBody({pattern, onBackToList, onSelect}: CroppingP
             >
               <IconTrash size={18} />
             </ActionIcon>
-          </Tooltip>
+          </MantineTooltip>
           </>}
         </Group>
       </Group>
@@ -343,164 +345,346 @@ function CroppingPatternPreviewBody({pattern, onBackToList, onSelect}: CroppingP
 
 interface PatternPreviewPanelProps {
   pattern: CroppingPatternReadData;
-  rows: RenderedRow[];
+  renderedRows: RenderedRow[];
+  selectedRow: RenderedRow | null;
   selectedCrop: RenderedCrop | null;
+  onRowSelect: (row: RenderedRow) => void;
   onCropSelect: (crop: RenderedCrop) => void;
-  svgProps?: React.SVGProps<SVGSVGElement>;
+  totalXM: number;
+  totalYM: number;
 };
 
-function PatternPreviewPanel({ pattern, rows, selectedCrop, onCropSelect, svgProps }: PatternPreviewPanelProps) {
+/**
+ * Map-based preview. We use `L.CRS.Simple` so coordinates are in plain metres
+ * with no projection. LatLng is (y, x) for Simple, so we flip y against the
+ * total height to keep "y down in the SVG drawing" → "y down on screen".
+ */
+function PatternPreviewPanel({
+  pattern,
+  renderedRows: rows,
+  selectedRow,
+  selectedCrop,
+  onRowSelect,
+  onCropSelect,
+  totalXM,
+  totalYM,
+}: PatternPreviewPanelProps) {
+  const bounds = useMemo(() => L.latLngBounds(
+    [[0, 0], [totalYM, totalXM]]
+  ), [totalYM, totalXM]);
+
+  const rowLat = (yM: number) => totalYM - yM;
+
+  // Inline-styled divIcon factories
+  const rowLabelIcon = (label: string, anchor: [number, number]) =>
+    L.divIcon({
+      className: "pattern-preview-label pattern-preview-label--row",
+      html: `<div class="pattern-preview-label__inner">${label}</div>`,
+      iconAnchor: anchor,
+    });
+  const spacingLabelIcon = (label: string, anchor: [number, number]) =>
+    L.divIcon({
+      className: "pattern-preview-label pattern-preview-label--spacing",
+      html: `<div class="pattern-preview-label__inner">${label}</div>`,
+      iconAnchor: anchor,
+    });
 
   return (
-    <svg
-      style={{ display: "block" }}
-      {...svgProps}
+    <>
+    <PreviewLabelStyles />
+    <MapContainer
+      crs={L.CRS.Simple}
+      bounds={bounds}
+      style={{
+        height: "100%",
+        width: "100%",
+        background: BACKGROUND_COLOR_HEX,
+      }}
+      zoomControl={true}
+      scrollWheelZoom={true}
+      attributionControl={false}
+      zoomSnap={0.5}
+      zoomDelta={0.5}
+      minZoom={4.5}
+      maxZoom={8}
     >
-      {/* Row labels — one per row, anchored above the geometry at the row's X */}
+      {/* Visible bounds */}
+      {/* <Polygon 
+        positions={[
+          bounds.getNorthWest(),
+          bounds.getNorthEast(),
+          bounds.getSouthEast(),
+          bounds.getSouthWest(),
+        ]}
+        pathOptions={{
+          fillOpacity: 0
+        }}
+      /> */}
+
+      <MapBoundsFraming bounds={bounds} maxZoom={8} padding={0} deps={[bounds]} />
+
+      <PreviewBoundsSizer />
+
+      {/* Row labels at the top */}
       {rows.map((r) => {
         const row = pattern.rows[r.rowIndex];
+        const labelText = `Linha ${row.position}`;
+        const lat = rowLat(r.rowStartYM - ROW_LABEL_GAP_M);
         return (
-          <text
+          <Marker
             key={`row-label-${r.rowIndex}`}
-            x={r.rowXM}
-            y={ROW_TOP_PADDING_M - CROP_SPACING_LABEL_GAP_M}
-            fontSize={ROW_LABEL_FONT_SIZE_M}
-            fill={TEXT_COLOR}
-            fontWeight={600}
-            textAnchor="middle"
-            dominantBaseline="alphabetic"
-          >
-            {`Linha ${row.position}`}
-            {/* {`Linha ${row.position} — ${describeRowPurpose(row)}`} */}
-          </text>
+            position={[lat, r.rowXM]}
+            icon={rowLabelIcon(labelText, [20, 0])}
+            interactive={true}
+            keyboard={false}
+            eventHandlers={{
+              click: () => onRowSelect(r),
+            }}
+          />
         );
       })}
 
-      {/* Per-row geometry: start-offset line, invisible row line, crops, crop spacing */}
-      {rows.map((r) => (
-        <g key={`row-${r.rowIndex}`}>
-          {/* Start-offset line (y=0 → cropsOffsetM), with label to its left */}
-          <line
-            x1={r.rowXM}
-            y1={ROW_TOP_PADDING_M}
-            x2={r.rowXM}
-            y2={r.rowStartYM}
-            stroke={SPACING_COLOR}
-            strokeDasharray="0.4 0.3"
-            strokeWidth={LINE_WIDTH_M}
+      {/* Per-row geometry */}
+      {rows.map((r) => {
+        return (
+          <RowGeometry
+            key={`row-${r.rowIndex}`}
+            row={r}
+            rowLat={rowLat}
+            selectedRow={selectedRow}
+            selectedCrop={selectedCrop}
+            onCropSelect={onCropSelect}
+            spacingLabelIcon={spacingLabelIcon}
           />
-          {r.rowStartOffsetM > 0 && (
-            <text
-              x={r.rowXM - ROW_START_OFFSET_LABEL_GAP_M}
-              y={(ROW_TOP_PADDING_M + r.rowStartYM) / 2}
-              fontSize={SPACING_FONT_SIZE_M}
-              fill={TEXT_COLOR_MUTED}
-              textAnchor="end"
-              dominantBaseline="middle"
-            >
-              {formatLengthM(r.rowStartOffsetM)}
-            </text>
-          )}
-
-          {/* Row line itself (invisible, per spec) */}
-          <line
-            x1={r.rowXM}
-            y1={r.rowStartYM}
-            x2={r.rowXM}
-            y2={r.rowEndYM}
-            stroke="transparent"
-            strokeWidth={ROW_LINE_INVISIBLE_WIDTH_M}
-          />
-
-          {/* Crop circles */}
-          {r.crops.map((c) => {
-            const isSelected =
-              selectedCrop?.rowIndex === c.rowIndex &&
-              selectedCrop?.cropIndex === c.cropIndex;
-            return (
-              <circle
-                key={`crop-${r.rowIndex}-${c.cropIndex}`}
-                cx={c.xM}
-                cy={c.yM}
-                r={CROP_RADIUS_M}
-                fill={c.crop.plant.colorHex}
-                stroke={isSelected ? TEXT_COLOR : "transparent"}
-                strokeWidth={isSelected ? ROW_SELECTED_STROKE_M : 0}
-                style={{ cursor: "pointer" }}
-                onClick={() => onCropSelect(c)}
-              >
-                <title>
-                  {`${c.crop.plant.acceptedTaxonName}` +
-                    (c.crop.plant.popularNames?.[0]
-                      ? ` — ${c.crop.plant.popularNames[0]}`
-                      : "")}
-                </title>
-              </circle>
-            );
-          })}
-
-          {/* Per-crop spacing lines */}
-          {r.cropSpacings.map((s) => (
-            <g key={`cs-${r.rowIndex}-${s.cropIndex}`}>
-              <line
-                x1={s.xM}
-                y1={s.yM}
-                x2={s.xM}
-                y2={s.yM + Math.max(s.lengthM, 0.1)}
-                stroke={SPACING_COLOR}
-                strokeWidth={LINE_WIDTH_M}
-              />
-              <text
-                x={s.xM + CROP_SPACING_LABEL_GAP_M}
-                y={s.yM + Math.max(s.lengthM, 0.1) / 2}
-                fontSize={SPACING_FONT_SIZE_M}
-                fill={TEXT_COLOR_MUTED}
-                textAnchor="start"
-                dominantBaseline="middle"
-              >
-                {s.label}
-              </text>
-            </g>
-          ))}
-        </g>
-      ))}
+        );
+      })}
 
       {/* Row-to-row spacing lines (horizontal, between adjacent rows) */}
       {rows.map((r) =>
-        r.rowIndex < rows.length - 1 ? (
-          <g key={`rs-${r.rowIndex}`}>
-            <line
-              x1={r.rowSpacingXM + ROW_SPACING_PADDING_M}
-              y1={r.rowSpacingYM}
-              x2={r.rowSpacingEndXM - ROW_SPACING_PADDING_M}
-              y2={r.rowSpacingYM}
-              stroke={SPACING_COLOR}
-              strokeWidth={LINE_WIDTH_M * 1.5}
+        r.rowIndex < rows.length ? (
+          <FeatureGroup>
+            <ArrowPolyline
+              key={`rs-${r.rowIndex}`}
+              positions={[
+                [rowLat(r.rowSpacingYM), r.rowSpacingStartXM + ROW_SPACING_PADDING_M],
+                [rowLat(r.rowSpacingYM), r.rowSpacingEndXM - ROW_SPACING_PADDING_M],
+              ]}
+              pathOptions={{
+                color: SPACING_COLOR,
+                weight: 1,
+                dashArray: "4 4",
+              }}
             />
-            <text
-              x={(r.rowSpacingXM + r.rowSpacingEndXM) / 2}
-              y={r.rowSpacingYM - CROP_SPACING_LABEL_GAP_M}
-              fontSize={SPACING_FONT_SIZE_M}
-              fill={TEXT_COLOR_MUTED}
-              textAnchor="middle"
-            >
-              {r.rowSpacingLabel}
-            </text>
-          </g>
+            {/* Spacing label (midpoint, above the line) */}
+            <Marker
+              key={`rs-label-${r.rowIndex}`}
+              position={[
+                rowLat(r.rowSpacingYM - CROP_SPACING_LABEL_GAP_M),
+                (r.rowSpacingStartXM + r.rowSpacingEndXM) / 2,
+              ]}
+              icon={spacingLabelIcon(r.rowSpacingLabel, [10, 6])}
+              interactive={false}
+              keyboard={false}
+            />
+          </FeatureGroup>
         ) : null
       )}
-    </svg>
+    </MapContainer>
+    </>
+  );
+}
+
+interface RowGeometryProps {
+  row: RenderedRow;
+  rowLat: (yM: number) => number;
+  selectedRow: RenderedRow | null;
+  selectedCrop: RenderedCrop | null;
+  onCropSelect: (crop: RenderedCrop) => void;
+  spacingLabelIcon: (label: string, anchor: [number, number]) => L.DivIcon;
+}
+
+function RowGeometry({
+  row: r,
+  rowLat,
+  selectedRow,
+  selectedCrop,
+  onCropSelect,
+  spacingLabelIcon,
+}: RowGeometryProps) {
+  const offsetLineStartXM = r.rowStartYM;
+  const offsetLineEndXM = r.rowStartYM + r.rowStartOffsetM - CROP_RADIUS_M;
+  const spacingLabelAnchor: [number, number] = [14, 8];
+
+  return (
+    <>
+      {/* Start-offset line (top → cropsOffsetM, dashed) */}
+      {r.rowStartOffsetM > 0 &&
+      <FeatureGroup>
+        <ArrowPolyline
+          positions={[
+            [rowLat(offsetLineStartXM), r.rowXM],
+            [rowLat(offsetLineEndXM), r.rowXM],
+          ]}
+          pathOptions={{
+            color: SPACING_COLOR,
+            weight: 1,
+            dashArray: "4 4",
+          }}
+          startHead={false}
+        />
+        <Marker
+          position={[
+            rowLat((offsetLineStartXM+offsetLineEndXM)/2),
+            r.rowXM - ROW_START_OFFSET_LABEL_GAP_M,
+          ]}
+          icon={spacingLabelIcon(
+            formatLengthM(r.rowStartOffsetM),
+            spacingLabelAnchor
+          )}
+          interactive={false}
+          keyboard={false}
+        />
+      </FeatureGroup>}
+
+      {/* Per-crop spacing lines (top-down) */}
+      {r.cropSpacings.map((s) => {
+        return (
+          <FeatureGroup key={`cs-${r.rowIndex}-${s.cropIndex}`}>
+            <ArrowPolyline
+              positions={[
+                [rowLat(s.startYM + CROP_SPACING_PADDING_M + CROP_RADIUS_M), s.xM],
+                [rowLat(s.endYM - CROP_SPACING_PADDING_M - CROP_RADIUS_M), s.xM],
+              ]}
+              pathOptions={{
+                color: SPACING_COLOR,
+                weight: 1,
+                dashArray: "4 4",
+              }}
+            />
+            <Marker
+              position={[
+                rowLat((s.startYM + s.endYM) / 2),
+                s.xM - CROP_SPACING_LABEL_GAP_M,
+              ]}
+              icon={spacingLabelIcon(s.label, spacingLabelAnchor)}
+              interactive={false}
+              keyboard={false}
+            />
+          </FeatureGroup>
+        );
+      })}
+
+      {/* Crop circles */}
+      {r.crops.map((c) => {
+        const isSelected = 
+          selectedCrop?.crop.plant.acceptedTaxonName === c.crop.plant.acceptedTaxonName ||
+          selectedRow?.rowIndex === r.rowIndex;
+          // selectedCrop?.rowIndex === c.rowIndex &&
+          // selectedCrop?.cropIndex === c.cropIndex;
+        return (
+          <CircleMarker
+            key={`crop-${r.rowIndex}-${c.cropIndex}`}
+            center={[rowLat(c.yM), c.xM]}
+            radius={CROP_RADIUS_M * PX_PER_M}
+            pathOptions={{
+              color: isSelected ? TEXT_COLOR : "transparent",
+              weight: isSelected ? 2 : 0,
+              fillColor: c.crop.plant.colorHex,
+              fillOpacity: 1,
+            }}
+            eventHandlers={{
+              click: () => onCropSelect(c),
+            }}
+          >
+            <LeafletTooltip direction="top" offset={[0, -4]}>
+              <PlantFullNameLabel fw="bold" plant={c.crop.plant} />
+            </LeafletTooltip>
+          </CircleMarker>
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * Forces the Leaflet map to recompute its size whenever its parent might have
+ * changed (e.g. modal scrolling, panel resizes). Without this, the map can
+ * render with the wrong projection after layout shifts.
+ */
+function PreviewBoundsSizer() {
+  const map = useMap();
+  useEffect(() => {
+    const invalidate = () => map.invalidateSize();
+    invalidate();
+    window.addEventListener("resize", invalidate);
+    return () => window.removeEventListener("resize", invalidate);
+  }, [map]);
+  return null;
+}
+
+function PatternInfoPanel({ pattern }: { pattern: CroppingPatternReadData }) {
+  return (
+    <Stack justify="space-between" h="100%">
+      <Stack align="left">
+        <Text fz={15}>
+          {pattern.description}
+        </Text>
+        <FieldView fz="sm" label="Publicado por">
+          <UserName fz="sm" user={pattern.author} />
+        </FieldView>
+      </Stack>
+      <Text fz="sm" c="dimmed" ta="center">
+        Clique em uma linha ou em um cultivo (círculo) para ver detalhes.
+      </Text>
+    </Stack>
   )
 }
 
+function RowInfoPanel({ row }: { row: PatternRow }) {
+  const cropsLegend = row.crops.map(c => 
+    <CropLegend plant={c.plant} />
+  );
+
+  return (
+    <Stack gap="sm">
+      <Text fw="bold">
+        Linha {row.position}
+      </Text>
+      <FieldView fz={15} label="Função">
+        {row.purpose}
+      </FieldView>
+      <FieldView fz={15} label="Sequência de cultivos">
+        {cropsLegend}
+      </FieldView>
+    </Stack>
+  );
+}
+
 function PlantInfoPanel({ plant }: { plant: PlantReadData }) {
-  const popularNames = plant.popularNames ?? [];
+  const { plantsFitnessMap } = useProject();
+
+  const plantFitness = plantsFitnessMap[plant.acceptedTaxonName];
+
+  const popularNamesQueryOptions = {
+    queryKey: [
+      'plantPopularNameList',
+      plant.id.toString(),
+    ],
+    queryFn: getPlantPopularNameList
+  }
+  const popularNames = useQuery(popularNamesQueryOptions);
+
+  if (!popularNames.data)
+    return <QueryLoader {...popularNamesQueryOptions}/>;
+
   return (
     <Stack gap="xs">
-      <Group gap={6} wrap="nowrap" align="center">
-        <Text fw={600} fz="sm" style={{ flex: 1 }}>
+      <Group gap={6} wrap="nowrap" align="baseline">
+        <Text fw="bold" fs="italic" style={{ flex: 1 }}>
           {plant.acceptedTaxonName}
         </Text>
+        {plantFitness &&
+        <NativityBadge plantFitness={plantFitness} />}
         <ActionIcon
           variant="subtle"
           size="sm"
@@ -510,22 +694,38 @@ function PlantInfoPanel({ plant }: { plant: PlantReadData }) {
           <IconExternalLink size={14} />
         </ActionIcon>
       </Group>
-      <Text fz="xs" c="dimmed">
-        Nomes populares
-      </Text>
-      {popularNames.length ? (
-        <Stack gap={2}>
-          {popularNames.map((name) => (
-            <Text fz="xs" key={name}>
-              • {name}
-            </Text>
-          ))}
-        </Stack>
-      ) : (
-        <Text fz="xs" c="dimmed" fs="italic">
-          Sem nomes populares cadastrados.
-        </Text>
-      )}
+      <Stack gap={10}>
+        {popularNames.data.length > 0 &&
+        <Text fz={15}>
+          {popularNames.data.map(item => item.name).join(", ")}
+        </Text>}
+      </Stack>
     </Stack>
+  );
+}
+
+/**
+ * Inline styles for the Leaflet divIcon labels used to render text on the map.
+ * Leaflet wraps each icon in its own `.leaflet-div-icon` element so the styling
+ * is namespaced by our custom classNames.
+ */
+function PreviewLabelStyles() {
+  return (
+    <style>{`
+      .pattern-preview-label .pattern-preview-label__inner {
+        white-space: nowrap;
+        user-select: none;
+        line-height: 1.2;
+        font-size: 12px;
+        color: var(--mantine-color-dark-7);
+        background-color: ${BACKGROUND_COLOR_HEX};
+      }
+      .pattern-preview-label--row .pattern-preview-label__inner {
+        font-weight: 600;
+      }
+      .pattern-preview-label--spacing .pattern-preview-label__inner {
+        color: var(--mantine-color-gray-7);
+      }
+    `}</style>
   );
 }

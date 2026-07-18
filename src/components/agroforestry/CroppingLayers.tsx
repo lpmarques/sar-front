@@ -17,6 +17,8 @@ import { clipLineToPoly, DEG2RAD, getBBox, latLngCentroid, latLngToMeters, meter
 import { CircleMarker, Polyline, Tooltip } from "react-leaflet";
 import { CroppingSummary, CroppingSummaryCrops, PatternCrop, PatternRow } from "../../apis/agroforestry";
 import { useEffect, useMemo } from "react";
+import { plantFullLabel } from "../../utils/catalog";
+import { capitalize } from "../../utils/common";
 
 const SQ_METERS_PER_HECTARE = 10000;
 
@@ -268,7 +270,7 @@ function computeCroppingLayers(
       if (pointInPoly(cropPoint, polyMeters)) {
         crops.push({
           coords: metersToLatLng(cropPoint, originLatLng),
-          name: patternCrop.plant.acceptedTaxonName,
+          name: patternCrop.plant.mainPopularName,
           color: patternCrop.plant.colorHex,
           patternRowPos: patternRowIndex+1,
           patternCropPos: patternCropIndex+1,
@@ -324,7 +326,7 @@ export function CropMarkers({ crops }: CropMarkersProps) {
           }}
         >
           <Tooltip direction="top" offset={[0, -6]}>
-            <strong>{crop.name}</strong>
+            <strong>{capitalize(crop.name)}</strong>
             <br />
             Posição no padrão: Linha {crop.patternRowPos}, Cultivo {crop.patternCropPos}
           </Tooltip>

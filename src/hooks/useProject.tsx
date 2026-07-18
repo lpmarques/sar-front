@@ -13,7 +13,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { useListState } from "@mantine/hooks";
-import { FarmReadData, FieldReadData, FieldWriteRequestData } from "../apis/agroforestry";
+import { FarmReadData, FieldReadData, FieldWriteRequestData, SitePlantFitness } from "../apis/agroforestry";
 
 // Field interface makes name optional to allow adding new field 
 // data into the context while it is still being defined and also
@@ -26,6 +26,7 @@ interface Field extends Omit<FieldWriteRequestData, 'name' | 'farmId'> {
 interface ProjectContext {
   farm: FarmReadData;
   fields: Field[];
+  plantsFitnessMap: { [k: string]: SitePlantFitness };
   initialFieldValues: FieldReadData[];
   selectedFieldIndex: number | null;
   inputsEnabled: boolean;
@@ -55,14 +56,27 @@ interface ProjectProviderProps {
   farm: FarmReadData;
   initialFields: FieldReadData[];
   initialSeletedFieldIndex?: number | null;
+  plantsFitness?: SitePlantFitness[];
   children?: React.ReactNode;
 }
 
-export function ProjectProvider({children, farm, initialFields, initialSeletedFieldIndex}: ProjectProviderProps) {
+export function ProjectProvider({
+  children,
+  farm,
+  initialFields,
+  initialSeletedFieldIndex = null,
+  plantsFitness = [],
+}: ProjectProviderProps) {
   const initialFieldValues = useMemo(() => initialFields.sort((a, b) => a.id-b.id), [initialFields]);
   const [fields, fieldsHandlers] = useListState<Field>(initialFieldValues);
   const [inputsEnabled, setInputsEnabled] = useState<boolean>(true);
-  const [selectedFieldIndex, setSelectedFieldIndex] = useState<number | null>(initialSeletedFieldIndex ?? null);
+  const [selectedFieldIndex, setSelectedFieldIndex] = useState<number | null>(initialSeletedFieldIndex);
+  const plantsFitnessMap = useMemo(() => 
+    Object.fromEntries(
+      plantsFitness.map(p => [p.acceptedTaxonName, p])
+    ),
+    [plantsFitness.length]
+  );
   
   const selectField = (fieldIndex: number) => setSelectedFieldIndex(fieldIndex);
 
@@ -108,6 +122,7 @@ export function ProjectProvider({children, farm, initialFields, initialSeletedFi
     () => ({
       farm,
       fields,
+      plantsFitnessMap,
       selectedFieldIndex,
       initialFieldValues,
       inputsEnabled,
@@ -124,6 +139,7 @@ export function ProjectProvider({children, farm, initialFields, initialSeletedFi
     [
       farm.id,
       fields,
+      plantsFitnessMap,
       selectedFieldIndex,
       initialFieldValues,
       inputsEnabled,

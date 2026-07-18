@@ -63,7 +63,6 @@ export default function CroppingPatternsPreviewModal({
         modals.closeAll();
       }}
       onPreview={(pattern) => setView({ kind: "preview", pattern })}
-      // onPreview={(pattern) => window.open(`/cropping-patterns/${pattern.id}`)}
     />
   );
 }

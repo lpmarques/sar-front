@@ -11,6 +11,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
+import ArrowPolyline from './ArrowPolyline';
 import ButtonControl from './ButtonControl';
 import CroppingLayers from './CroppingLayers';
 import CroppingPatternPreview from './CroppingPatternPreview';
@@ -40,11 +41,17 @@ import SiteTraitValueInput from './SiteTraitValueInput';
 import SiteTraitValuesForm from './SiteTraitValuesForm';
 import EditControl from './EditControl';
 import PolygonDrawing from './PolygonDrawing';
+import CroppingPatternPreviewPage from './CroppingPatternPreviewPage';
+import NativityBadge from './NativityBadge';
+import CropLegend from './CropLegend';
 
 export {
+  ArrowPolyline,
   ButtonControl,
+  CropLegend,
   CroppingLayers,
   CroppingPatternPreview,
+  CroppingPatternPreviewPage,
   CroppingPatternsPreviewModal,
   CroppingPatternsTable,
   DeviceLocationControl,
@@ -65,6 +72,7 @@ export {
   MapCentering,
   MapControl,
   MaptilerVectorLayer,
+  NativityBadge,
   PolygonDrawing,
   ProjectDashboard,
   SiteTraitsDetails,

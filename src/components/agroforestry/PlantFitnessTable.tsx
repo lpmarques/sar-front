@@ -17,6 +17,7 @@ import { Badge, Table } from "@mantine/core";
 import ClickableRow from "../common/ClickableRow";
 import { QueryLoader } from "../common/QueryLoader";
 import { StickyHeaderTable } from "../common/StickyHeaderTable";
+import NativityBadge from "./NativityBadge";
 
 export default function PlantFitnessTable({ farm }: { farm: FarmReadData }) {
   const plantFitnessesQueryOptions = {
@@ -44,7 +45,9 @@ export default function PlantFitnessTable({ farm }: { farm: FarmReadData }) {
       style={{'--hover-color': '#bef7ce'}}
     >
       <Table.Td>{fitness.acceptedTaxonName}</Table.Td>
-      <Table.Td><NativityBadge plantFitness={fitness} /></Table.Td>
+      <Table.Td>
+        <NativityBadge plantFitness={fitness} />
+      </Table.Td>
       <Table.Td>{fitness.fitnessScore + fitness.nativityScore}</Table.Td>
       <Table.Td>{fitness.fitnessScore}</Table.Td>
       <Table.Td>{fitness.nativityScore}</Table.Td>
@@ -66,11 +69,4 @@ export default function PlantFitnessTable({ farm }: { farm: FarmReadData }) {
       />
     </QueryLoader>
   )
-}
-
-function NativityBadge({ plantFitness }: { plantFitness: SitePlantFitness }) {
-  if (plantFitness.isNative)
-    return <Badge variant="light" color="green">NATIVA</Badge>
-  if (plantFitness.isInvasive)
-    return <Badge variant="light" color="red">INVASORA</Badge>
 }

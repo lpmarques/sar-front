@@ -16,7 +16,7 @@ import { useParams } from "react-router";
 import { Badge, Container, Paper, Table } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { getNaturalOccurrenceRegionList, getPlantList, getPopularNameList, getTaxonList, getTraitValueList } from "../../apis/catalog";
-import { ContentPreviewReadData, getContentPreviewList, getUser } from "../../apis/core";
+import { ContentPreviewReadData, getContentPreviewList, getOwnUser, getUser } from "../../apis/core";
 import ClickableRow from "../common/ClickableRow";
 import { StickyHeaderTable } from "../common/StickyHeaderTable";
 import { useLanguage } from "../../hooks";
@@ -27,12 +27,15 @@ export default function UserContents() {
   const { userEmail } = useParams();
 
   let queryKey = ['user'];
-  if (userEmail !== undefined)
+  let queryFn = getOwnUser;
+  if (userEmail !== undefined) {
     queryKey.push(`email=${userEmail}`);
+    queryFn = getUser
+  }
 
   const userQueryOptions = {
     queryKey,
-    queryFn: getUser
+    queryFn,
   };
   const { data } = useQuery(userQueryOptions);
   const profileOwner = data;

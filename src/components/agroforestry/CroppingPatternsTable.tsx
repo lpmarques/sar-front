@@ -11,7 +11,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ActionIcon, Center, CloseButton, Group, Loader, Table, Tooltip } from "@mantine/core";
+import { ActionIcon, Center, CloseButton, Group, Table, Tooltip } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { IconArrowsMaximize } from "@tabler/icons-react";
 import { CroppingPatternReadData, getCroppingPatternList } from "../../apis/agroforestry";
@@ -72,9 +72,9 @@ export default function CroppingPatternsTable({ selectedPatternId, onSelect, onU
   const header = (
     <Table.Tr>
       <Table.Th>Nome</Table.Th>
-      <Table.Th>Autor</Table.Th>
+      <Table.Th>Publicado por</Table.Th>
       <Table.Th>Diversidade de espécies</Table.Th>
-      <Table.Th w={100}>Ações</Table.Th>
+      <Table.Th w={60}></Table.Th>
     </Table.Tr>
   );
 

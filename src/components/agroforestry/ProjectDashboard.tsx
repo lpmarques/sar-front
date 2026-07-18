@@ -15,33 +15,48 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Container, Grid, Paper, Transition } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
-import { getFarm, getFieldList } from "../../apis/agroforestry";
+import { getFarm, getFarmPlantFitnessList, getFieldList } from "../../apis/agroforestry";
 import { ProjectProvider, useProject } from "../../hooks/useProject";
 import { QueryLoader } from "../common/QueryLoader";
 import { FieldMenu, FieldsMap } from ".";
+import { ModalsProvider } from "@mantine/modals";
 
 export default function ProjectDashboard() {
   const { farmId } = useParams();
 
   const farmQueryOptions = {
-    queryKey: ['farm', farmId!],
+    queryKey: ['farm', farmId!.toString()],
     queryFn: getFarm
   };
   const farm = useQuery(farmQueryOptions);
 
   const fieldsQueryOptions = {
-    queryKey: ['fieldList', farmId!],
+    queryKey: ['fieldList', farmId!.toString()],
     queryFn: getFieldList
   };
   const fields = useQuery(fieldsQueryOptions);
   
+  const plantFitnessesQueryOptions = {
+    queryKey: ['farmPlantFitnessList', farmId!.toString()],
+    queryFn: getFarmPlantFitnessList
+  }
+  const plantsFitness = useQuery(plantFitnessesQueryOptions);
+
+  if (!farm.data)
+    return <QueryLoader {...farmQueryOptions} />
+  if (!fields.data)
+    return <QueryLoader {...fieldsQueryOptions} />
+  
   return (
-    <QueryLoader {...farmQueryOptions}>
-      {farm.data && fields.data && 
-      <ProjectProvider farm={farm.data} initialFields={fields.data}>
+    <ProjectProvider
+      farm={farm.data}
+      initialFields={fields.data}
+      plantsFitness={plantsFitness.data ?? []}
+    >
+      <ModalsProvider>
         <ProjectDashboardBody />
-      </ProjectProvider>}
-    </QueryLoader>
+      </ModalsProvider>
+    </ProjectProvider>
   )
 }
 

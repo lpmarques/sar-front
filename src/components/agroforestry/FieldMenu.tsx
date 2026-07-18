@@ -11,6 +11,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
+import { useMemo } from "react";
 import { BoxProps, Button, Container, Fieldset, Group, NumberInput, ScrollArea, Stack, Text, TextInput, Tooltip } from "@mantine/core";
 import { useForm, UseFormReturnType } from "@mantine/form";
 import { modals } from "@mantine/modals";
@@ -27,7 +28,8 @@ import DeleteButton from "../common/DeleteButton";
 import FieldView from "../common/FieldView";
 import { showError, showSuccess } from "../common/notifications";
 import CroppingPatternsPreviewModal from "./CroppingPatternsPreviewModal";
-import { useCallback, useMemo } from "react";
+import { PlantFullNameLabel } from "../catalog";
+import CropLegend from "./CropLegend";
 
 export default function FieldMenu({ inputsDisabled = false }: { inputsDisabled: boolean }) {
   const queryClient = useQueryClient();
@@ -215,15 +217,6 @@ export default function FieldMenu({ inputsDisabled = false }: { inputsDisabled: 
 }
 
 function CroppingSummaryDetails({ summary }: { summary: CroppingSummary }) {
-  function CropLegend({ plant }: { plant: PlantReadData }) {
-    return (
-      <Group justify="left" gap="xs">
-        <IconCircleFilled color={plant.colorHex} size={15} />
-        {plant.acceptedTaxonName}
-      </Group>
-    )
-  };
-
   const summaryTotals = (
     <Fieldset key="totals" legend="Total" fw={500} p={10} mb={10}>
       <Group gap="xs">
@@ -409,7 +402,7 @@ function CroppingPatternSelect({ fieldForm, label, disabled, mb }: CroppingPatte
   const tooltipLabel = selectedPattern?.name ?? 'Ver padrões disponíveis';
 
   const openPreviewModal = () => modals.open({
-    title: 'Padrões de cultivo disponíveis',
+    title: 'Padrões de cultivo',
     size: 'xl',
     children: (
       <CroppingPatternsPreviewModal
