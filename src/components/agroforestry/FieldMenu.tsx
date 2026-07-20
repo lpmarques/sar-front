@@ -15,11 +15,10 @@ import { useMemo } from "react";
 import { BoxProps, Button, Container, Fieldset, Group, NumberInput, ScrollArea, Stack, Text, TextInput, Tooltip } from "@mantine/core";
 import { useForm, UseFormReturnType } from "@mantine/form";
 import { modals } from "@mantine/modals";
-import { IconCircleFilled, IconChevronRight, IconInfoCircle, IconX } from "@tabler/icons-react";
+import { IconChevronRight, IconInfoCircle, IconX } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import booleanEqual from "@turf/boolean-equal";
 import { createField, CroppingSummary, deleteField, FieldWriteRequestData, getCroppingPatternList, updateField } from "../../apis/agroforestry";
-import { PlantReadData } from "../../apis/catalog";
 import { showMutationError } from "../../apis/common";
 import { useAuth } from '../../hooks/useAuth';
 import { useProject } from "../../hooks/useProject";
@@ -27,9 +26,7 @@ import ConfirmingButton from "../common/ConfirmingButton";
 import DeleteButton from "../common/DeleteButton";
 import FieldView from "../common/FieldView";
 import { showError, showSuccess } from "../common/notifications";
-import CroppingPatternsPreviewModal from "./CroppingPatternsPreviewModal";
-import { PlantFullNameLabel } from "../catalog";
-import CropLegend from "./CropLegend";
+import { CropLegend, CroppingPatternsPreviewModal } from ".";
 
 export default function FieldMenu({ inputsDisabled = false }: { inputsDisabled: boolean }) {
   const queryClient = useQueryClient();

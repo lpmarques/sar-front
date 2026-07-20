@@ -12,7 +12,15 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
 import axios from 'axios';
-import { camelToSnakeCase, defaultDeleteFn, defaultPostFn, defaultQueryFn, GenericResponse, JsonSchema, QueryFnInput, snakeToCamelCase } from './common';
+import {
+  camelToSnakeCase,
+  defaultDeleteFn,
+  defaultPostFn,
+  defaultQueryFn,
+  GenericResponse,
+  JsonSchema,
+  QueryFnInput
+} from './common';
 
 // MUTATIONS
 

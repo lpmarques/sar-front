@@ -11,13 +11,13 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
+import { Table } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { FarmReadData, getFarmPlantFitnessList, SitePlantFitness } from "../../apis/agroforestry";
-import { Badge, Table } from "@mantine/core";
 import ClickableRow from "../common/ClickableRow";
 import { QueryLoader } from "../common/QueryLoader";
 import { StickyHeaderTable } from "../common/StickyHeaderTable";
-import NativityBadge from "./NativityBadge";
+import { NativityBadge } from ".";
 
 export default function PlantFitnessTable({ farm }: { farm: FarmReadData }) {
   const plantFitnessesQueryOptions = {

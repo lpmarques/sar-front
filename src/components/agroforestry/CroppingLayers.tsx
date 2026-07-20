@@ -13,11 +13,10 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 
 import { GeometryUtil, LatLng } from "leaflet";
 import 'leaflet-geometryutil';
-import { clipLineToPoly, DEG2RAD, getBBox, latLngCentroid, latLngToMeters, metersToLatLng, Point2D, pointInPoly } from "../../utils/agroforestry";
+import { useEffect, useMemo } from "react";
 import { CircleMarker, Polyline, Tooltip } from "react-leaflet";
 import { CroppingSummary, CroppingSummaryCrops, PatternCrop, PatternRow } from "../../apis/agroforestry";
-import { useEffect, useMemo } from "react";
-import { plantFullLabel } from "../../utils/catalog";
+import { clipLineToPoly, DEG2RAD, getBBox, latLngCentroid, latLngToMeters, metersToLatLng, Point2D, pointInPoly } from "../../utils/agroforestry";
 import { capitalize } from "../../utils/common";
 
 const SQ_METERS_PER_HECTARE = 10000;

@@ -146,13 +146,3 @@ function distinctPlantCount(pattern: CroppingPatternReadData): number {
 
   return ids.size;
 }
-
-function mergePatterns(
-  userPatterns: CroppingPatternReadData[],
-  publicPatterns: CroppingPatternReadData[],
-  userId: number
-): CroppingPatternReadData[] {
-  const otherPatterns = publicPatterns.filter(pattern => pattern.author.id !== userId);
-
-  return [...userPatterns, ...otherPatterns];
-}

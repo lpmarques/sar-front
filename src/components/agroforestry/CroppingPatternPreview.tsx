@@ -30,32 +30,26 @@ import {
   Stack,
   Text,
   Tooltip as MantineTooltip,
-  Textarea,
-  SimpleGrid,
 } from "@mantine/core";
 import {
   IconChevronLeft,
   IconExternalLink,
   IconTrash,
 } from "@tabler/icons-react";
+import { useQuery } from "@tanstack/react-query";
 import {
   CroppingPatternReadData,
-  getFarmPlantFitness,
   PatternCrop,
   PatternRow,
 } from "../../apis/agroforestry";
 import { getPlantPopularNameList, PlantReadData } from "../../apis/catalog";
 import { useAuth } from "../../hooks/useAuth";
-import MapBoundsFraming from "./MapBoundsFraming";
-import ArrowPolyline from "./ArrowPolyline";
-import { PlantFullNameLabel } from "../catalog";
-import { useQuery } from "@tanstack/react-query";
-import { QueryLoader } from "../common/QueryLoader";
 import { useProject } from "../../hooks/useProject";
-import NativityBadge from "./NativityBadge";
+import { QueryLoader } from "../common/QueryLoader";
 import FieldView from "../common/FieldView";
+import { PlantFullNameLabel } from "../catalog";
 import { UserName } from "../user";
-import CropLegend from "./CropLegend";
+import { ArrowPolyline, CropLegend, MapBoundsFraming, NativityBadge } from ".";
 
 interface CroppingPatternPreviewProps {
   pattern: CroppingPatternReadData;
@@ -91,21 +85,9 @@ function formatLengthM(m: number): string {
   return `${m} m`;
 }
 
-// TODO: refactor to display backend-sourced purpose string
-/** Build a human-readable "purpose" string for a row from its crops. */
-function describeRowPurpose(row: PatternRow): string {
-  const taxa = Array.from(
-    new Set(row.crops.map((crop) => crop.plant.acceptedTaxonName))
-  );
-  if (taxa.length === 0) return "Linha vazia";
-  if (taxa.length <= 3) return taxa.join(", ");
-  return `${taxa.slice(0, 3).join(", ")} +${taxa.length - 3}`;
-}
-
 /**
  * Pure layout: maps pattern rows into SVG-ready geometry. Working in metres
- * (treated as SVG units), so the SVG viewBox equals the bounding box of the
- * resulting geometry plus a small margin.
+ * (treated as SVG units).
  */
 function buildPreviewGeometry(pattern: CroppingPatternReadData) {
   const rows = pattern.rows;
@@ -357,7 +339,7 @@ interface PatternPreviewPanelProps {
 /**
  * Map-based preview. We use `L.CRS.Simple` so coordinates are in plain metres
  * with no projection. LatLng is (y, x) for Simple, so we flip y against the
- * total height to keep "y down in the SVG drawing" → "y down on screen".
+ * total height to keep "y down on screen".
  */
 function PatternPreviewPanel({
   pattern,
@@ -408,19 +390,6 @@ function PatternPreviewPanel({
       minZoom={4.5}
       maxZoom={8}
     >
-      {/* Visible bounds */}
-      {/* <Polygon 
-        positions={[
-          bounds.getNorthWest(),
-          bounds.getNorthEast(),
-          bounds.getSouthEast(),
-          bounds.getSouthWest(),
-        ]}
-        pathOptions={{
-          fillOpacity: 0
-        }}
-      /> */}
-
       <MapBoundsFraming bounds={bounds} maxZoom={8} padding={0} deps={[bounds]} />
 
       <PreviewBoundsSizer />
