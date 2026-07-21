@@ -19,7 +19,6 @@ import LocalizedFormat from 'dayjs/plugin/localizedFormat';
 // import { getAnalytics } from 'firebase/analytics';
 import { BrowserRouter, Routes, Route } from "react-router";
 import { MantineProvider } from "@mantine/core";
-import { ModalsProvider } from '@mantine/modals';
 import { Notifications } from '@mantine/notifications';
 import drawLocales from 'leaflet-draw-locales';
 import 'leaflet/dist/leaflet.css';
