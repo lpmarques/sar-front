@@ -24,6 +24,7 @@ import ClickableText from '../common/ClickableText';
 import { QueryLoader } from '../common/QueryLoader';
 import { AcceptedTraitValueDisplay } from './TraitDetails';
 import { TraitValueProposalForm } from '.';
+import { ModalsProvider } from '@mantine/modals';
 
 export default function TraitEdit() {
   const { plantId, traitSlug } = useParams();
@@ -55,27 +56,29 @@ export default function TraitEdit() {
   const acceptedValue = values.data && values.data.find(item => item.contentStatus === "accepted");
 
   return (
-    <QueryLoader {...traitValuesQueryOptions}>
-      {plant.data && trait && 
-      <Container size={1000}>
-        <ClickableText fs="italic" fz="h3" pb={15} onClick={() => navigate(`/plants/${plantId}`)}>
-          {plant.data.acceptedTaxonName}
-        </ClickableText>
-        <Text fz="h3" pb={15}>
-          [{trait.sectionName}]&nbsp;
-          <ClickableText span inherit fw={600} onClick={() => navigate(`/plants/${plantId}/trait/${traitSlug}`)}>
-            {trait.name}
-          </ClickableText> - <Text span inherit fw={600}>Proposta de Alteração</Text>
-        </Text>
-        <Alert variant="light" color="blue" icon={<IconInfoCircle />}>
-          <Text fz="md" pb={10}>A versão proposta será analisada e, se aprovada, se tornará a versão aceita.</Text>
-        </Alert>
-        <Space h={15} />
-        {acceptedValue && <>
-        <AcceptedTraitValueDisplay data={acceptedValue} />
-        <Space h={15} /></>}
-        <TraitValueProposalForm plant={plant.data} trait={trait} traitValuesQueryOptions={traitValuesQueryOptions} />
-      </Container>}
-    </QueryLoader>
+    <ModalsProvider>
+      <QueryLoader {...traitValuesQueryOptions}>
+        {plant.data && trait && 
+        <Container size={1000}>
+          <ClickableText fs="italic" fz="h3" pb={15} onClick={() => navigate(`/plants/${plantId}`)}>
+            {plant.data.acceptedTaxonName}
+          </ClickableText>
+          <Text fz="h3" pb={15}>
+            [{trait.sectionName}]&nbsp;
+            <ClickableText span inherit fw={600} onClick={() => navigate(`/plants/${plantId}/trait/${traitSlug}`)}>
+              {trait.name}
+            </ClickableText> - <Text span inherit fw={600}>Proposta de Alteração</Text>
+          </Text>
+          <Alert variant="light" color="blue" icon={<IconInfoCircle />}>
+            <Text fz="md" pb={10}>A versão proposta será analisada e, se aprovada, se tornará a versão aceita.</Text>
+          </Alert>
+          <Space h={15} />
+          {acceptedValue && <>
+          <AcceptedTraitValueDisplay data={acceptedValue} />
+          <Space h={15} /></>}
+          <TraitValueProposalForm plant={plant.data} trait={trait} traitValuesQueryOptions={traitValuesQueryOptions} />
+        </Container>}
+      </QueryLoader>
+    </ModalsProvider>
   )
 }

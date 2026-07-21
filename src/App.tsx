@@ -72,34 +72,32 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <MantineProvider theme={theme}>
           <LanguageProvider>
-            <ModalsProvider>
-              <Notifications />
-              <Shell>
-                <Routes>
-                  <Route index element={<Home />}/>
-                  <Route path="login" element={<UnloggedOnlyRoute><Login /></UnloggedOnlyRoute>}/>
-                  <Route path="signup" element={<UnloggedOnlyRoute><Signup /></UnloggedOnlyRoute>}/>
-                  <Route path="user" element={<LoggedOnlyRoute><UserProfile /></LoggedOnlyRoute>}/>
-                  <Route path="user/contents" element={<LoggedOnlyRoute><UserContents /></LoggedOnlyRoute>}/>
-                  <Route path="users/:userEmail" element={<LoggedOnlyRoute><UserProfile /></LoggedOnlyRoute>}/>
-                  <Route path="users/:userEmail/contents" element={<LoggedOnlyRoute><UserContents /></LoggedOnlyRoute>}/>
-                  <Route path="plants" element={<PlantList />} />
-                  <Route path="plants/new" element={<LoggedOnlyRoute><PlantNew /></LoggedOnlyRoute>} />
-                  <Route path="plants/:plantId" element={<PlantDetails />} />
-                  <Route path="plants/:plantId/:sectionSlug" element={<SectionDetails />} />
-                  <Route path="plants/:plantId/:sectionSlug/edit" element={<LoggedOnlyRoute><SectionEdit /></LoggedOnlyRoute>} />
-                  <Route path="plants/:plantId/trait/:traitSlug" element={<TraitDetails />} />
-                  <Route path="plants/:plantId/trait/:traitSlug/edit" element={<LoggedOnlyRoute><TraitEdit /></LoggedOnlyRoute>} />
-                  <Route path="farms" element={<FarmList />} />
-                  <Route path="farms/new" element={<LoggedOnlyRoute><FarmNew /></LoggedOnlyRoute>} />
-                  <Route path="farms/:farmId" element={<LoggedOnlyRoute><FarmDetails /></LoggedOnlyRoute>} />
-                  <Route path="farms/:farmId/edit" element={<LoggedOnlyRoute><FarmEdit /></LoggedOnlyRoute>} />
-                  <Route path="farms/:farmId/project" element={<LoggedOnlyRoute><ProjectDashboard /></LoggedOnlyRoute>} />
-                  <Route path="cropping-patterns/:patternId" element={<LoggedOnlyRoute><CroppingPatternPreviewPage /></LoggedOnlyRoute>} />
-                  <Route path='*' element={<HttpError status={404} statusText="Página inexistente"/>} />
-                </Routes>
-              </Shell>
-            </ModalsProvider>
+            <Notifications />
+            <Shell>
+              <Routes>
+                <Route index element={<Home />}/>
+                <Route path="login" element={<UnloggedOnlyRoute><Login /></UnloggedOnlyRoute>}/>
+                <Route path="signup" element={<UnloggedOnlyRoute><Signup /></UnloggedOnlyRoute>}/>
+                <Route path="user" element={<LoggedOnlyRoute><UserProfile /></LoggedOnlyRoute>}/>
+                <Route path="user/contents" element={<LoggedOnlyRoute><UserContents /></LoggedOnlyRoute>}/>
+                <Route path="users/:userEmail" element={<LoggedOnlyRoute><UserProfile /></LoggedOnlyRoute>}/>
+                <Route path="users/:userEmail/contents" element={<LoggedOnlyRoute><UserContents /></LoggedOnlyRoute>}/>
+                <Route path="plants" element={<PlantList />} />
+                <Route path="plants/new" element={<LoggedOnlyRoute><PlantNew /></LoggedOnlyRoute>} />
+                <Route path="plants/:plantId" element={<PlantDetails />} />
+                <Route path="plants/:plantId/:sectionSlug" element={<SectionDetails />} />
+                <Route path="plants/:plantId/:sectionSlug/edit" element={<LoggedOnlyRoute><SectionEdit /></LoggedOnlyRoute>} />
+                <Route path="plants/:plantId/trait/:traitSlug" element={<TraitDetails />} />
+                <Route path="plants/:plantId/trait/:traitSlug/edit" element={<LoggedOnlyRoute><TraitEdit /></LoggedOnlyRoute>} />
+                <Route path="farms" element={<FarmList />} />
+                <Route path="farms/new" element={<LoggedOnlyRoute><FarmNew /></LoggedOnlyRoute>} />
+                <Route path="farms/:farmId" element={<LoggedOnlyRoute><FarmDetails /></LoggedOnlyRoute>} />
+                <Route path="farms/:farmId/edit" element={<LoggedOnlyRoute><FarmEdit /></LoggedOnlyRoute>} />
+                <Route path="farms/:farmId/project" element={<LoggedOnlyRoute><ProjectDashboard /></LoggedOnlyRoute>} />
+                <Route path="cropping-patterns/:patternId" element={<LoggedOnlyRoute><CroppingPatternPreviewPage /></LoggedOnlyRoute>} />
+                <Route path='*' element={<HttpError status={404} statusText="Página inexistente"/>} />
+              </Routes>
+            </Shell>
           </LanguageProvider>
         </MantineProvider>
       </QueryClientProvider>

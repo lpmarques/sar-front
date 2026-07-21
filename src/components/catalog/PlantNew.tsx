@@ -14,15 +14,16 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 import { useNavigate } from 'react-router';
 import { Button, Container, Fieldset, Paper, Space, TextInput, Title } from "@mantine/core";
 import { isNotEmpty, useField } from "@mantine/form";
+import { ModalsProvider } from '@mantine/modals';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { proposePlant, getTaxonList, TaxonReadData } from "../../apis/catalog";
 import { showMutationError } from '../../apis/common';
+import { undefinedIfEmpty } from '../../utils/common';
 import { showError, showSuccess } from "../common/notifications";
 import { QueryLoader } from '../common/QueryLoader';
 import { usePopularNameForm } from "./PopularNamesSection";
 import { useTaxonForm } from "./TaxonomySection";
 import { CommentInput, SourceSelect } from '.';
-import { undefinedIfEmpty } from '../../utils/common';
 
 export default function PlantNew() {
   const navigate = useNavigate();
@@ -188,34 +189,36 @@ export default function PlantNew() {
   }
   
   return (
-    <QueryLoader {...taxaQueryOptions}>
-      <Container size={450} mt={20} mb={60}>
-        <Title fw={500} ta="center" mb={30}>
-          Nova Planta
-        </Title>
-        <Paper withBorder shadow="sm" p={20}>
-          {taxonFieldset}
-          {popularNameFieldset}
-          <CommentInput
-            label="Comentário"
-            size="sm"
-            field={commentField}
-            maxChars={commentMaxChars}
-            placeholder="Se achar pertinente, fale mais aqui sobre sua proposta."
-          />
-          <Button
-            fullWidth
-            mt="xl"
-            radius="md"
-            color="teal"
-            loading={plantProposal.isPending}
-            onClick={handleSubmit}
-          >
-            Publicar proposta
-          </Button>
-        </Paper>
-      </Container>
-      <Space h={5}/>
-    </QueryLoader>
+    <ModalsProvider>
+      <QueryLoader {...taxaQueryOptions}>
+        <Container size={450} mt={20} mb={60}>
+          <Title fw={500} ta="center" mb={30}>
+            Nova Planta
+          </Title>
+          <Paper withBorder shadow="sm" p={20}>
+            {taxonFieldset}
+            {popularNameFieldset}
+            <CommentInput
+              label="Comentário"
+              size="sm"
+              field={commentField}
+              maxChars={commentMaxChars}
+              placeholder="Se achar pertinente, fale mais aqui sobre sua proposta."
+            />
+            <Button
+              fullWidth
+              mt="xl"
+              radius="md"
+              color="teal"
+              loading={plantProposal.isPending}
+              onClick={handleSubmit}
+            >
+              Publicar proposta
+            </Button>
+          </Paper>
+        </Container>
+        <Space h={5}/>
+      </QueryLoader>
+    </ModalsProvider>
   )
 }

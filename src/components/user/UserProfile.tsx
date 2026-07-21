@@ -13,7 +13,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 
 import { useNavigate, useParams } from "react-router";
 import { Avatar, Button, Center, Container, Group, Paper, Stack, Text } from '@mantine/core';
-import { modals } from '@mantine/modals';
+import { modals, ModalsProvider } from '@mantine/modals';
 import { IconMail, IconBuildings, IconMapPin } from '@tabler/icons-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { showMutationError } from '../../apis/common';
@@ -40,12 +40,14 @@ export default function UserProfile() {
   const { data } = useQuery(userQueryOptions);
 
   return (
-    <QueryLoader {...userQueryOptions}>
-      <Container size={300}>
-        <UserDataCard data={data!} />
-        {userEmail === undefined && <UserOptions />}
-      </Container>
-    </QueryLoader>
+    <ModalsProvider>
+      <QueryLoader {...userQueryOptions}>
+        <Container size={300}>
+          <UserDataCard data={data!} />
+          {userEmail === undefined && <UserOptions />}
+        </Container>
+      </QueryLoader>
+    </ModalsProvider>
   )
 }
 

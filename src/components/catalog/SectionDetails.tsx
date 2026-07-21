@@ -13,7 +13,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 
 import { useParams, useNavigate } from 'react-router';
 import { Alert, Button, Container, ContainerProps, Paper, Space, Table, Text, Tooltip } from '@mantine/core';
-import { modals } from '@mantine/modals';
+import { modals, ModalsProvider } from '@mantine/modals';
 import { IconAlertHexagon, IconCheckbox, IconEyeQuestion, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -52,30 +52,32 @@ export default function SectionDetails() {
   const sectionConfig = getSectionConfig(sectionSlug as SectionSlug);
   
   return (
-    <QueryLoader {...plantQueryOptions}>
-      {plant.data && sectionConfig &&
-      <>
-        {sectionSlug === "taxonomy" ?
-        <SectionDetailsBody<TaxonReadData, TaxonWriteRequestData>
-          plant={plant.data}
-          sectionConfig={sectionConfig as SectionConfig<TaxonReadData, TaxonWriteRequestData>}
-          size={1000}
-          /> : 
-        sectionSlug === "popular-names" ? 
-        <SectionDetailsBody<PopularNameReadData, PopularNameWriteRequestData>
-          plant={plant.data}
-          sectionConfig={sectionConfig as SectionConfig<PopularNameReadData, PopularNameWriteRequestData>}
-          size={700}
-          /> : 
-        sectionSlug === "natural-occurrence-regions" ? 
-        <SectionDetailsBody<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>
-          plant={plant.data}
-          sectionConfig={sectionConfig as SectionConfig<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>}
-          size={1000}
-          /> : 
-        <></>}
-      </>}
-    </QueryLoader>
+    <ModalsProvider>
+      <QueryLoader {...plantQueryOptions}>
+        {plant.data && sectionConfig &&
+        <>
+          {sectionSlug === "taxonomy" ?
+          <SectionDetailsBody<TaxonReadData, TaxonWriteRequestData>
+            plant={plant.data}
+            sectionConfig={sectionConfig as SectionConfig<TaxonReadData, TaxonWriteRequestData>}
+            size={1000}
+            /> : 
+          sectionSlug === "popular-names" ? 
+          <SectionDetailsBody<PopularNameReadData, PopularNameWriteRequestData>
+            plant={plant.data}
+            sectionConfig={sectionConfig as SectionConfig<PopularNameReadData, PopularNameWriteRequestData>}
+            size={700}
+            /> : 
+          sectionSlug === "natural-occurrence-regions" ? 
+          <SectionDetailsBody<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>
+            plant={plant.data}
+            sectionConfig={sectionConfig as SectionConfig<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>}
+            size={1000}
+            /> : 
+          <></>}
+        </>}
+      </QueryLoader>
+    </ModalsProvider>
   )
 }
 
