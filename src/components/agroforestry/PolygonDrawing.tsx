@@ -43,7 +43,7 @@ interface PolygonDrawingProps extends Omit<PolygonProps, 'key' | 'positions'> {
 }
 
 export default function PolygonDrawing({ coords, editControlProps, children, ...extraPolygonProps }: PolygonDrawingProps) {  
-  const [version, setVersion] = useState(1);
+  const [version, setVersion] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [editCancels, setEditCancels] = useState(0);
   const editedRef = useRef(false);
@@ -67,6 +67,7 @@ export default function PolygonDrawing({ coords, editControlProps, children, ...
       editControlProps.onCreated(e);
 
     e.layer.remove(); // removes leaflet-draw's layer to avoid duplication with to-be-rendered react-leaflet's Polygon
+    setVersion(v => v + 1); // forces component to remount
   }, []);
 
   const onEditStart = useCallback((e: DrawEvents.EditStart) => {
@@ -93,7 +94,7 @@ export default function PolygonDrawing({ coords, editControlProps, children, ...
       editControlProps.onEditStop(e);
 
     setIsEditing(false);
-  }, []);
+  }, [editControlProps?.onEditStop]);
 
   const polygonChildren = isEditing ? undefined : children;
 
@@ -104,8 +105,8 @@ export default function PolygonDrawing({ coords, editControlProps, children, ...
         key={`polygon-v${version}`}
         positions={positions}
         {...extraPolygonProps}
-        >
-          {polygonChildren}
+      >
+        {polygonChildren}
       </Polygon>}
       <EditControl
         key={`control-v${version}`}

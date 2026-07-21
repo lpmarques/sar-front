@@ -22,6 +22,7 @@ import { QueryLoader } from "../common/QueryLoader";
 import { showSuccess } from "../common/notifications";
 import { positionToLatLng } from "../../utils/agroforestry";
 import { FarmLandDetails, FarmMap, SiteTraitsDetails } from ".";
+import { ModalsProvider } from "@mantine/modals";
 
 export default function FarmDetails() {
   const { farmId } = useParams();
@@ -52,48 +53,50 @@ export default function FarmDetails() {
   });
 
   return (
-    <QueryLoader {...farmQueryOptions}>
-      { farm.data && 
-      <Container size={550} mb={20}>
-        <Paper withBorder shadow="sm" p={20}>
-          <Group mb={10} justify="space-between">
-            <Text fz="h2" fw={600}>{farm.data.name}</Text>
-            <DeleteButton
-              modalTitle="Deseja mesmo excluir essa propriedade?"
-              modalContent={
-                <Text size="sm" mb={20}>
-                  Ao confirmar, você <strong>removerá</strong> o cadastro da 
-                  propriedade <Text span fw={700}>{farm.data.name}</Text>, 
-                  junto com todos os dados do projeto agroflorestal vinculado a ela.
-                </Text>
-              }
-              onModalConfirm={() => farmDeletion.mutate(farm.data.id)}
-            />
-          </Group>
-          <Container px={10}>
-            <FarmMap
-              polygonCoords={polygon}
-              style={{ height: '400px', width: '100%' }}
-              dragging={false}
-              showPolygonArea={false}
-              editControl={false}
-              zoomControl={false}
-              locationControl={false}
-              scrollWheelZoom={false}
-            />
-          </Container>
-          <Space h={15}/>
-          <Button fullWidth color="teal" mb={30} onClick={handleProjectButtonClick}>Abrir projeto</Button>
-          <Group justify="space-between">
-            <Text fz="md" mb={10} fw={600}>Dados da propriedade</Text>
-            <EditButton />
-          </Group>
-          <FarmLandDetails farm={farm.data} />
-          <SiteTraitsDetails site={farm.data} />
-        </Paper>
-      </Container>}
-      <Space h={25}/>
-    </QueryLoader>
+    <ModalsProvider>
+      <QueryLoader {...farmQueryOptions}>
+        { farm.data && 
+        <Container size={550} mb={20}>
+          <Paper withBorder shadow="sm" p={20}>
+            <Group mb={10} justify="space-between">
+              <Text fz="h2" fw={600}>{farm.data.name}</Text>
+              <DeleteButton
+                modalTitle="Deseja mesmo excluir essa propriedade?"
+                modalContent={
+                  <Text size="sm" mb={20}>
+                    Ao confirmar, você <strong>removerá</strong> o cadastro da 
+                    propriedade <Text span fw={700}>{farm.data.name}</Text>, 
+                    junto com todos os dados do projeto agroflorestal vinculado a ela.
+                  </Text>
+                }
+                onModalConfirm={() => farmDeletion.mutate(farm.data.id)}
+              />
+            </Group>
+            <Container px={10}>
+              <FarmMap
+                polygonCoords={polygon}
+                style={{ height: '400px', width: '100%' }}
+                dragging={false}
+                showPolygonArea={false}
+                editControl={false}
+                zoomControl={false}
+                locationControl={false}
+                scrollWheelZoom={false}
+              />
+            </Container>
+            <Space h={15}/>
+            <Button fullWidth color="teal" mb={30} onClick={handleProjectButtonClick}>Abrir projeto</Button>
+            <Group justify="space-between">
+              <Text fz="md" mb={10} fw={600}>Dados da propriedade</Text>
+              <EditButton />
+            </Group>
+            <FarmLandDetails farm={farm.data} />
+            <SiteTraitsDetails site={farm.data} />
+          </Paper>
+        </Container>}
+        <Space h={25}/>
+      </QueryLoader>
+    </ModalsProvider>
   )
 }
 

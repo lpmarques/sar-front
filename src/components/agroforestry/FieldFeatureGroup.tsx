@@ -65,7 +65,6 @@ export default function FieldFeatureGroup({
       });
     }
   }, [replaceField]);
-  console.log(field?.cropping?.patternId);
 
   const croppingPatternQueryOptions = {
     queryKey: ['croppingPattern', field?.cropping?.patternId?.toString() ?? '0'],

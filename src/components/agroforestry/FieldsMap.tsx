@@ -88,6 +88,8 @@ export default function FieldsMap({
       const geoJson = e.layer.toGeoJSON();
       addField({ polygon: geoJson.geometry as GJPolygon });
       setDrawingNewField(false);
+
+      e.layer.remove(); // removes leaflet-draw's layer to avoid duplication with to-be-rendered react-leaflet's Polygon
     }
   };
 
