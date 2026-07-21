@@ -48,7 +48,8 @@ interface CroppingLayersProps {
   rowsAngleDeg?: number,
   rowsOffsetM?: number,
   cropsOffsetM?: number,
-  onCroppingSummarized: (summary: CroppingSummary) => void,
+  onComputeStart?: () => void,
+  onComputeEnd?: (summary: CroppingSummary) => void,
 }
 
 export default function CroppingLayers({
@@ -57,21 +58,26 @@ export default function CroppingLayers({
   rowsAngleDeg=0,
   rowsOffsetM=0,
   cropsOffsetM=0,
-  onCroppingSummarized,
+  onComputeStart,
+  onComputeEnd,
 }: CroppingLayersProps) {
 
   const fieldCentroid = latLngCentroid(fieldCoords);
   
   // Recompute geometry only when relevant props change
-  const croppingLayers = useMemo<CroppingLayers>(
-    () => computeCroppingLayers(fieldCoords, patternRows, rowsAngleDeg, rowsOffsetM, cropsOffsetM),
+  const croppingLayers = useMemo<CroppingLayers>(() => {
+      if (onComputeStart)
+        onComputeStart();
+      return computeCroppingLayers(fieldCoords, patternRows, rowsAngleDeg, rowsOffsetM, cropsOffsetM);
+    },
     [fieldCentroid.lat, fieldCentroid.lng, patternRows, rowsAngleDeg, rowsOffsetM, cropsOffsetM]
   );
 
   // Recompute summary only when geometry changes
   useEffect(() => {
       const croppingSummary = computeCroppingSummary(fieldCoords, patternRows, croppingLayers.crops);
-      onCroppingSummarized(croppingSummary);
+      if (onComputeEnd)
+        onComputeEnd(croppingSummary);
     },
     [croppingLayers]
   );

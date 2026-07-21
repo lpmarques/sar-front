@@ -12,7 +12,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
 import { useMemo } from "react";
-import { BoxProps, Button, Container, Fieldset, Group, NumberInput, ScrollArea, Stack, Text, TextInput, Tooltip } from "@mantine/core";
+import { BoxProps, Button, Center, Container, Fieldset, Group, Loader, NumberInput, ScrollArea, Stack, Text, TextInput, Tooltip } from "@mantine/core";
 import { useForm, UseFormReturnType } from "@mantine/form";
 import { modals } from "@mantine/modals";
 import { IconChevronRight, IconInfoCircle, IconX } from "@tabler/icons-react";
@@ -26,7 +26,7 @@ import ConfirmingButton from "../common/ConfirmingButton";
 import DeleteButton from "../common/DeleteButton";
 import FieldView from "../common/FieldView";
 import { showError, showSuccess } from "../common/notifications";
-import { CropLegend, CroppingPatternsPreviewModal } from ".";
+import { CropLegend, CroppingPatternsModal } from ".";
 
 export default function FieldMenu({ inputsDisabled = false }: { inputsDisabled: boolean }) {
   const queryClient = useQueryClient();
@@ -201,8 +201,11 @@ export default function FieldMenu({ inputsDisabled = false }: { inputsDisabled: 
             fieldForm={fieldForm}
             disabled={inputsDisabled}
           />
-          {field!.cropping?.summary && field!.cropping?.patternId ?
-          <CroppingSummaryDetails summary={field!.cropping.summary} /> : undefined}
+          {field!.cropping?.patternId ?
+            field!.cropping?.summary ?
+              <CroppingSummaryDetails summary={field!.cropping.summary} /> :
+              <Center><Loader /></Center> :
+            undefined}
           {/* {initialField &&
           <PlantFitnessButton farm={farm} />} */}
         </Stack>
@@ -402,7 +405,7 @@ function CroppingPatternSelect({ fieldForm, label, disabled, mb }: CroppingPatte
     title: 'Padrões de cultivo',
     size: 'xl',
     children: (
-      <CroppingPatternsPreviewModal
+      <CroppingPatternsModal
         selectedPatternId={selectedPatternId}
         onSelect={(patternId) => fieldForm.setFieldValue('cropping.patternId', patternId)}
         onUnselect={() => fieldForm.setFieldValue('cropping.patternId', 0)}

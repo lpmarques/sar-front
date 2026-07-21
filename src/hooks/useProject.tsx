@@ -14,14 +14,12 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { useListState } from "@mantine/hooks";
 import { FarmReadData, FieldReadData, FieldWriteRequestData, SitePlantFitness } from "../apis/agroforestry";
+import { Optionalize } from "../utils/common";
 
 // Field interface makes name optional to allow adding new field 
 // data into the context while it is still being defined and also
 // farmId optional since all fields must be tied to the same farm.
-interface Field extends Omit<FieldWriteRequestData, 'name' | 'farmId'> {
-  farmId?: number,
-  name?: string,
-}
+type Field = Optionalize<FieldWriteRequestData, 'name' | 'farmId'>;
 
 interface ProjectContext {
   farm: FarmReadData;
@@ -29,7 +27,6 @@ interface ProjectContext {
   plantsFitnessMap: { [k: string]: SitePlantFitness };
   initialFieldValues: FieldReadData[];
   selectedFieldIndex: number | null;
-  inputsEnabled: boolean;
   selectField: (fieldIndex: number) => void;
   unselectField: () => void;
   setFields: (fields: React.SetStateAction<Field[]>) => void;
@@ -37,8 +34,6 @@ interface ProjectContext {
   replaceField: (field: Field) => void;
   removeField: () => void;
   resetField: () => void;
-  enableInputs: () => void;
-  disableInputs: () => void;
 }
 
 const ProjectContext = createContext<ProjectContext | undefined>(undefined);
@@ -69,7 +64,6 @@ export function ProjectProvider({
 }: ProjectProviderProps) {
   const initialFieldValues = useMemo(() => initialFields.sort((a, b) => a.id-b.id), [initialFields]);
   const [fields, fieldsHandlers] = useListState<Field>(initialFieldValues);
-  const [inputsEnabled, setInputsEnabled] = useState<boolean>(true);
   const [selectedFieldIndex, setSelectedFieldIndex] = useState<number | null>(initialSeletedFieldIndex);
   const plantsFitnessMap = useMemo(() => 
     Object.fromEntries(
@@ -86,37 +80,40 @@ export function ProjectProvider({
     fieldsHandlers.setState(fields);
   };
 
-  const addField = (field: Field) => {
-    fieldsHandlers.append({ ...field, farmId: farm.id });
-    selectField(fields.length);
-  };
+  const addField = useCallback((field: Field) => {
+      fieldsHandlers.append({ ...field, farmId: farm.id });
+      selectField(fields.length);
+    },
+    [farm.id]
+  );
 
   const replaceField = useCallback((field: Field) => {
       if (selectedFieldIndex === null)
         throw new Error("You can only replace a field after selecting it.")
-      // console.log(`replacing field with: ${field.polygon.coordinates}`);
+
       fieldsHandlers.setItem(selectedFieldIndex, { ...field, farmId: farm.id });
     },
     [selectedFieldIndex, farm.id]
   );
 
-  const removeField = () => {
-    if (selectedFieldIndex === null)
-      throw new Error("You can only remove a field after selecting it.")
-    fieldsHandlers.remove(selectedFieldIndex);
-    unselectField();
-  };
+  const removeField = useCallback(() => {
+      if (selectedFieldIndex === null)
+        throw new Error("You can only remove a field after selecting it.")
 
-  const resetField = () => {
-    if (selectedFieldIndex === null)
-      throw new Error("You can only reset a field after selecting it.")
+      fieldsHandlers.remove(selectedFieldIndex);
+      unselectField();
+    },
+    [selectedFieldIndex]
+  );
 
-    fieldsHandlers.setItem(selectedFieldIndex, initialFields[selectedFieldIndex]);
-  }
+  const resetField = useCallback(() => {
+      if (selectedFieldIndex === null)
+        throw new Error("You can only reset a field after selecting it.")
 
-  const enableInputs = useCallback(() => setInputsEnabled(true), []);
-
-  const disableInputs = useCallback(() => setInputsEnabled(false), []);
+      fieldsHandlers.setItem(selectedFieldIndex, initialFields[selectedFieldIndex]);
+    },
+    [selectedFieldIndex]
+  );
 
   const project = useMemo<ProjectContext>(
     () => ({
@@ -125,7 +122,6 @@ export function ProjectProvider({
       plantsFitnessMap,
       selectedFieldIndex,
       initialFieldValues,
-      inputsEnabled,
       selectField,
       unselectField,
       setFields,
@@ -133,8 +129,6 @@ export function ProjectProvider({
       replaceField,
       removeField,
       resetField,
-      enableInputs,
-      disableInputs,
     }),
     [
       farm.id,
@@ -142,7 +136,6 @@ export function ProjectProvider({
       plantsFitnessMap,
       selectedFieldIndex,
       initialFieldValues,
-      inputsEnabled,
     ]
   )
 

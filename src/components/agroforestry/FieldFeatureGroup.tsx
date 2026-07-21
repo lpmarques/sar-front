@@ -76,7 +76,7 @@ export default function FieldFeatureGroup({
   const onCroppingSummarized = useCallback((summary: CroppingSummary) => {
     const currentField = fieldRef.current;
 
-    if (currentField?.cropping)
+    if (currentField?.cropping) {
       replaceField({
         ...currentField,
         cropping: {
@@ -84,6 +84,7 @@ export default function FieldFeatureGroup({
           summary
         }
       })
+    }
   }, [replaceField]);
   
   const getPolygonAreaDisplay = (polygonLatLngs: LatLng[][]) => {
@@ -121,7 +122,7 @@ export default function FieldFeatureGroup({
           rowsAngleDeg={field.cropping?.rowsAngleDeg ?? undefined}
           rowsOffsetM={field.cropping?.rowsOffsetM ?? undefined}
           cropsOffsetM={field.cropping?.cropsOffsetM ?? undefined}
-          onCroppingSummarized={onCroppingSummarized}
+          onComputeEnd={onCroppingSummarized}
         />}
         <MapBoundsFraming bounds={latLngBounds(fieldCoords[0])} maxZoom={MAX_ZOOM} deps={[selectedFieldIndex]} />
       </FeatureGroup>
