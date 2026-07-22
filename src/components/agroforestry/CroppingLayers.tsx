@@ -15,7 +15,7 @@ import { GeometryUtil, LatLng } from "leaflet";
 import 'leaflet-geometryutil';
 import { useEffect, useMemo } from "react";
 import { CircleMarker, Polyline, Tooltip } from "react-leaflet";
-import { CroppingSummary, CroppingSummaryCrops, PatternCrop, PatternRow } from "../../apis/agroforestry";
+import { CroppingPatternReadData, CroppingSummary, CroppingSummaryCrops, PatternCrop, PatternRow } from "../../apis/agroforestry";
 import { clipLineToPoly, DEG2RAD, getBBox, latLngCentroid, latLngToMeters, metersToLatLng, Point2D, pointInPoly } from "../../utils/agroforestry";
 import { capitalize } from "../../utils/common";
 
@@ -44,40 +44,34 @@ export interface CroppingLayers {
 
 interface CroppingLayersProps {
   fieldCoords: LatLng[],
-  patternRows: PatternRow[],
+  pattern: CroppingPatternReadData,
   rowsAngleDeg?: number,
   rowsOffsetM?: number,
   cropsOffsetM?: number,
-  onComputeStart?: () => void,
-  onComputeEnd?: (summary: CroppingSummary) => void,
+  onComputed?: (summary: CroppingSummary) => void,
 }
 
 export default function CroppingLayers({
   fieldCoords,
-  patternRows,
+  pattern,
   rowsAngleDeg=0,
   rowsOffsetM=0,
   cropsOffsetM=0,
-  onComputeStart,
-  onComputeEnd,
+  onComputed=() => {},
 }: CroppingLayersProps) {
 
   const fieldCentroid = latLngCentroid(fieldCoords);
   
   // Recompute geometry only when relevant props change
-  const croppingLayers = useMemo<CroppingLayers>(() => {
-      if (onComputeStart)
-        onComputeStart();
-      return computeCroppingLayers(fieldCoords, patternRows, rowsAngleDeg, rowsOffsetM, cropsOffsetM);
-    },
-    [fieldCentroid.lat, fieldCentroid.lng, patternRows, rowsAngleDeg, rowsOffsetM, cropsOffsetM]
+  const croppingLayers = useMemo<CroppingLayers>(() => 
+    computeCroppingLayers(fieldCoords, pattern.rows, rowsAngleDeg, rowsOffsetM, cropsOffsetM),
+    [fieldCentroid.lat, fieldCentroid.lng, pattern.id, rowsAngleDeg, rowsOffsetM, cropsOffsetM]
   );
 
   // Recompute summary only when geometry changes
   useEffect(() => {
-      const croppingSummary = computeCroppingSummary(fieldCoords, patternRows, croppingLayers.crops);
-      if (onComputeEnd)
-        onComputeEnd(croppingSummary);
+      const croppingSummary = computeCroppingSummary(fieldCoords, pattern.rows, croppingLayers.crops);
+      onComputed(croppingSummary);
     },
     [croppingLayers]
   );

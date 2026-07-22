@@ -35,14 +35,16 @@ import { polygon } from "@turf/helpers";
 const MAX_ZOOM = 30;
 
 interface FieldFeatureGroupProps {
-  onEditStart?: () => void;
-  onEditStop?: () => void;
+  onPolygonEditStart?: () => void;
+  onPolygonEditStop?: () => void;
+  onCroppingComputed?: () => void;
   extraPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
 }
 
 export default function FieldFeatureGroup({
-  onEditStart = () => {},
-  onEditStop = () => {},
+  onPolygonEditStart=() => {},
+  onPolygonEditStop=() => {},
+  onCroppingComputed=() => {},
   extraPolygonProps,
 }: FieldFeatureGroupProps) {
   const { fields, selectedFieldIndex, replaceField } = useProject();
@@ -73,10 +75,10 @@ export default function FieldFeatureGroup({
   };
   const croppingPattern = useQuery(croppingPatternQueryOptions);
 
-  const onCroppingSummarized = useCallback((summary: CroppingSummary) => {
+  const handleCroppingComputed = useCallback((summary: CroppingSummary) => {
     const currentField = fieldRef.current;
 
-    if (currentField?.cropping) {
+    if (currentField?.cropping)
       replaceField({
         ...currentField,
         cropping: {
@@ -84,7 +86,8 @@ export default function FieldFeatureGroup({
           summary
         }
       })
-    }
+
+    onCroppingComputed();
   }, [replaceField]);
   
   const getPolygonAreaDisplay = (polygonLatLngs: LatLng[][]) => {
@@ -107,9 +110,9 @@ export default function FieldFeatureGroup({
             edit: {
               remove: false,
             },
-            onEditStart: onEditStart,
+            onEditStart: onPolygonEditStart,
             onEdited: onPolygonEdited,
-            onEditStop: onEditStop,
+            onEditStop: onPolygonEditStop,
           }}
           {...extraPolygonProps}
         >
@@ -118,11 +121,11 @@ export default function FieldFeatureGroup({
         {croppingPattern.data &&
         <CroppingLayers
           fieldCoords={fieldCoords[0]}
-          patternRows={croppingPattern.data.rows}
+          pattern={croppingPattern.data}
           rowsAngleDeg={field.cropping?.rowsAngleDeg ?? undefined}
           rowsOffsetM={field.cropping?.rowsOffsetM ?? undefined}
           cropsOffsetM={field.cropping?.cropsOffsetM ?? undefined}
-          onComputeEnd={onCroppingSummarized}
+          onComputed={handleCroppingComputed}
         />}
         <MapBoundsFraming bounds={latLngBounds(fieldCoords[0])} maxZoom={MAX_ZOOM} deps={[selectedFieldIndex]} />
       </FeatureGroup>

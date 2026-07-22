@@ -28,7 +28,17 @@ import FieldView from "../common/FieldView";
 import { showError, showSuccess } from "../common/notifications";
 import { CropLegend, CroppingPatternsModal } from ".";
 
-export default function FieldMenu({ inputsDisabled = false }: { inputsDisabled: boolean }) {
+interface FieldMenuProps {
+  inputsDisabled?: boolean;
+  isCroppingComputing: boolean;
+  onCroppingChange?: () => void;
+}
+
+export default function FieldMenu({
+  inputsDisabled = false,
+  isCroppingComputing,
+  onCroppingChange = () => {},
+}: FieldMenuProps) {
   const queryClient = useQueryClient();
   const {
     farm,
@@ -200,14 +210,15 @@ export default function FieldMenu({ inputsDisabled = false }: { inputsDisabled: 
           <CroppingControls
             fieldForm={fieldForm}
             disabled={inputsDisabled}
+            onChange={onCroppingChange}
           />
-          {field!.cropping?.patternId ?
-            field!.cropping?.summary ?
-              <CroppingSummaryDetails summary={field!.cropping.summary} /> :
-              <Center><Loader /></Center> :
-            undefined}
-          {/* {initialField &&
-          <PlantFitnessButton farm={farm} />} */}
+          {field!.cropping?.patternId ? (
+            isCroppingComputing || !field!.cropping.summary ? (
+              <Center><Loader /></Center>
+            ) : (
+              <CroppingSummaryDetails summary={field!.cropping.summary} />
+            )
+          ) : undefined}
         </Stack>
       </ScrollArea>
       {submitButton}
@@ -272,9 +283,10 @@ function CroppingSummaryDetails({ summary }: { summary: CroppingSummary }) {
 interface CroppingControlsProps {
   fieldForm: UseFormReturnType<FieldWriteRequestData>,
   disabled: boolean,
+  onChange: () => void,
 }
 
-function CroppingControls({ fieldForm, disabled }: CroppingControlsProps) {
+function CroppingControls({ fieldForm, disabled, onChange }: CroppingControlsProps) {
   const offsetInputWidth = 110;
 
   const rowsAngleInputLabel =
@@ -301,13 +313,28 @@ function CroppingControls({ fieldForm, disabled }: CroppingControlsProps) {
       </Tooltip>
     </Group>;
 
+  type CroppingKey = 
+    'cropping.patternId' |
+    'cropping.rowsAngleDeg' |
+    'cropping.rowsOffsetM' |
+    'cropping.cropsOffsetM';
+
+  const handleChange = (path: CroppingKey) => {
+    return (value: any) => {
+      onChange();
+      fieldForm.setFieldValue(path, value);
+    }
+  }
+
   return (
     <Fieldset legend="Configuração do Cultivo">
       <CroppingPatternSelect 
         label="Padrão de cultivo"
-        fieldForm={fieldForm}
+        selectedPatternId={fieldForm.getValues().cropping?.patternId}
         disabled={disabled}
         mb={5}
+        onSelect={handleChange('cropping.patternId')}
+        onUnselect={() => fieldForm.setFieldValue('cropping.patternId', 0)}
       />
       {fieldForm.getValues().cropping?.patternId ? <>
       <NumberInput
@@ -320,6 +347,7 @@ function CroppingControls({ fieldForm, disabled }: CroppingControlsProps) {
         mb={5}
         disabled={disabled}
         {...fieldForm.getInputProps('cropping.rowsAngleDeg')}
+        onChange={handleChange('cropping.rowsAngleDeg')}
       />
       <Text fz="sm" fw={500}>Deslocamento (m)</Text>
       <Fieldset p={10}>
@@ -336,6 +364,7 @@ function CroppingControls({ fieldForm, disabled }: CroppingControlsProps) {
             w={offsetInputWidth}
             disabled={disabled}
             {...fieldForm.getInputProps('cropping.rowsOffsetM')}
+            onChange={handleChange('cropping.rowsOffsetM')}
           />
           <NumberInput
             key={fieldForm.key('cropping.cropsOffsetM')}
@@ -350,6 +379,7 @@ function CroppingControls({ fieldForm, disabled }: CroppingControlsProps) {
             w={offsetInputWidth}        
             disabled={disabled}
             {...fieldForm.getInputProps('cropping.cropsOffsetM')}
+            onChange={handleChange('cropping.cropsOffsetM')}
           />
         </Group>
       </Fieldset>
@@ -358,14 +388,15 @@ function CroppingControls({ fieldForm, disabled }: CroppingControlsProps) {
   );
 }
 
-interface CroppingPatternSelectProps {
-  fieldForm: UseFormReturnType<FieldWriteRequestData>,
-  label?: string,
-  disabled?: boolean,
-  mb?: BoxProps['mb'],
+interface CroppingPatternSelectProps extends BoxProps {
+  selectedPatternId?: number;
+  label?: string;
+  disabled?: boolean;
+  onSelect: (patternId: number) => void;
+  onUnselect: () => void;
 }
 
-function CroppingPatternSelect({ fieldForm, label, disabled, mb }: CroppingPatternSelectProps) {
+function CroppingPatternSelect({ selectedPatternId, label, disabled, onSelect, onUnselect, ...boxProps }: CroppingPatternSelectProps) {
   const { user } = useAuth();
 
   const publicPatternsQueryOptions = {
@@ -388,8 +419,6 @@ function CroppingPatternSelect({ fieldForm, label, disabled, mb }: CroppingPatte
   const userPatterns = useQuery(userPatternsQueryOptions);
   const publicPatterns = useQuery(publicPatternsQueryOptions);
 
-  const selectedPatternId = fieldForm.getValues().cropping?.patternId;
-
   const selectedPattern = useMemo(() => {
     const allPatterns = [
       ...(userPatterns.data ?? []),
@@ -407,14 +436,14 @@ function CroppingPatternSelect({ fieldForm, label, disabled, mb }: CroppingPatte
     children: (
       <CroppingPatternsModal
         selectedPatternId={selectedPatternId}
-        onSelect={(patternId) => fieldForm.setFieldValue('cropping.patternId', patternId)}
-        onUnselect={() => fieldForm.setFieldValue('cropping.patternId', 0)}
+        onSelect={onSelect}
+        onUnselect={onUnselect}
       />
     ),
   });
 
   return (
-    <Stack gap={4} mb={mb}>
+    <Stack gap={4} {...boxProps}>
       {label && <Text fz="sm" fw={500}>{label}</Text>}
       <Tooltip label={tooltipLabel}>
         <Button
@@ -432,19 +461,3 @@ function CroppingPatternSelect({ fieldForm, label, disabled, mb }: CroppingPatte
     </Stack>
   )
 }
-
-// function PlantFitnessButton({ farm }: { farm: FarmReadData }) {
-//   const openPlantFitnessModal = () => {
-//     modals.open({
-//       title: "Ranking de plantas para essa área",
-//       size: "lg",
-//       children: <PlantFitnessTable farm={farm} />,
-//     });
-//   };
-
-//   return (
-//     <Button color="teal" onClick={() => openPlantFitnessModal()}>
-//       Ranking de plantas
-//     </Button>
-//   )
-// }
