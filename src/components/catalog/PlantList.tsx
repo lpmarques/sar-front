@@ -12,7 +12,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
 import { useState } from 'react';
-import { Container, Paper, Table, Text, TextInput, Tooltip } from '@mantine/core';
+import { Container, Paper, Table, Text, TextInput, Title, Tooltip } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
@@ -159,6 +159,7 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
 
   return (
     <Container size={1200}>
+      <Title fz="h3" mb={15}>Lista de Plantas</Title>
       <TextInput
         placeholder="Busque um nome"
         mb="md"
@@ -171,7 +172,7 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
           header={header}
           rows={rows}
           scrollWidth={600}
-          scrollHeight={550}
+          scrollHeight={450}
           striped
           stripedColor="#f0f2f2"
           withRowBorders={false}

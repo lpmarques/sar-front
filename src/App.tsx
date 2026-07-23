@@ -40,6 +40,8 @@ import { LanguageProvider } from './hooks/useLanguage';
 import { useAuth } from './hooks/useAuth';
 import { theme } from "./theme";
 import About from "./components/About";
+import { FuturePageInfo } from "./components/common/FuturePageInfo";
+import Support from "./components/Support";
 
 export default function App() {
   const auth = useAuth();
@@ -79,6 +81,8 @@ export default function App() {
                 <Routes>
                   <Route index element={<Home />}/>
                   <Route path="about" element={<About />}/>
+                  <Route path='demos' element={<FuturePageInfo pageName="Tutoriais" />} />
+                  <Route path='support' element={<Support />} />
                   <Route path="login" element={<UnloggedOnlyRoute><Login /></UnloggedOnlyRoute>}/>
                   <Route path="signup" element={<UnloggedOnlyRoute><Signup /></UnloggedOnlyRoute>}/>
                   <Route path="user" element={<LoggedOnlyRoute><UserProfile /></LoggedOnlyRoute>}/>

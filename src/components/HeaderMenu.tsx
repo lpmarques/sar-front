@@ -33,8 +33,8 @@ const links = [
     link: '#2',
     label: 'Ajuda',
     links: [
-      { link: '/demo', label: 'Tutoriais' },
-      { link: '/faq', label: 'FAQ' },
+      { link: '/demos', label: 'Tutoriais' },
+      // { link: '/faq', label: 'FAQ' },
       { link: '/support', label: 'Suporte' },
     ],
   },
