@@ -20,6 +20,7 @@ import { ProjectProvider, useProject } from "../../hooks/useProject";
 import { QueryLoader } from "../common/QueryLoader";
 import { FieldMenu, FieldsMap } from ".";
 import { ModalsProvider } from "@mantine/modals";
+import { DrawEvents } from "leaflet";
 
 export default function ProjectDashboard() {
   const { farmId } = useParams();

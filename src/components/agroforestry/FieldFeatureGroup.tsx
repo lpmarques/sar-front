@@ -16,6 +16,8 @@ import {
   DrawEvents,
   LatLng,
   latLngBounds,
+  Layer,
+  Marker as MarkerLayer,
   Polygon as PolygonLayer,
 } from "leaflet";
 import { useCallback, useMemo, useRef } from "react";
@@ -24,30 +26,32 @@ import {
   PolygonProps,
   Tooltip,
 } from "react-leaflet";
+import { EditControlProps } from "react-leaflet-draw";
 import { useQuery } from "@tanstack/react-query";
+import area from "@turf/area";
+import booleanContains from '@turf/boolean-contains';
+import { polygon } from "@turf/helpers";
 import { CroppingSummary, getCroppingPattern } from "../../apis/agroforestry";
 import { useProject } from "../../hooks/useProject";
-import { latLngToPosition, positionToLatLng } from "../../utils/agroforestry";
+import { latLngToPosition, pointInPoly, positionToLatLng } from "../../utils/agroforestry";
+import { Optionalize } from "../../utils/common";
+import { openAlertModal } from "../common/alerts";
 import { CroppingLayers, MapBoundsFraming, PolygonDrawing } from ".";
-import area from "@turf/area";
-import { polygon } from "@turf/helpers";
 
 const MAX_ZOOM = 30;
 
 interface FieldFeatureGroupProps {
-  onPolygonEditStart?: () => void;
-  onPolygonEditStop?: () => void;
   onCroppingComputed?: () => void;
+  editControlProps?: Optionalize<Omit<EditControlProps, 'key' | 'draw'>, 'position'>,
   extraPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
 }
 
 export default function FieldFeatureGroup({
-  onPolygonEditStart=() => {},
-  onPolygonEditStop=() => {},
   onCroppingComputed=() => {},
+  editControlProps,
   extraPolygonProps,
 }: FieldFeatureGroupProps) {
-  const { fields, selectedFieldIndex, replaceField } = useProject();
+  const { farm, fields, selectedFieldIndex, replaceField, resetField } = useProject();
   
   const field = selectedFieldIndex !== null ? fields[selectedFieldIndex] : undefined;
   const fieldRef = useRef(field);
@@ -57,15 +61,68 @@ export default function FieldFeatureGroup({
     return fieldRef.current && positionToLatLng(fieldRef.current.polygon.coordinates);
   }, [fieldRef.current?.polygon.coordinates]);
 
-  const onPolygonEdited = useCallback((e: DrawEvents.Edited) => {
+  const validatePolygonVertex = (vertex: Layer) => {
+    if (vertex instanceof MarkerLayer) {
+      const [x, y] = latLngToPosition(vertex.getLatLng());
+      const markerElement = vertex.getElement();
+
+      if (!pointInPoly([x, y], farm.polygon!.coordinates[0])) {
+        if (markerElement) markerElement.style.backgroundColor = "#de4747";
+        
+        return Error("Ponto Inválido");
+      }
+
+      if (markerElement) markerElement.style.backgroundColor = "white";
+    }
+  }
+    
+  const handleEditVertex = (e: DrawEvents.EditVertex) => {
+    const layers = e.layers.getLayers();
+    const errors = layers.reduce((errors: Error[], vertex) => {
+      const err = validatePolygonVertex(vertex);
+      if (err) errors.push(err);
+      return errors;
+    }, []);
+
+    if (errors.length > 0) {
+      openAlertModal({
+        title: 'Pontos inválidos',
+        message: `A área de cultivo não pode extrapolar os limites da propriedade.
+          Reposicione os pontos inválidos.`
+      });
+    }
+    editControlProps?.onEditVertex && editControlProps.onEditVertex(e);
+  };
+
+  const handleEdited = useCallback((e: DrawEvents.Edited) => {
     const layer = e.layers.getLayers()[0];
     
-    if (layer instanceof PolygonLayer) {
+    if (layer instanceof PolygonLayer && fieldRef.current) {
+      const polygon = layer.toGeoJSON().geometry as GJPolygon;
+
+      if (!booleanContains(farm.polygon!, polygon)) {
+        openAlertModal({
+          title: 'Polígono inválido',
+          message: 'A área de cultivo não pode extrapolar os limites da propriedade.'
+        });
+
+        // When invalid polygon, rather than reseting the field, replace it with deep-copy of its previous coordinates 
+        // in order to trigger Polygon re-render without losing previously calculated cropping data
+        return replaceField({
+          ...fieldRef.current,
+          polygon: {
+            ...polygon,
+            coordinates: fieldRef.current.polygon.coordinates.map(c => c)
+          }
+        });
+      }
+
       replaceField({
         ...fieldRef.current,
         polygon: layer.toGeoJSON().geometry as GJPolygon
       });
     }
+    editControlProps?.onEdited && editControlProps.onEdited(e);
   }, [replaceField]);
 
   const croppingPatternQueryOptions = {
@@ -105,16 +162,22 @@ export default function FieldFeatureGroup({
       <FeatureGroup key={selectedFieldIndex}>
         <PolygonDrawing
           coords={fieldCoords}
-          pathOptions={{color: 'orange', weight: 1, opacity: 1, fillOpacity: 0}}
           editControlProps={{
             edit: {
               remove: false,
             },
-            onEditStart: onPolygonEditStart,
-            onEdited: onPolygonEdited,
-            onEditStop: onPolygonEditStop,
+            ...editControlProps,
+            onEdited: handleEdited,
+            onEditVertex: handleEditVertex,
           }}
           {...extraPolygonProps}
+          pathOptions={{
+            color: 'orange',
+            weight: 1.5,
+            opacity: 1,
+            fillOpacity: 0,
+            ...extraPolygonProps?.pathOptions
+          }}
         >
           {polygonTooltip}
         </PolygonDrawing>

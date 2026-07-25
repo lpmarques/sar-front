@@ -15,27 +15,42 @@ import { Polygon as GJPolygon } from "geojson";
 import {
   DrawEvents,
   latLngBounds,
+  Layer,
   LeafletEventHandlerFnMap,
   LeafletMouseEvent,
   Map,
+  marker,
+  Marker as MarkerLayer,
   Polygon as PolygonLayer,
 } from "leaflet";
 import { RefObject, useMemo, useRef, useState } from "react";
 import {
   FeatureGroup,
+  LayersControl,
   MapContainer,
   MapContainerProps,
   Marker,
   MarkerProps,
   Polygon,
   PolygonProps,
+  ZoomControl,
 } from "react-leaflet";
-import { EditControl } from "react-leaflet-draw";
+import { modals } from "@mantine/modals";
 import { MapStyle } from '@maptiler/sdk';
 import * as turf from "@turf/boolean-equal";
 import { useProject } from "../../hooks/useProject";
-import { positionToLatLng } from "../../utils/agroforestry";
-import { ButtonControl, FieldFeatureGroup, MapBoundsFraming, MapCentering, MaptilerVectorLayer } from ".";
+import { latLngToPosition, pointInPoly, positionToLatLng } from "../../utils/agroforestry";
+import {
+  ButtonControl,
+  EditControl,
+  FieldFeatureGroup,
+  MapBoundsFraming,
+  MapCentering,
+  MaptilerVectorLayer,
+} from ".";
+import booleanContains from "@turf/boolean-contains";
+import { Button, Group } from "@mantine/core";
+import { openAlertModal } from "../common/alerts";
 
 const MAX_ZOOM = 22;
 
@@ -44,9 +59,8 @@ interface FieldsMapProps extends MapContainerProps {
   farmPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
   fieldPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
   selectedFieldPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
-  onFieldPolygonEditStart?: () => void,
-  onFieldPolygonEditStop?: () => void,
-  onCroppingComputeStart?: () => void,
+  onFieldPolygonEditStart?: (e: DrawEvents.EditStart) => void,
+  onFieldPolygonEditStop?: (e: DrawEvents.EditStop) => void,
   onCroppingComputed?: () => void,
 }
 
@@ -74,11 +88,16 @@ export default function FieldsMap({
     () => focusIndex !== null ? fields[focusIndex] : undefined,
     [focusIndex]
   );
-
+  
   const polygonEventHandlers: LeafletEventHandlerFnMap = {
     click: (e: LeafletMouseEvent) => {
       const layer = e.target;
-      if (!focusField && layer instanceof PolygonLayer) {
+      if (focusField) {
+        openAlertModal({
+          title: <text><strong>{focusField.name}</strong> em foco</text>,
+          message: 'Feche a área atual, no menu lateral, antes de abrir outra área.'
+        });
+      } else if (layer instanceof PolygonLayer) {
         const geoJson = layer.toGeoJSON();
         const fieldIndex = fields.findIndex((field) => turf.booleanEqual(field.polygon, geoJson.geometry));
         selectField(fieldIndex);
@@ -86,11 +105,45 @@ export default function FieldsMap({
     }
   };
 
-  const onCreated = (e: DrawEvents.Created) => {
+  const validatePolygonVertex = (vertex: Layer) => {
+    if (vertex instanceof MarkerLayer) {
+      const [x, y] = latLngToPosition(vertex.getLatLng());
+      const markerElement = vertex.getElement();
+
+      if (!pointInPoly([x, y], farm.polygon!.coordinates[0])) {
+        if (markerElement) markerElement.style.backgroundColor = "#de4747";
+        
+        return Error("Ponto Inválido");
+      }
+
+      if (markerElement) markerElement.style.backgroundColor = "white";
+    }
+  }
+  
+  const handleDrawVertex = (e: DrawEvents.DrawVertex) => {
+    const layers = e.layers.getLayers();
+    const vertex = layers[layers.length-1];
+    const err = validatePolygonVertex(vertex);
+    if (err)
+      openAlertModal({
+        title: err.message,
+        message: `A área de cultivo não pode extrapolar os limites da propriedade.
+          Elimine o último ponto e marque novamente.`
+      });
+  };
+
+  const handleCreated = (e: DrawEvents.Created) => {
     if (e.layer instanceof PolygonLayer) {
-      const geoJson = e.layer.toGeoJSON();
-      addField({ polygon: geoJson.geometry as GJPolygon });
-      setDrawingNewField(false);
+      const polygon = e.layer.toGeoJSON().geometry as GJPolygon;
+      if (booleanContains(farm.polygon!, polygon)) {
+        addField({ polygon });
+        setDrawingNewField(false);
+      } else {
+        openAlertModal({
+          title: 'Polígono inválido',
+          message: 'A área de cultivo não pode extrapolar os limites da propriedade.'
+        });
+      }
 
       e.layer.remove(); // removes leaflet-draw's layer to avoid duplication with to-be-rendered react-leaflet's Polygon
     }
@@ -104,7 +157,7 @@ export default function FieldsMap({
         key={latLngs.toString()}
         positions={latLngs}
         eventHandlers={polygonEventHandlers}
-        pathOptions={{color: 'orange', opacity: 0}}
+        pathOptions={{color: 'orange', opacity: 0.1}}
         {...fieldPolygonProps}
       />
     );
@@ -116,7 +169,8 @@ export default function FieldsMap({
       {drawingMode &&
       <EditControl
         position="topright"
-        onCreated={onCreated}
+        onCreated={handleCreated}
+        onDrawVertex={handleDrawVertex}
         draw={{
           polygon: !focusField ? {
             shapeOptions: {
@@ -166,11 +220,20 @@ export default function FieldsMap({
       id="map-container"
       center={center}
       zoom={zoom}
+      zoomControl={false}
       style={{zIndex: 0, ...style}}
       whenReady={() => resizeMap(mapRef)}
       {...mapContainerProps}
     >
-      <MaptilerVectorLayer style={MapStyle.HYBRID} />
+      <LayersControl position="topleft">
+        <LayersControl.BaseLayer checked name="Satélite">
+          <MaptilerVectorLayer style={MapStyle.HYBRID} />
+        </LayersControl.BaseLayer>
+        <LayersControl.BaseLayer name="Topografia">
+          <MaptilerVectorLayer style={MapStyle.TOPO} />
+        </LayersControl.BaseLayer>
+      </LayersControl>
+      <ZoomControl />
       {!drawingMode &&
       <ButtonControl position="topright" color="teal" onClick={() => setDrawingNewField(true)}>
         Adicionar área de cultivo
@@ -183,9 +246,11 @@ export default function FieldsMap({
       {fieldsFeatureGroup}
       {focusField &&
       <FieldFeatureGroup
-        onPolygonEditStart={onFieldPolygonEditStart}
-        onPolygonEditStop={onFieldPolygonEditStop}
         onCroppingComputed={onCroppingComputed}
+        editControlProps={{
+          onEditStart: onFieldPolygonEditStart,
+          onEditStop: onFieldPolygonEditStop,
+        }}
         extraPolygonProps={fieldPolygonProps}
       />}
     </MapContainer>

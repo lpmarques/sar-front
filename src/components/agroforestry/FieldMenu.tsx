@@ -166,7 +166,13 @@ export default function FieldMenu({
       {isFieldChanged ?
         <ConfirmingButton
           modalTitle="Deseja descartar as mudanças?"
-          modalContent="Há mudanças não salvas nessa área de cultivo. Se fechar agora, elas serão descartadas."
+          modalContent={
+            <Text>
+              Você está prestes a fechar o SAF <strong>{initialField.name}</strong>.
+              Há mudanças não salvas nessa área. 
+              Se fechar agora, elas serão descartadas.
+            </Text>
+          }
           modalLabels={{ confirm: 'Descartar mudanças', cancel: 'Cancelar' }}
           modalConfirmProps={{ color: 'red' }}
           onModalConfirm={onUnsavedFieldClose}
@@ -236,14 +242,14 @@ function CroppingSummaryDetails({ summary }: { summary: CroppingSummary }) {
           fz={14}
           legendProps={{fw: 500, c: "var(--mantine-color-gray-7)"}}
           >
-          {summary.individualsCount} pés
+          {summary.individualsCount} ind.
         </FieldView>
         <FieldView
           label="Densidade"
           fz={14}
           legendProps={{fw: 500, c: "var(--mantine-color-gray-7)"}}
           >
-          {summary.densityPerHa} pés/ha
+          {summary.densityPerHa} ind./ha
         </FieldView>
       </Group>
     </Fieldset>
@@ -258,14 +264,14 @@ function CroppingSummaryDetails({ summary }: { summary: CroppingSummary }) {
             fz={14}
             legendProps={{fw: 500, c: "var(--mantine-color-gray-7)"}}
             >
-            {summary.crops[key].metrics.individualsCount} pés
+            {summary.crops[key].metrics.individualsCount} ind.
           </FieldView>
           <FieldView
             label="Densidade"
             fz={14}
             legendProps={{fw: 500, c: "var(--mantine-color-gray-7)"}}
             >
-            {summary.crops[key].metrics.densityPerHa} pés/ha
+            {summary.crops[key].metrics.densityPerHa} ind./ha
           </FieldView>
         </Group>
       </Fieldset>

@@ -12,27 +12,27 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
 import { useEffect } from "react";
-import { useMap } from "react-leaflet";
+import { useLeafletContext } from "@react-leaflet/core";
 import { MaptilerLayer } from "@maptiler/leaflet-maptilersdk";
 import * as maptilersdk from '@maptiler/sdk';
 
 export default function MaptilerVectorLayer({ style }: { style: maptilersdk.ReferenceMapStyle }) {
-  const map = useMap();
+  const context = useLeafletContext();
 
   useEffect(() => {
-    if (!map) return;
-
     const mtLayer = new MaptilerLayer({
       apiKey: maptilersdk.config.apiKey,
       style: style,
     });
 
-    mtLayer.addTo(map);
+    const container = context.layerContainer ?? context.map;
+    container.addLayer(mtLayer);
 
     return () => {
-      map.removeLayer(mtLayer);
+      context.layerContainer?.removeLayer(mtLayer);
+      context.map.removeLayer(mtLayer);
     };
-  }, [map, style]);
+  }, [context, style]);
 
   return null;
 };

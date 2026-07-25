@@ -21,6 +21,7 @@
     "@tabler/icons-react": "^3.34.0",
     "@tanstack/react-query": "^5.80.6",
     "@turf/area": "^7.3.5",
+    "@turf/boolean-contains": "^7.3.5",
     "@turf/boolean-equal": "^7.3.2",
     "@turf/centroid": "^7.3.2",
     "@turf/helpers": "^7.3.5",

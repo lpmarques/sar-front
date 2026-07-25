@@ -14,7 +14,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 import { Position } from "geojson";
 import { latLng, LatLng } from "leaflet";
 
-export type Point2D = [number, number]; // [x, y] in metres
+// export type Position = [number, number]; // [x, y] in metres
 type BBox = { minX: number; minY: number; maxX: number; maxY: number };
 
 export const DEG2RAD = Math.PI / 180;
@@ -62,26 +62,26 @@ export function latLngCentroid(coords: LatLng[]): LatLng {
 export function latLngToMeters(
   latLng: LatLng,
   originLatLng: LatLng
-): Point2D {
-  const x =
-    (latLng.lng - originLatLng.lng) * DEG2RAD * EARTH_R * Math.cos(originLatLng.lat * DEG2RAD);
+): Position {
+  const x = (latLng.lng - originLatLng.lng) * DEG2RAD * EARTH_R * Math.cos(originLatLng.lat * DEG2RAD);
   const y = (latLng.lat - originLatLng.lat) * DEG2RAD * EARTH_R;
+
   return [x, y];
 }
 
 /** Inverse of `latLngToMeters` — convert local metric X/Y back to [lat, lng]. */
 export function metersToLatLng(
-  point: Point2D,
+  point: Position,
   originLatLng: LatLng
 ): LatLng {
-  const lat = originLatLng.lat + point[1] / EARTH_R / DEG2RAD;
   const lng = originLatLng.lng + point[0] / (EARTH_R * Math.cos(originLatLng.lat * DEG2RAD)) / DEG2RAD;
+  const lat = originLatLng.lat + point[1] / EARTH_R / DEG2RAD;
   
   return latLng(lat, lng);
 }
 
 /** Axis-aligned bounding box of a list of metric points. */
-export function getBBox(points: Point2D[]): BBox {
+export function getBBox(points: Position[]): BBox {
   let minX = Infinity,
     minY = Infinity,
     maxX = -Infinity,
@@ -99,7 +99,7 @@ export function getBBox(points: Point2D[]): BBox {
 
 /**
  * Segment–segment intersection test.
- * Returns the intersection point as a `Point2D`, or `null` if the segments
+ * Returns the intersection point as a `Position`, or `null` if the segments
  * do not cross within their extents.
  */
 function segmentIntersect(
@@ -107,7 +107,7 @@ function segmentIntersect(
   bx: number, by: number,
   cx: number, cy: number,
   dx: number, dy: number
-): Point2D | null {
+): Position | null {
   const rx = bx - ax, ry = by - ay;
   const sx = dx - cx, sy = dy - cy;
   const denom = rx * sy - ry * sx;
@@ -133,10 +133,10 @@ function segmentIntersect(
 export function clipLineToPoly(
   ax: number, ay: number,
   bx: number, by: number,
-  poly: Point2D[]
-): [Point2D, Point2D] | null {
+  poly: Position[]
+): [Position, Position] | null {
   const len = Math.hypot(bx - ax, by - ay) || 1;
-  const hits: { t: number; pt: Point2D }[] = [];
+  const hits: { t: number; pt: Position }[] = [];
 
   for (let i = 0; i < poly.length; i++) {
     const [px, py] = poly[i];
@@ -160,7 +160,7 @@ export function clipLineToPoly(
  * Ray-casting point-in-polygon test.
  * Returns `true` if (x, y) is strictly inside `poly`.
  */
-export function pointInPoly(point: Point2D, poly: Point2D[]): boolean {
+export function pointInPoly(point: Position, poly: Position[]): boolean {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
     const [xi, yi] = poly[i];

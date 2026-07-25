@@ -20,40 +20,60 @@ import { EditControl as LeafletEditControl, EditControlProps } from "react-leafl
 // This wrapper bypasses a known react-leaflet-draw's EditControl bug where it fails to 
 // clear out stale event handlers, applying changes to current and previously selected layers.
 // Issue: https://github.com/alex3165/react-leaflet-draw/issues/192
-export default function EditControl({ onCreated, onEdited, onEditStart, onEditStop, ...props }: EditControlProps) {
+export default function EditControl({
+  onCreated,
+  onDrawVertex,
+  onEdited,
+  onEditStart,
+  onEditStop,
+  onEditVertex,
+  ...props
+}: EditControlProps) {
   const map = useMap();
   const onCreatedRef = useRef(onCreated);
+  const onDrawVertexRef = useRef(onDrawVertex);
   const onEditedRef = useRef(onEdited);
   const onEditStartRef = useRef(onEditStart);
   const onEditStopRef = useRef(onEditStop);
+  const onEditVertexRef = useRef(onEditVertex);
 
   onCreatedRef.current = onCreated;
+  onDrawVertexRef.current = onDrawVertex;
   onEditedRef.current = onEdited;
   onEditStartRef.current = onEditStart;
   onEditStopRef.current = onEditStop;
+  onEditVertexRef.current = onEditVertex;
 
   useEffect(() => {
     const handleCreated = onCreatedRef.current as LeafletEventHandlerFn;
+    const handleDrawVertex = onDrawVertexRef.current as LeafletEventHandlerFn;
     const handleEdited = onEditedRef.current as LeafletEventHandlerFn;
     const handleEditStart = onEditStartRef.current as LeafletEventHandlerFn;
     const handleEditStop = onEditStopRef.current as LeafletEventHandlerFn;
+    const handleEditVertex = onEditVertexRef.current as LeafletEventHandlerFn;
 
     handleCreated && map.on('draw:created', handleCreated);
+    handleDrawVertex && map.on('draw:drawvertex', handleDrawVertex);
     handleEdited && map.on('draw:edited', handleEdited);
     handleEditStart && map.on('draw:editstart', handleEditStart);
     handleEditStop && map.on('draw:editstop', handleEditStop);
+    handleEditVertex && map.on('draw:editvertex', handleEditVertex);
 
     return () => {
-      handleCreated && map.on('draw:created', handleCreated);
+      handleCreated && map.off('draw:created', handleCreated);
+      handleDrawVertex && map.off('draw:drawvertex', handleDrawVertex);
       handleEdited && map.off('draw:edited', handleEdited);
       handleEditStart && map.off('draw:editstart', handleEditStart);
       handleEditStop && map.off('draw:editstop', handleEditStop);
+      handleEditVertex && map.off('draw:editvertex', handleEditVertex);
     }
   }, [map]);
 
+  const reff = useRef<any>(null);
+
   return (
     <>
-      <LeafletEditControl {...props} />
+      <LeafletEditControl ref={reff} {...props} />
     </>
   )
 }
