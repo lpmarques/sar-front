@@ -4,16 +4,16 @@ import L from "leaflet";
 import "leaflet-polylinedecorator";
 
 interface ArrowPolylineProps extends PolylineProps {
-  startHead?: boolean,
-  endHead?: boolean,
+  backHead?: boolean,
+  frontHead?: boolean,
   arrowHeadOptions?: L.Symbol.ArrowHeadOptions;
 }
 
 export default function ArrowPolyline({ 
   positions,
   pathOptions,
-  startHead=true,
-  endHead=true,
+  backHead=true,
+  frontHead=true,
   arrowHeadOptions,
 }: ArrowPolylineProps): null {
   const map = useMap();
@@ -30,34 +30,35 @@ export default function ArrowPolyline({
     decoratorRef.current = L.polylineDecorator(polylineRef.current, {
       patterns: [
         // First head
-        ...(startHead ? [{
+        ...(backHead ? [{
           offset: 0, // At the beginning of line
           repeat: 0,
-          ...({ reverse: true } as any),
           symbol: L.Symbol.arrowHead({
             pixelSize: 6,
+            ...arrowHeadOptions,
             pathOptions: {
-              stroke: false, 
+              stroke: false,
               fillOpacity: 1,
               ...pathOptions,
+              ...arrowHeadOptions?.pathOptions,
             },
-            ...arrowHeadOptions,
-            headAngle: 360 + (arrowHeadOptions?.headAngle ?? 45), // Facing back
+            headAngle: 360 + (arrowHeadOptions?.headAngle ?? 60), // Facing back
           }),
         }] : []),
         // Second head
-        ...(endHead ? [{
+        ...(frontHead ? [{
           offset: "100%", // At the end of line 
           repeat: 0,
           symbol: L.Symbol.arrowHead({
-            pixelSize: 6,       
-            headAngle: 45, // Facing forward
+            pixelSize: 6,
+            ...arrowHeadOptions,
             pathOptions: {
-              stroke: false, 
+              stroke: false,
               fillOpacity: 1,
               ...pathOptions,
+              ...arrowHeadOptions?.pathOptions,
             },
-            ...arrowHeadOptions,
+            headAngle: 60, // Facing forward
           }),
         }] : []),
       ],

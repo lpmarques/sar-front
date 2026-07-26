@@ -20,6 +20,7 @@ import {
   Tooltip as LeafletTooltip,
   useMap,
   FeatureGroup,
+  Polygon,
 } from "react-leaflet";
 import {
   ActionIcon,
@@ -57,7 +58,7 @@ interface CroppingPatternPreviewProps {
   onBackToList?: () => void;
 }
 
-const BACKGROUND_COLOR_HEX = "#fafafa";
+const BACKGROUND_COLOR = "#fafafa";
 const PX_PER_M = 30;
 const PATTERN_LEFT_PADDING_M = 1.4;
 const PATTERN_BOTTOM_PADDING_M = 0;
@@ -71,7 +72,9 @@ const CROP_SPACING_PADDING_M = 0.1;
 const CROP_SPACING_LABEL_GAP_M = 0.3;
 
 const TEXT_COLOR = "var(--mantine-color-dark-7)";
+const TEXT_REP_COLOR = "var(--mantine-color-gray-6)";
 const SPACING_COLOR = "var(--mantine-color-gray-7)";
+const SPACING_REP_COLOR = "var(--mantine-color-gray-6)";
 
 /**
  * Formats a metre distance for axis labels, falling back to centimetres when
@@ -95,32 +98,44 @@ function buildPreviewGeometry(pattern: CroppingPatternReadData) {
   // Pre-compute per-row line length (sum of crop distances) and the
   // X offset accumulated from previous rows' inter-row distances.
   let xCursorM = PATTERN_LEFT_PADDING_M;
-  const rowLayouts = rows.map((row) => {
+  
+  const rowLayouts = [];
+  const layoutsCount = rows.length + 1;
+
+  for (let i=0; i<layoutsCount; i++) {
+    const row = rows[i % rows.length];
     const rowXM = xCursorM;
     const rowLengthM = row.crops.reduce(
       (sum, crop) => sum + crop.distanceToNextCropM,
       0
-    );
+    ) + row.cropsOffsetM;
+
+    rowLayouts.push({ row, rowXM, rowLengthM });
     xCursorM += row.distanceToNextRowM;
-    return { row, rowXM, rowLengthM };
-  });
+  };
 
-  const totalXM = xCursorM + PATTERN_RIGHT_PADDING_M;
-  const longestLineM = Math.max(
+  const totalXM = (xCursorM - rows[0].distanceToNextRowM) + PATTERN_RIGHT_PADDING_M;
+  const longestRowLengthM = Math.max(
     0,
-    ...rowLayouts.map((r) => r.rowLengthM + r.row.cropsOffsetM)
+    ...rowLayouts.map(r => r.rowLengthM)
   );
-  const totalYM = PATTERN_TOP_PADDING_M + ROW_LABEL_GAP_M + longestLineM + PATTERN_BOTTOM_PADDING_M;
+  const totalYM = PATTERN_TOP_PADDING_M + ROW_LABEL_GAP_M + longestRowLengthM + PATTERN_BOTTOM_PADDING_M;
 
-  return { rowLayouts, totalXM, totalYM };
+  return { rowLayouts, longestRowLengthM, totalXM, totalYM };
 }
 
 interface RenderedCrop {
   crop: PatternCrop;
   rowIndex: number;
   cropIndex: number;
-  xM: number;
-  yM: number;
+  cropXM: number;
+  cropYM: number;
+  spacingXM: number;
+  spacingStartYM: number;
+  spacingEndYM: number;
+  spacingLengthM: number;
+  spacingLabel: string;
+  isRep: boolean;
 }
 
 interface RenderedRow {
@@ -128,76 +143,75 @@ interface RenderedRow {
   rowXM: number;
   rowStartYM: number;
   rowEndYM: number;
-  rowStartOffsetM: number;
-  rowSpacingYM: number;
-  rowSpacingStartXM: number;
-  rowSpacingEndXM: number;
-  rowSpacingLengthM: number;
-  rowSpacingLabel: string;
   rowLengthM: number;
+  rowStartOffsetM: number;
+  spacingYM: number;
+  spacingStartXM: number;
+  spacingEndXM: number;
+  spacingLengthM: number;
+  spacingLabel: string;
   crops: RenderedCrop[];
-  cropSpacings: {
-    cropIndex: number;
-    xM: number;
-    startYM: number;
-    endYM: number;
-    lengthM: number;
-    label: string;
-  }[];
+  isRep: boolean;
 }
 
 function renderRows(
   pattern: CroppingPatternReadData
 ): { rows: RenderedRow[]; totalXM: number; totalYM: number } {
-  const { rowLayouts, totalXM, totalYM } = buildPreviewGeometry(pattern);
+  const { rowLayouts, longestRowLengthM, totalXM, totalYM } = buildPreviewGeometry(pattern);
 
-  const rows: RenderedRow[] = rowLayouts.map(({ row, rowXM, rowLengthM }, rowIndex) => {
+  const rows: RenderedRow[] = rowLayouts.map(({ row, rowXM, rowLengthM }, i) => {
+    const isRepeatingRow = i >= pattern.rows.length;
+    
+    const rowIndex = i % pattern.rows.length;
     const rowStartYM = PATTERN_TOP_PADDING_M;
     const rowEndYM = rowStartYM + rowLengthM;
-    const rowSpacingYM = rowStartYM;
-    const rowSpacingLengthM = row.distanceToNextRowM;
-    const rowSpacingStartXM = rowXM;
-    const rowSpacingEndXM = rowXM + rowSpacingLengthM;
+    const spacingYM = rowStartYM;
+    const spacingLengthM = row.distanceToNextRowM;
+    const spacingStartXM = rowXM;
+    const spacingEndXM = rowXM + spacingLengthM;
 
     const crops: RenderedCrop[] = [];
-    const cropSpacings: RenderedRow["cropSpacings"] = [];
+    const cropSequenceLengthM = rowStartYM + longestRowLengthM;
 
+    let j = 0;
     let cropYM = rowStartYM + row.cropsOffsetM;
-    row.crops.forEach((crop, cropIndex) => {
+    while (cropYM <= cropSequenceLengthM) {
+      const isRepeatingCrop = j >= row.crops.length;
+      
+      const cropIndex = j % row.crops.length;
+      const crop = row.crops[cropIndex];
       crops.push({
-        crop,
         rowIndex,
+        crop,
         cropIndex,
-        xM: rowXM,
-        yM: cropYM,
+        cropXM: rowXM,
+        cropYM: cropYM,
+        spacingXM: rowXM,
+        spacingStartYM: cropYM,
+        spacingEndYM: cropYM + crop.distanceToNextCropM,
+        spacingLengthM: crop.distanceToNextCropM,
+        spacingLabel: formatLengthM(crop.distanceToNextCropM),
+        isRep: isRepeatingRow || isRepeatingCrop,
       });
-
-      cropSpacings.push({
-        cropIndex,
-        xM: rowXM,
-        startYM: cropYM,
-        endYM: cropYM + crop.distanceToNextCropM,
-        lengthM: crop.distanceToNextCropM,
-        label: formatLengthM(crop.distanceToNextCropM),
-      });
-
+      
+      j += 1;
       cropYM += crop.distanceToNextCropM;
-    });
-
+    }
+      
     return {
       rowIndex,
       rowXM,
       rowStartYM,
       rowEndYM,
-      rowStartOffsetM: row.cropsOffsetM,
-      rowSpacingYM,
-      rowSpacingStartXM,
-      rowSpacingEndXM,
-      rowSpacingLengthM,
-      rowSpacingLabel: formatLengthM(row.distanceToNextRowM),
       rowLengthM,
+      rowStartOffsetM: row.cropsOffsetM,
+      spacingYM,
+      spacingStartXM,
+      spacingEndXM,
+      spacingLengthM,
+      spacingLabel: formatLengthM(row.distanceToNextRowM),
       crops,
-      cropSpacings,
+      isRep: isRepeatingRow,
     };
   });
 
@@ -213,10 +227,10 @@ export default function CroppingPatternPreview({pattern, onBackToList, onSelect}
 
   const handleCropSelect = (c: RenderedCrop) => {
     setSelectedRow(null);
-    const repeatedSelection = selectedCrop &&
+    const secondSelection = selectedCrop &&
       selectedCrop.crop.plant.acceptedTaxonName === c.crop.plant.acceptedTaxonName;
     
-    if (repeatedSelection)
+    if (secondSelection)
       return setSelectedCrop(null);
     
     setSelectedCrop(c);
@@ -224,10 +238,9 @@ export default function CroppingPatternPreview({pattern, onBackToList, onSelect}
 
   const handleRowSelect = (r: RenderedRow) => {
     setSelectedCrop(null);
-    const repeatedSelection = selectedRow &&
-      selectedRow.rowIndex === r.rowIndex;
+    const secondSelection = selectedRow && selectedRow.rowIndex === r.rowIndex;
     
-    if (repeatedSelection)
+    if (secondSelection)
       return setSelectedRow(null);
     
     setSelectedRow(r);
@@ -358,15 +371,19 @@ function PatternPreviewPanel({
   const rowLat = (yM: number) => totalYM - yM;
 
   // Inline-styled divIcon factories
-  const rowLabelIcon = (label: string, anchor: [number, number]) =>
+  const rowLabelIcon = (label: string, anchor: [number, number], isRep?: boolean) =>
     L.divIcon({
-      className: "pattern-preview-label pattern-preview-label--row",
+      className: isRep ? 
+        "pattern-preview-label pattern-preview-label--row--rep" :
+        "pattern-preview-label pattern-preview-label--row",
       html: `<div class="pattern-preview-label__inner">${label}</div>`,
       iconAnchor: anchor,
     });
-  const spacingLabelIcon = (label: string, anchor: [number, number]) =>
+  const spacingLabelIcon = (label: string, anchor: [number, number], isRep?: boolean) =>
     L.divIcon({
-      className: "pattern-preview-label pattern-preview-label--spacing",
+      className: isRep ? 
+        "pattern-preview-label pattern-preview-label--spacing--rep" :
+        "pattern-preview-label pattern-preview-label--spacing",
       html: `<div class="pattern-preview-label__inner">${label}</div>`,
       iconAnchor: anchor,
     });
@@ -380,7 +397,7 @@ function PatternPreviewPanel({
       style={{
         height: "100%",
         width: "100%",
-        background: BACKGROUND_COLOR_HEX,
+        background: BACKGROUND_COLOR,
       }}
       zoomControl={true}
       scrollWheelZoom={true}
@@ -394,16 +411,23 @@ function PatternPreviewPanel({
 
       <PreviewBoundsSizer />
 
+      {/* <Polygon positions={[[
+        bounds.getSouthEast(),
+        bounds.getNorthEast(),
+        bounds.getNorthWest(),
+        bounds.getSouthWest(),
+      ]]} /> */}
+
       {/* Row labels at the top */}
-      {rows.map((r) => {
+      {rows.map((r, i) => {
         const row = pattern.rows[r.rowIndex];
         const labelText = `Linha ${row.position}`;
         const lat = rowLat(r.rowStartYM - ROW_LABEL_GAP_M);
         return (
           <Marker
-            key={`row-label-${r.rowIndex}`}
+            key={`row-label-${i}`}
             position={[lat, r.rowXM]}
-            icon={rowLabelIcon(labelText, [20, 0])}
+            icon={rowLabelIcon(labelText, [20, 0], r.isRep)}
             interactive={true}
             keyboard={false}
             eventHandlers={{
@@ -414,10 +438,11 @@ function PatternPreviewPanel({
       })}
 
       {/* Per-row geometry */}
-      {rows.map((r) => {
+      {rows.map((r, i) => {
         return (
           <RowGeometry
-            key={`row-${r.rowIndex}`}
+            key={`row-${i}`}
+            index={i}
             row={r}
             rowLat={rowLat}
             selectedRow={selectedRow}
@@ -429,34 +454,31 @@ function PatternPreviewPanel({
       })}
 
       {/* Row-to-row spacing lines (horizontal, between adjacent rows) */}
-      {rows.map((r) =>
-        r.rowIndex < rows.length ? (
-          <FeatureGroup>
-            <ArrowPolyline
-              key={`rs-${r.rowIndex}`}
-              positions={[
-                [rowLat(r.rowSpacingYM), r.rowSpacingStartXM + ROW_SPACING_PADDING_M],
-                [rowLat(r.rowSpacingYM), r.rowSpacingEndXM - ROW_SPACING_PADDING_M],
-              ]}
-              pathOptions={{
-                color: SPACING_COLOR,
-                weight: 1,
-                dashArray: "4 4",
-              }}
-            />
-            {/* Spacing label (midpoint, above the line) */}
-            <Marker
-              key={`rs-label-${r.rowIndex}`}
-              position={[
-                rowLat(r.rowSpacingYM - CROP_SPACING_LABEL_GAP_M),
-                (r.rowSpacingStartXM + r.rowSpacingEndXM) / 2,
-              ]}
-              icon={spacingLabelIcon(r.rowSpacingLabel, [10, 6])}
-              interactive={false}
-              keyboard={false}
-            />
-          </FeatureGroup>
-        ) : null
+      {rows.slice(0, rows.length-1).map((r, i) =>
+        <FeatureGroup>
+          <ArrowPolyline
+            key={`rs-${i}`}
+            positions={[
+              [rowLat(r.spacingYM), r.spacingStartXM + ROW_SPACING_PADDING_M],
+              [rowLat(r.spacingYM), r.spacingEndXM - ROW_SPACING_PADDING_M],
+            ]}
+            pathOptions={{
+              color: SPACING_COLOR,
+              weight: 1,
+            }}
+          />
+          {/* Spacing label (midpoint, above the line) */}
+          <Marker
+            key={`rs-label-${i}`}
+            position={[
+              rowLat(r.spacingYM - CROP_SPACING_LABEL_GAP_M),
+              (r.spacingStartXM + r.spacingEndXM) / 2,
+            ]}
+            icon={spacingLabelIcon(r.spacingLabel, [10, 6])}
+            interactive={false}
+            keyboard={false}
+          />
+        </FeatureGroup>
       )}
     </MapContainer>
     </>
@@ -464,6 +486,7 @@ function PatternPreviewPanel({
 }
 
 interface RowGeometryProps {
+  index: number,
   row: RenderedRow;
   rowLat: (yM: number) => number;
   selectedRow: RenderedRow | null;
@@ -473,6 +496,7 @@ interface RowGeometryProps {
 }
 
 function RowGeometry({
+  index: i,
   row: r,
   rowLat,
   selectedRow,
@@ -497,9 +521,8 @@ function RowGeometry({
           pathOptions={{
             color: SPACING_COLOR,
             weight: 1,
-            dashArray: "4 4",
           }}
-          startHead={false}
+          backHead={false}
         />
         <Marker
           position={[
@@ -516,35 +539,43 @@ function RowGeometry({
       </FeatureGroup>}
 
       {/* Per-crop spacing lines (top-down) */}
-      {r.cropSpacings.map((s) => {
+      {r.crops.slice(0, r.crops.length-1).map((c, j) => {
         return (
-          <FeatureGroup key={`cs-${r.rowIndex}-${s.cropIndex}`}>
+          <FeatureGroup key={`cs-${i}-${j}`}>
             <ArrowPolyline
               positions={[
-                [rowLat(s.startYM + CROP_SPACING_PADDING_M + CROP_RADIUS_M), s.xM],
-                [rowLat(s.endYM - CROP_SPACING_PADDING_M - CROP_RADIUS_M), s.xM],
+                [rowLat(c.spacingStartYM + CROP_SPACING_PADDING_M + CROP_RADIUS_M), c.spacingXM],
+                [rowLat(c.spacingEndYM - CROP_SPACING_PADDING_M - CROP_RADIUS_M), c.spacingXM],
               ]}
               pathOptions={{
                 color: SPACING_COLOR,
                 weight: 1,
-                dashArray: "4 4",
+                dashArray: c.isRep ? "3 3" : undefined,
+              }}
+              arrowHeadOptions={{
+                pathOptions: {
+                  stroke: c.isRep,
+                  dashArray: undefined,
+                  fillColor: c.isRep ? BACKGROUND_COLOR : SPACING_COLOR,
+                }
               }}
             />
+            {!c.isRep &&
             <Marker
               position={[
-                rowLat((s.startYM + s.endYM) / 2),
-                s.xM - CROP_SPACING_LABEL_GAP_M,
+                rowLat((c.spacingStartYM + c.spacingEndYM) / 2),
+                c.spacingXM - CROP_SPACING_LABEL_GAP_M,
               ]}
-              icon={spacingLabelIcon(s.label, spacingLabelAnchor)}
+              icon={spacingLabelIcon(c.spacingLabel, spacingLabelAnchor, c.isRep)}
               interactive={false}
               keyboard={false}
-            />
+            />}
           </FeatureGroup>
         );
       })}
 
       {/* Crop circles */}
-      {r.crops.map((c) => {
+      {r.crops.map((c, j) => {
         const isSelected = 
           selectedCrop?.crop.plant.acceptedTaxonName === c.crop.plant.acceptedTaxonName ||
           selectedRow?.rowIndex === r.rowIndex;
@@ -552,12 +583,13 @@ function RowGeometry({
           // selectedCrop?.cropIndex === c.cropIndex;
         return (
           <CircleMarker
-            key={`crop-${r.rowIndex}-${c.cropIndex}`}
-            center={[rowLat(c.yM), c.xM]}
+            key={`crop-${i}-${j}`}
+            center={[rowLat(c.cropYM), c.cropXM]}
             radius={CROP_RADIUS_M * PX_PER_M}
             pathOptions={{
-              color: isSelected ? TEXT_COLOR : "transparent",
-              weight: isSelected ? 2 : 0,
+              color: TEXT_COLOR,
+              weight: isSelected ? 2 : (c.isRep ? 0.85 : 0.75 ),
+              dashArray: c.isRep ? "3 3" : undefined,
               fillColor: c.crop.plant.colorHex,
               fillOpacity: 1,
             }}
@@ -686,14 +718,21 @@ function PreviewLabelStyles() {
         user-select: none;
         line-height: 1.2;
         font-size: 12px;
-        color: var(--mantine-color-dark-7);
-        background-color: ${BACKGROUND_COLOR_HEX};
+        background-color: ${BACKGROUND_COLOR};
       }
       .pattern-preview-label--row .pattern-preview-label__inner {
         font-weight: 600;
+        color: ${TEXT_COLOR};
+      }
+      .pattern-preview-label--row--rep .pattern-preview-label__inner {
+        font-weight: 600;
+        color: ${TEXT_REP_COLOR};
       }
       .pattern-preview-label--spacing .pattern-preview-label__inner {
-        color: var(--mantine-color-gray-7);
+        color: ${SPACING_COLOR};
+      }
+      .pattern-preview-label--spacing--rep .pattern-preview-label__inner {
+        color: ${SPACING_REP_COLOR};
       }
     `}</style>
   );

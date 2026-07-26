@@ -20,7 +20,7 @@ import {
   Marker as MarkerLayer,
   Polygon as PolygonLayer,
 } from "leaflet";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   FeatureGroup,
   PolygonProps,
@@ -51,7 +51,7 @@ export default function FieldFeatureGroup({
   editControlProps,
   extraPolygonProps,
 }: FieldFeatureGroupProps) {
-  const { farm, fields, selectedFieldIndex, replaceField, resetField } = useProject();
+  const { farm, fields, selectedFieldIndex, replaceField } = useProject();
   
   const field = selectedFieldIndex !== null ? fields[selectedFieldIndex] : undefined;
   const fieldRef = useRef(field);
@@ -60,6 +60,7 @@ export default function FieldFeatureGroup({
   const fieldCoords = useMemo(() => {
     return fieldRef.current && positionToLatLng(fieldRef.current.polygon.coordinates);
   }, [fieldRef.current?.polygon.coordinates]);
+  const [forcedEditCancels, setForcedEditCancels] = useState(0);
 
   const validatePolygonVertex = (vertex: Layer) => {
     if (vertex instanceof MarkerLayer) {
@@ -72,7 +73,7 @@ export default function FieldFeatureGroup({
         return Error("Ponto Inválido");
       }
 
-      if (markerElement) markerElement.style.backgroundColor = "white";
+      if (markerElement) markerElement.style.backgroundColor = "#fafafa";
     }
   }
     
@@ -106,15 +107,8 @@ export default function FieldFeatureGroup({
           message: 'A área de cultivo não pode extrapolar os limites da propriedade.'
         });
 
-        // When invalid polygon, rather than reseting the field, replace it with deep-copy of its previous coordinates 
-        // in order to trigger Polygon re-render without losing previously calculated cropping data
-        return replaceField({
-          ...fieldRef.current,
-          polygon: {
-            ...polygon,
-            coordinates: fieldRef.current.polygon.coordinates.map(c => c)
-          }
-        });
+        // When invalid polygon, force Polygon re-render with previous coords via key change only
+        return setForcedEditCancels(c => c + 1);
       }
 
       replaceField({
@@ -161,6 +155,7 @@ export default function FieldFeatureGroup({
     return (
       <FeatureGroup key={selectedFieldIndex}>
         <PolygonDrawing
+          key={forcedEditCancels}
           coords={fieldCoords}
           editControlProps={{
             edit: {

@@ -19,7 +19,6 @@ import {
   LeafletEventHandlerFnMap,
   LeafletMouseEvent,
   Map,
-  marker,
   Marker as MarkerLayer,
   Polygon as PolygonLayer,
 } from "leaflet";
@@ -35,11 +34,12 @@ import {
   PolygonProps,
   ZoomControl,
 } from "react-leaflet";
-import { modals } from "@mantine/modals";
 import { MapStyle } from '@maptiler/sdk';
-import * as turf from "@turf/boolean-equal";
+import booleanEqual from "@turf/boolean-equal";
+import booleanContains from "@turf/boolean-contains";
 import { useProject } from "../../hooks/useProject";
 import { latLngToPosition, pointInPoly, positionToLatLng } from "../../utils/agroforestry";
+import { openAlertModal } from "../common/alerts";
 import {
   ButtonControl,
   EditControl,
@@ -48,9 +48,6 @@ import {
   MapCentering,
   MaptilerVectorLayer,
 } from ".";
-import booleanContains from "@turf/boolean-contains";
-import { Button, Group } from "@mantine/core";
-import { openAlertModal } from "../common/alerts";
 
 const MAX_ZOOM = 22;
 
@@ -99,7 +96,7 @@ export default function FieldsMap({
         });
       } else if (layer instanceof PolygonLayer) {
         const geoJson = layer.toGeoJSON();
-        const fieldIndex = fields.findIndex((field) => turf.booleanEqual(field.polygon, geoJson.geometry));
+        const fieldIndex = fields.findIndex((field) => booleanEqual(field.polygon, geoJson.geometry));
         selectField(fieldIndex);
       }
     }
@@ -116,7 +113,7 @@ export default function FieldsMap({
         return Error("Ponto Inválido");
       }
 
-      if (markerElement) markerElement.style.backgroundColor = "white";
+      if (markerElement) markerElement.style.backgroundColor = "#fafafa";
     }
   }
   

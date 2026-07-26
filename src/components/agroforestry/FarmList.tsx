@@ -75,7 +75,7 @@ function FarmsTable({ farms }: { farms: FarmReadData[] }) {
 
   const rows = farms.map((farm: FarmReadData) => (
     <ClickableRow
-      key={farm.name}
+      key={farm.id}
       onClick={() => handleRowClick(farm)}
       style={{'--hover-color': '#bef7ce'}}
     >

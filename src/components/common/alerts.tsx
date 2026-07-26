@@ -5,7 +5,7 @@ export function openAlertModal({ title, message }: { title: React.ReactNode, mes
   modals.open({
     title,
     children: <>
-      <p>{message}</p>
+      {message}
       <Group justify="flex-end">
         <Button onClick={() => modals.closeAll()}>OK</Button>
       </Group>

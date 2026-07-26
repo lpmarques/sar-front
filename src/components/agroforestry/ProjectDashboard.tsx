@@ -14,13 +14,12 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Container, Grid, Paper, Transition } from "@mantine/core";
+import { ModalsProvider } from "@mantine/modals";
 import { useQuery } from "@tanstack/react-query";
 import { getFarm, getFarmPlantFitnessList, getFieldList } from "../../apis/agroforestry";
 import { ProjectProvider, useProject } from "../../hooks/useProject";
 import { QueryLoader } from "../common/QueryLoader";
 import { FieldMenu, FieldsMap } from ".";
-import { ModalsProvider } from "@mantine/modals";
-import { DrawEvents } from "leaflet";
 
 export default function ProjectDashboard() {
   const { farmId } = useParams();
