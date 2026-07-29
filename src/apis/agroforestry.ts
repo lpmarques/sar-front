@@ -85,6 +85,40 @@ export async function deleteField(fieldId: number): Promise<GenericResponse> {
   return defaultDeleteFn({ endpoint: `/agroforestry/fields/${fieldId}` });
 }
 
+interface PatternCropWrite {
+  plantId: number;
+  distanceToNextCropM: number;
+}
+
+interface PatternRowWrite {
+  purposeId: number;
+  distanceToNextRowM: number;
+  cropsOffsetM: number;
+  crops: PatternCropWrite[];
+}
+
+export interface CroppingPatternWriteRequestData {
+  name: string;
+  description: string;
+  rows: PatternRowWrite[];
+}
+
+export interface CroppingPatternWriteResponseData extends GenericResponse {
+  patternId: number;
+}
+
+export async function createCroppingPattern({ data }: WriteFnInput<FieldWriteRequestData>): Promise<CroppingPatternWriteResponseData> {
+  return defaultPostFn({ endpoint: "/agroforestry/cropping-patterns", data });
+}
+
+export async function updateCroppingPattern({ id, data }: WriteFnInput<FieldWriteRequestData>): Promise<CroppingPatternWriteResponseData> {
+  return defaultPutFn({ endpoint: `/agroforestry/cropping-patterns/${id}`, data });
+}
+
+export async function deleteCroppingPattern(patternId: number): Promise<GenericResponse> {
+  return defaultDeleteFn({ endpoint: `/agroforestry/cropping-patterns/${patternId}` });
+}
+
 export interface SiteTraitValueWriteRequestData {
   siteId?: number,
   traitId: number,
@@ -207,10 +241,7 @@ export interface PatternCrop {
   distanceToNextCropM: number;
 }
 
-/**
- * One entry in the repeating row pattern.
- * The `crops` array is cycled along the full length of each row.
- */
+/** One row entry in the cropping pattern. */
 export interface PatternRow {
   crops: PatternCrop[];
   position: number;
