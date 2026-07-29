@@ -44,6 +44,7 @@ import PolygonDrawing from './PolygonDrawing';
 import CroppingPatternPreviewPage from './CroppingPatternPreviewPage';
 import NativityBadge from './NativityBadge';
 import CropLegend from './CropLegend';
+import LeafletStyleButtonControl from './LeafletStyleButtonControl';
 
 export {
   ArrowPolyline,
@@ -68,6 +69,7 @@ export {
   FieldMenu,
   FieldFeatureGroup,
   LayerVisibility,
+  LeafletStyleButtonControl,
   MapBoundsFraming,
   MapCentering,
   MapControl,

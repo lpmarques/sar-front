@@ -20,7 +20,6 @@ import {
   Tooltip as LeafletTooltip,
   useMap,
   FeatureGroup,
-  Polygon,
 } from "react-leaflet";
 import {
   ActionIcon,
@@ -31,10 +30,13 @@ import {
   Stack,
   Text,
   Tooltip as MantineTooltip,
+  UnstyledButton,
 } from "@mantine/core";
 import {
   IconChevronLeft,
   IconExternalLink,
+  IconEye,
+  IconEyeOff,
   IconTrash,
 } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
@@ -50,7 +52,7 @@ import { QueryLoader } from "../common/QueryLoader";
 import FieldView from "../common/FieldView";
 import { PlantFullNameLabel } from "../catalog";
 import { UserName } from "../user";
-import { ArrowPolyline, CropLegend, MapBoundsFraming, NativityBadge } from ".";
+import { ArrowPolyline, CropLegend, LeafletStyleButtonControl, MapBoundsFraming, MapControl, NativityBadge } from ".";
 
 interface CroppingPatternPreviewProps {
   pattern: CroppingPatternReadData;
@@ -364,6 +366,7 @@ function PatternPreviewPanel({
   totalXM,
   totalYM,
 }: PatternPreviewPanelProps) {
+  const [ viewReps, setViewReps ] = useState(true);
   const bounds = useMemo(() => L.latLngBounds(
     [[0, 0], [totalYM, totalXM]]
   ), [totalYM, totalXM]);
@@ -411,6 +414,17 @@ function PatternPreviewPanel({
 
       <PreviewBoundsSizer />
 
+      <LeafletStyleButtonControl
+        position="topright"
+        size="xs"
+        label={viewReps ? "Ocultar repetições" : "Mostrar repetições"}
+        onClick={() => setViewReps(v => !v)}
+      >
+        {viewReps ?
+        <IconEyeOff color="var(--mantine-color-gray-8)" /> :
+        <IconEye color="var(--mantine-color-gray-8)" />}
+      </LeafletStyleButtonControl>
+
       {/* <Polygon positions={[[
         bounds.getSouthEast(),
         bounds.getNorthEast(),
@@ -424,6 +438,8 @@ function PatternPreviewPanel({
         const labelText = `Linha ${row.position}`;
         const lat = rowLat(r.rowStartYM - ROW_LABEL_GAP_M);
         return (
+          <>
+          {(!r.isRep || viewReps) &&
           <Marker
             key={`row-label-${i}`}
             position={[lat, r.rowXM]}
@@ -433,25 +449,28 @@ function PatternPreviewPanel({
             eventHandlers={{
               click: () => onRowSelect(r),
             }}
-          />
+          />}
+          </>
         );
       })}
 
       {/* Per-row geometry */}
-      {rows.map((r, i) => {
-        return (
-          <RowGeometry
-            key={`row-${i}`}
-            index={i}
-            row={r}
-            rowLat={rowLat}
-            selectedRow={selectedRow}
-            selectedCrop={selectedCrop}
-            onCropSelect={onCropSelect}
-            spacingLabelIcon={spacingLabelIcon}
-          />
-        );
-      })}
+      {rows.map((r, i) => 
+        <>
+        {(!r.isRep || viewReps) &&
+        <RowGeometry
+          key={`row-${i}`}
+          index={i}
+          row={r}
+          rowLat={rowLat}
+          selectedRow={selectedRow}
+          selectedCrop={selectedCrop}
+          onCropSelect={onCropSelect}
+          spacingLabelIcon={spacingLabelIcon}
+          viewReps={viewReps}
+        />}
+        </>
+      )}
 
       {/* Row-to-row spacing lines (horizontal, between adjacent rows) */}
       {rows.slice(0, rows.length-1).map((r, i) =>
@@ -492,7 +511,8 @@ interface RowGeometryProps {
   selectedRow: RenderedRow | null;
   selectedCrop: RenderedCrop | null;
   onCropSelect: (crop: RenderedCrop) => void;
-  spacingLabelIcon: (label: string, anchor: [number, number]) => L.DivIcon;
+  spacingLabelIcon: (label: string, anchor: [number, number], isRep?: boolean) => L.DivIcon;
+  viewReps: boolean;
 }
 
 function RowGeometry({
@@ -503,6 +523,7 @@ function RowGeometry({
   selectedCrop,
   onCropSelect,
   spacingLabelIcon,
+  viewReps,
 }: RowGeometryProps) {
   const offsetLineStartXM = r.rowStartYM;
   const offsetLineEndXM = r.rowStartYM + r.rowStartOffsetM - CROP_RADIUS_M;
@@ -541,6 +562,8 @@ function RowGeometry({
       {/* Per-crop spacing lines (top-down) */}
       {r.crops.slice(0, r.crops.length-1).map((c, j) => {
         return (
+          <>
+          {(!c.isRep || viewReps) &&
           <FeatureGroup key={`cs-${i}-${j}`}>
             <ArrowPolyline
               positions={[
@@ -570,7 +593,8 @@ function RowGeometry({
               interactive={false}
               keyboard={false}
             />}
-          </FeatureGroup>
+          </FeatureGroup>}
+          </>
         );
       })}
 
@@ -582,6 +606,8 @@ function RowGeometry({
           // selectedCrop?.rowIndex === c.rowIndex &&
           // selectedCrop?.cropIndex === c.cropIndex;
         return (
+          <>
+          {(!c.isRep || viewReps) &&
           <CircleMarker
             key={`crop-${i}-${j}`}
             center={[rowLat(c.cropYM), c.cropXM]}
@@ -600,7 +626,8 @@ function RowGeometry({
             <LeafletTooltip direction="top" offset={[0, -4]}>
               <PlantFullNameLabel fw="bold" plant={c.crop.plant} />
             </LeafletTooltip>
-          </CircleMarker>
+          </CircleMarker>}
+          </>
         );
       })}
     </>

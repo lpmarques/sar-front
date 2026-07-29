@@ -15,7 +15,7 @@ import { ControlPosition } from "leaflet";
 import { useMap } from "react-leaflet";
 import { Button } from "@mantine/core";
 import { IconCurrentLocationFilled } from "@tabler/icons-react";
-import { MapControl } from ".";
+import { LeafletStyleButtonControl, MapControl } from ".";
 import { useState } from "react";
 
 export interface DeviceLocationControlProps {
@@ -36,23 +36,18 @@ export default function DeviceLocationControl({ position="topleft", zoom }: Devi
   };
 
   return (
-    <MapControl position={position}>
-      <Button
-        variant="default"
-        title="Centralizar sua lozalização"
-        loading={locating}
-        onClick={() => flyToCurrentLocation()}
-        className="leaflet-bar"
-        style={{
-            width: '33px',
-            height: '33px',
-            padding: '0px',
-            marginLeft: '0px'
-          }
-        }
-      >
-        <IconCurrentLocationFilled color="var(--mantine-color-gray-7)"/>
-      </Button>
-    </MapControl>
+    <LeafletStyleButtonControl
+      position={position}
+      label="Centralizar sua lozalização"
+      loading={locating}
+      onClick={() => flyToCurrentLocation()}
+      size="xs"
+      style={{
+        width: '33px',
+        height: '33px',
+      }}
+    >
+      <IconCurrentLocationFilled color="var(--mantine-color-gray-8)"/>
+    </LeafletStyleButtonControl>
   )
 }
