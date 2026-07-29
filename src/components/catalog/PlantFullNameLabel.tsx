@@ -8,8 +8,8 @@ interface PlantFullNameLabelProps extends TextProps {
 
 export default function PlantFullNameLabel({ plant, ...textProps }: PlantFullNameLabelProps) {
   return (
-    <Text fz="sm" {...textProps}>{`${capitalize(plant.mainPopularName)} `}
-      (<Text span inherit fs="italic">{plant.acceptedTaxonName}</Text>)
+    <Text fz="sm" {...textProps}>
+      {`${capitalize(plant.mainPopularName)} `}(<Text span inherit fs="italic">{plant.acceptedTaxonName}</Text>)
     </Text>
   )
 }

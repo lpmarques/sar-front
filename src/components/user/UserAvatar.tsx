@@ -34,7 +34,7 @@ export default function UserAvatar({ user, ...avatarProps }: UserAvatarProps) {
           name={name}
           color="initials"
           {...avatarProps}
-          />
+        />
       </UnstyledButton>
     </Group>
   )

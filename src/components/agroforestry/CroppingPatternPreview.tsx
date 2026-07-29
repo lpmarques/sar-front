@@ -30,7 +30,6 @@ import {
   Stack,
   Text,
   Tooltip as MantineTooltip,
-  UnstyledButton,
 } from "@mantine/core";
 import {
   IconChevronLeft,
@@ -52,7 +51,7 @@ import { QueryLoader } from "../common/QueryLoader";
 import FieldView from "../common/FieldView";
 import { PlantFullNameLabel } from "../catalog";
 import { UserName } from "../user";
-import { ArrowPolyline, CropLegend, LeafletStyleButtonControl, MapBoundsFraming, MapControl, NativityBadge } from ".";
+import { ArrowPolyline, CropLegend, LeafletStyleButtonControl, MapBoundsFraming, NativityBadge } from ".";
 
 interface CroppingPatternPreviewProps {
   pattern: CroppingPatternReadData;
@@ -366,7 +365,7 @@ function PatternPreviewPanel({
   totalXM,
   totalYM,
 }: PatternPreviewPanelProps) {
-  const [ viewReps, setViewReps ] = useState(true);
+  const [ showReps, setshowReps ] = useState(true);
   const bounds = useMemo(() => L.latLngBounds(
     [[0, 0], [totalYM, totalXM]]
   ), [totalYM, totalXM]);
@@ -417,10 +416,10 @@ function PatternPreviewPanel({
       <LeafletStyleButtonControl
         position="topright"
         size="xs"
-        label={viewReps ? "Ocultar repetições" : "Mostrar repetições"}
-        onClick={() => setViewReps(v => !v)}
+        label={showReps ? "Ocultar repetições" : "Mostrar repetições"}
+        onClick={() => setshowReps(v => !v)}
       >
-        {viewReps ?
+        {showReps ?
         <IconEyeOff color="var(--mantine-color-gray-8)" /> :
         <IconEye color="var(--mantine-color-gray-8)" />}
       </LeafletStyleButtonControl>
@@ -439,7 +438,7 @@ function PatternPreviewPanel({
         const lat = rowLat(r.rowStartYM - ROW_LABEL_GAP_M);
         return (
           <>
-          {(!r.isRep || viewReps) &&
+          {(!r.isRep || showReps) &&
           <Marker
             key={`row-label-${i}`}
             position={[lat, r.rowXM]}
@@ -457,7 +456,7 @@ function PatternPreviewPanel({
       {/* Per-row geometry */}
       {rows.map((r, i) => 
         <>
-        {(!r.isRep || viewReps) &&
+        {(!r.isRep || showReps) &&
         <RowGeometry
           key={`row-${i}`}
           index={i}
@@ -467,7 +466,7 @@ function PatternPreviewPanel({
           selectedCrop={selectedCrop}
           onCropSelect={onCropSelect}
           spacingLabelIcon={spacingLabelIcon}
-          viewReps={viewReps}
+          showReps={showReps}
         />}
         </>
       )}
@@ -512,7 +511,7 @@ interface RowGeometryProps {
   selectedCrop: RenderedCrop | null;
   onCropSelect: (crop: RenderedCrop) => void;
   spacingLabelIcon: (label: string, anchor: [number, number], isRep?: boolean) => L.DivIcon;
-  viewReps: boolean;
+  showReps: boolean;
 }
 
 function RowGeometry({
@@ -523,7 +522,7 @@ function RowGeometry({
   selectedCrop,
   onCropSelect,
   spacingLabelIcon,
-  viewReps,
+  showReps,
 }: RowGeometryProps) {
   const offsetLineStartXM = r.rowStartYM;
   const offsetLineEndXM = r.rowStartYM + r.rowStartOffsetM - CROP_RADIUS_M;
@@ -563,7 +562,7 @@ function RowGeometry({
       {r.crops.slice(0, r.crops.length-1).map((c, j) => {
         return (
           <>
-          {(!c.isRep || viewReps) &&
+          {(!c.isRep || showReps) &&
           <FeatureGroup key={`cs-${i}-${j}`}>
             <ArrowPolyline
               positions={[
@@ -607,7 +606,7 @@ function RowGeometry({
           // selectedCrop?.cropIndex === c.cropIndex;
         return (
           <>
-          {(!c.isRep || viewReps) &&
+          {(!c.isRep || showReps) &&
           <CircleMarker
             key={`crop-${i}-${j}`}
             center={[rowLat(c.cropYM), c.cropXM]}
@@ -681,7 +680,7 @@ function RowInfoPanel({ row }: { row: PatternRow }) {
       <FieldView fz={15} label="Função">
         {row.purpose}
       </FieldView>
-      <FieldView fz={15} label="Sequência de cultivos">
+      <FieldView fz={15} label="Cultivos">
         {cropsLegend}
       </FieldView>
     </Stack>

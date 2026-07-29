@@ -54,7 +54,7 @@ export default function CroppingPatternsTable({ selectedPatternId, onSelect, onU
   if (userPatterns.isLoading) {
     return (
       <Center>
-        <QueryLoader  {...userPatternsQueryOptions}/>
+        <QueryLoader {...userPatternsQueryOptions}/>
       </Center>
     );
   }
