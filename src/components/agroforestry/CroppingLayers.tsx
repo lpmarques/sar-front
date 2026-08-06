@@ -11,12 +11,13 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
+import { Position } from "geojson";
 import { GeometryUtil, LatLng } from "leaflet";
 import 'leaflet-geometryutil';
 import { useEffect, useMemo } from "react";
 import { CircleMarker, Polyline, Tooltip } from "react-leaflet";
 import { CroppingPatternReadData, CroppingSummary, CroppingSummaryCrops, PatternCrop, PatternRow } from "../../apis/agroforestry";
-import { clipLineToPoly, DEG2RAD, getBBox, latLngCentroid, latLngToMeters, metersToLatLng, Point2D, pointInPoly } from "../../utils/agroforestry";
+import { clipLineToPoly, DEG2RAD, getBBox, latLngCentroid, latLngToMeters, metersToLatLng, pointInPoly } from "../../utils/agroforestry";
 import { capitalize } from "../../utils/common";
 
 const SQ_METERS_PER_HECTARE = 10000;
@@ -164,7 +165,7 @@ function computeCroppingLayers(
   const originLatLng = latLngCentroid(fieldCoords);
 
   // 2. Project the polygon into metric space
-  const polyMeters: Point2D[] = fieldCoords.map(latLng =>
+  const polyMeters: Position[] = fieldCoords.map(latLng =>
     latLngToMeters(latLng, originLatLng)
   );
 
@@ -180,8 +181,8 @@ function computeCroppingLayers(
   
   // 3. Unit vectors for the row direction and its perpendicular
   const angle = (rowsAngleDeg + 90) * -DEG2RAD;
-  const dir: Point2D = [Math.cos(angle), Math.sin(angle)];   // along the row
-  const perp: Point2D = [-Math.sin(angle), Math.cos(angle)]; // across rows
+  const dir: Position = [Math.cos(angle), Math.sin(angle)];   // along the row
+  const perp: Position = [-Math.sin(angle), Math.cos(angle)]; // across rows
 
   const dirOffsetM = cropsOffsetM % longestRowSizeM;
   const perpOffsetM = rowsOffsetM % totalRowSpacingM;
@@ -191,7 +192,7 @@ function computeCroppingLayers(
   const rows: RowLayer[] = [];
   const crops: CropLayer[] = [];
 
-  const getSweepLineOrigin = (refPoint: Point2D, distanceFromRef: number): Point2D => {
+  const getSweepLineOrigin = (refPoint: Position, distanceFromRef: number): Position => {
     const ox = refPoint[0] + perp[0] * distanceFromRef;
     const oy = refPoint[1] + perp[1] * distanceFromRef;
 
@@ -249,7 +250,7 @@ function computeCroppingLayers(
     const sweepLen = Math.hypot(bx - ax, by - ay);
     const numCrops = Math.floor(sweepLen / avgCropSpacingM);
 
-    const getCropPoint = (refPoint: Point2D, distanceFromRef: number): Point2D => {
+    const getCropPoint = (refPoint: Position, distanceFromRef: number): Position => {
       const mx = refPoint[0] + dir[0] * distanceFromRef;
       const my = refPoint[1] + dir[1] * distanceFromRef;
 

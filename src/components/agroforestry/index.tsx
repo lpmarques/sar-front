@@ -14,6 +14,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 import ArrowPolyline from './ArrowPolyline';
 import ButtonControl from './ButtonControl';
 import CroppingLayers from './CroppingLayers';
+import CroppingPatternEdit from './CroppingPatternEdit';
 import CroppingPatternPreview from './CroppingPatternPreview';
 import CroppingPatternsModal from './CroppingPatternsModal';
 import CroppingPatternsTable from './CroppingPatternsTable';
@@ -51,6 +52,7 @@ export {
   ButtonControl,
   CropLegend,
   CroppingLayers,
+  CroppingPatternEdit,
   CroppingPatternPreview,
   CroppingPatternPreviewPage,
   CroppingPatternsModal,

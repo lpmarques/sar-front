@@ -11,9 +11,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ActionIcon, Center, CloseButton, Group, Table, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Center, CloseButton, Group, Table, Tooltip } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
-import { IconArrowsMaximize } from "@tabler/icons-react";
+import { IconArrowsMaximize, IconPlus } from "@tabler/icons-react";
 import { CroppingPatternReadData, getCroppingPatternList } from "../../apis/agroforestry";
 import { useAuth } from "../../hooks/useAuth";
 import { StickyHeaderTable } from "../common/StickyHeaderTable";
@@ -26,9 +26,16 @@ interface CroppingPatternsTableProps {
   onSelect: (patternId: number) => void,
   onUnselect: () => void,
   onPreview: (pattern: CroppingPatternReadData) => void,
+  onCreate: () => void,
 }
 
-export default function CroppingPatternsTable({ selectedPatternId, onSelect, onUnselect, onPreview }: CroppingPatternsTableProps) {
+export default function CroppingPatternsTable({
+  selectedPatternId,
+  onSelect,
+  onUnselect,
+  onPreview,
+  onCreate,
+}: CroppingPatternsTableProps) {
   const { user } = useAuth();
 
   const userPatternsQueryOptions = {
@@ -76,6 +83,18 @@ export default function CroppingPatternsTable({ selectedPatternId, onSelect, onU
       <Table.Th>Diversidade de espécies</Table.Th>
       <Table.Th w={60}></Table.Th>
     </Table.Tr>
+  );
+
+  const newPatternButton = (
+    <Group justify="flex-end" pb="xs">
+      <Button
+        size="xs"
+        leftSection={<IconPlus size={14} />}
+        onClick={onCreate}
+      >
+        Novo padrão
+      </Button>
+    </Group>
   );
 
   const handleUnselect = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
@@ -129,12 +148,15 @@ export default function CroppingPatternsTable({ selectedPatternId, onSelect, onU
   });
 
   return (
-    <StickyHeaderTable
-      header={header}
-      rows={rows}
-      scrollWidth={600}
-      scrollHeight={500}
-    />
+    <>
+      {newPatternButton}
+      <StickyHeaderTable
+        header={header}
+        rows={rows}
+        scrollWidth={600}
+        scrollHeight={500}
+      />
+    </>
   );
 }
 

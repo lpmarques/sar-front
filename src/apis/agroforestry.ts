@@ -107,11 +107,11 @@ export interface CroppingPatternWriteResponseData extends GenericResponse {
   patternId: number;
 }
 
-export async function createCroppingPattern({ data }: WriteFnInput<FieldWriteRequestData>): Promise<CroppingPatternWriteResponseData> {
+export async function createCroppingPattern({ data }: WriteFnInput<CroppingPatternWriteRequestData>): Promise<CroppingPatternWriteResponseData> {
   return defaultPostFn({ endpoint: "/agroforestry/cropping-patterns", data });
 }
 
-export async function updateCroppingPattern({ id, data }: WriteFnInput<FieldWriteRequestData>): Promise<CroppingPatternWriteResponseData> {
+export async function updateCroppingPattern({ id, data }: WriteFnInput<CroppingPatternWriteRequestData>): Promise<CroppingPatternWriteResponseData> {
   return defaultPutFn({ endpoint: `/agroforestry/cropping-patterns/${id}`, data });
 }
 

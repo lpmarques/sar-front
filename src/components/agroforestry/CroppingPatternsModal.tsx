@@ -15,6 +15,7 @@ import { useState } from "react";
 import { modals } from "@mantine/modals";
 import CroppingPatternsTable from "./CroppingPatternsTable";
 import CroppingPatternPreview from "./CroppingPatternPreview";
+import CroppingPatternEdit from "./CroppingPatternEdit";
 import { CroppingPatternReadData } from "../../apis/agroforestry";
 
 interface CroppingPatternsModalProps {
@@ -23,13 +24,16 @@ interface CroppingPatternsModalProps {
   onUnselect: () => void;
 }
 
-type View = { kind: "list" } | { kind: "preview"; pattern: CroppingPatternReadData };
+type View =
+  | { kind: "list" }
+  | { kind: "preview"; pattern: CroppingPatternReadData }
+  | { kind: "edit"; pattern?: CroppingPatternReadData; clone?: boolean };
 
 /**
  * Contents of the cropping-patterns preview modal.
  *
- * Holds the modal's internal view (list ↔ single-pattern preview) so callers
- * only ever supply a pattern id and a select/unselect callback.
+ * Holds the modal's internal view (list ↔ single-pattern preview ↔ editor) so
+ * callers only ever supply a pattern id and a select/unselect callback.
  */
 export default function CroppingPatternsModal({
   selectedPatternId,
@@ -51,6 +55,18 @@ export default function CroppingPatternsModal({
           modals.closeAll();
         }}
         onPreview={(pattern) => setView({ kind: "preview", pattern })}
+        onCreate={() => setView({ kind: "edit" })}
+      />
+    );
+  }
+
+  if (view.kind === "edit") {
+    return (
+      <CroppingPatternEdit
+        pattern={view.pattern}
+        clone={view.clone}
+        onBackToList={() => setView({ kind: "list" })}
+        onSaved={() => setView({ kind: "list" })}
       />
     );
   }
@@ -63,6 +79,8 @@ export default function CroppingPatternsModal({
         modals.closeAll();
       }}
       onBackToList={() => setView({ kind: "list" })}
+      onEdit={() => setView({ kind: "edit", pattern: view.pattern, clone: false })}
+      onClone={() => setView({ kind: "edit", pattern: view.pattern, clone: true })}
     />
   );
 }

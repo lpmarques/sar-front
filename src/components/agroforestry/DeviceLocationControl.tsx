@@ -12,11 +12,10 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
 import { ControlPosition } from "leaflet";
-import { useMap } from "react-leaflet";
-import { Button } from "@mantine/core";
-import { IconCurrentLocationFilled } from "@tabler/icons-react";
-import { LeafletStyleButtonControl, MapControl } from ".";
 import { useState } from "react";
+import { useMap } from "react-leaflet";
+import { IconCurrentLocationFilled } from "@tabler/icons-react";
+import { LeafletStyleButtonControl } from ".";
 
 export interface DeviceLocationControlProps {
   position?: ControlPosition,
