@@ -79,7 +79,7 @@ interface CroppingPatternEditProps {
   /**
    * When `true`, the form is initialised from `pattern` (if any) but the
    * save button calls `createCroppingPattern` rather than
-   * `updateCroppingPattern`. Used by the "Clonar padrão" entry point.
+   * `updateCroppingPattern`. Used by the "Copiar padrão" entry point.
    */
   clone?: boolean;
   onBackToList: () => void;
@@ -370,10 +370,15 @@ export default function CroppingPatternEdit({
     setSelected(null);
   };
 
-  const handleAddRow = () => {
+  const handleAddRowLast = () => {
     setPending({ kind: 'row', rowIndex: patternForm.values.rows.length });
     setSelected(null);
   };
+
+  const handleAddRowBetween = (afterRowIndex: number) => {
+    setPending({ kind: 'row', rowIndex: afterRowIndex });
+    setSelected(null);
+  }
 
   const handlePlantPicked = (plantId: number) => {
     if (!pending) return;
@@ -465,9 +470,9 @@ export default function CroppingPatternEdit({
         </Button>
         <Text p={0} fw={600} fz="md">
           {pattern && !clone
-            ? `Editar: ${pattern.name}`
+            ? `Editando: ${pattern.name}`
             : pattern && clone
-              ? `Clonar: ${pattern.name}`
+              ? `Cópia de ${pattern.name}`
               : 'Novo padrão'}
         </Text>
         <div style={{ width: 160 }} />
@@ -484,7 +489,8 @@ export default function CroppingPatternEdit({
             editHandlers={{
               onRowMoveLeft: handleRowMoveLeft,
               onRowMoveRight: handleRowMoveRight,
-              onAddRow: handleAddRow,
+              onAddRowLast: handleAddRowLast,
+              onAddRowBetween: handleAddRowBetween,
               onAddCropFirst: handleAddCropFirst,
               onAddCropBetween: handleAddCropBetween,
               onAddCropLast: handleAddCropLast,
@@ -501,7 +507,7 @@ export default function CroppingPatternEdit({
               plants={plants.data}
               onPickPlant={handlePlantPicked}
             />
-          ) : selectedCropData ? (
+          ) : selectedCrop && selectedCropData ? (
             <CropInputPanel
               mode="edit"
               patternForm={patternForm}
@@ -517,7 +523,7 @@ export default function CroppingPatternEdit({
               }}
               onDelete={() => handleDeleteCrop(selectedCrop.rowIndex!, selectedCrop.cropIndex!)}
             />
-          ) : selectedRowData ? (
+          ) : selectedRow && selectedRowData ? (
             <RowInputPanel
               patternForm={patternForm}
               rowIndex={selectedRow.rowIndex!}

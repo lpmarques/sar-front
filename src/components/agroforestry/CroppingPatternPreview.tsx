@@ -166,7 +166,7 @@ export default function CroppingPatternPreview({
             variant="default"
             onClick={() => onClone(pattern.id)}
           >
-            Clonar padrão
+            Copiar padrão
           </Button>}
         {isAuthor && onEdit &&
           <Button
