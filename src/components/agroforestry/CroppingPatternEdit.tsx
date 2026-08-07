@@ -47,7 +47,7 @@ import DeleteButton from "../common/DeleteButton";
 import FieldView from "../common/FieldView";
 import { showError, showSuccess } from "../common/notifications";
 import { CropLegend, NativityBadge } from ".";
-import { WritingPatternPreviewPanel, SelectedPosition } from "./PatternPreviewPanel";
+import PatternPreviewPanel, { buildPreviewGeometry, CropPosition, SelectedElement } from "./PatternPreviewPanel";
 
 /**
  * Internal form shape. Mirrors `CroppingPatternWriteRequestData` with extra
@@ -176,9 +176,7 @@ export default function CroppingPatternEdit({
     }),
   });
 
-  const [selected, setSelected] = useState<SelectedPosition | null>(
-    pattern ? { rowIndex: 0, cropIndex: 0 } : null,
-  );
+  const [selected, setSelected] = useState<SelectedElement | null>(null);
   const [pending, setPending] = useState<
     | { kind: 'crop'; rowIndex: number; cropIndex: number }
     | { kind: 'row'; rowIndex: number }
@@ -305,17 +303,32 @@ export default function CroppingPatternEdit({
   // Editor handlers — fed down to the writing preview.
   // -------------------------------------------------------------------------
 
-  const handleCropSelect = (pos: SelectedPosition) => {
-    setSelected((prev) =>
-      prev && prev.rowIndex === pos.rowIndex && prev.cropIndex === pos.cropIndex
-        ? null
-        : pos,
-    );
+  const handleCropSelect = ({ rowIndex, cropIndex }: CropPosition) => {
+    setSelected((prev) => {
+      const isReselection = prev?.type === 'crop' && prev.rowIndex === rowIndex && prev.cropIndex === cropIndex;
+      if (isReselection) return null;
+
+      return {
+        type: 'crop',
+        rowIndex,
+        cropIndex,
+      }
+    });
+
     setPending(null);
   };
 
-  const handleRowSelect = () => {
-    setSelected(null);
+  const handleRowSelect = (rowIndex: number) => {
+    setSelected((prev) => {
+      const isReselection = prev?.type === 'row' && prev.rowIndex === rowIndex;
+      if (isReselection) return null;
+
+      return {
+        type: 'row',
+        rowIndex,
+      }
+    });
+
     setPending(null);
   };
 
@@ -338,7 +351,7 @@ export default function CroppingPatternEdit({
     setPending(null);
   };
 
-  const handleAddCropAtEnd = (rowIndex: number) => {
+  const handleAddCropLast = (rowIndex: number) => {
     setPending({
       kind: 'crop',
       rowIndex,
@@ -352,7 +365,7 @@ export default function CroppingPatternEdit({
     setSelected(null);
   };
 
-  const handleAddFirstCrop = (rowIndex: number) => {
+  const handleAddCropFirst = (rowIndex: number) => {
     setPending({ kind: 'crop', rowIndex, cropIndex: 0 });
     setSelected(null);
   };
@@ -418,16 +431,21 @@ export default function CroppingPatternEdit({
   // Side-panel selection state.
   // -------------------------------------------------------------------------
 
-  const selectedRowIndex = selected?.rowIndex ?? null;
-  const selectedCropIndex = selected?.cropIndex ?? null;
-  const selectedRowData = selectedRowIndex !== null
-    ? syntheticPattern.rows[selectedRowIndex]
+  const selectedRow = selected?.type === 'row' ? selected : null;
+  const selectedCrop = selected?.type === 'crop' ? selected : null;
+  const selectedRowData = selectedRow !== null
+    ? syntheticPattern.rows[selectedRow.rowIndex]
     : null;
-  const selectedCropData = selected
-    ? syntheticPattern.rows[selected.rowIndex]?.crops[selected.cropIndex] ?? null
+  const selectedCropData = selectedCrop !== null
+    ? syntheticPattern.rows[selectedCrop.rowIndex]?.crops[selectedCrop.cropIndex] ?? null
     : null;
+    
+  const { totalYM } = useMemo(
+    () => buildPreviewGeometry(syntheticPattern),
+    [pattern]
+  );
 
-  const panelHeightPx = 500;
+  const panelHeightPx = Math.max(400, totalYM * 30);
 
   if (!plants.data) {
     return <QueryLoader {...plantsQueryOptions} />;
@@ -457,19 +475,22 @@ export default function CroppingPatternEdit({
 
       <Group align="flex-start" gap="md" wrap="nowrap">
         <Box style={{ flex: 1, minWidth: 0, height: panelHeightPx }}>
-          <WritingPatternPreviewPanel
+          <PatternPreviewPanel
             pattern={syntheticPattern}
-            selectedPosition={selected}
+            selectedElement={selected}
             onCropSelect={handleCropSelect}
             onRowSelect={handleRowSelect}
-            onRowMoveLeft={handleRowMoveLeft}
-            onRowMoveRight={handleRowMoveRight}
-            onAddCropAtEnd={handleAddCropAtEnd}
-            onAddRow={handleAddRow}
-            onAddCropBetween={handleAddCropBetween}
-            onAddFirstCrop={handleAddFirstCrop}
-            pendingCrop={pending?.kind === 'crop' ? pending : null}
-            pendingRowIndex={pending?.kind === 'row' ? pending.rowIndex : null}
+            edit
+            editHandlers={{
+              onRowMoveLeft: handleRowMoveLeft,
+              onRowMoveRight: handleRowMoveRight,
+              onAddRow: handleAddRow,
+              onAddCropFirst: handleAddCropFirst,
+              onAddCropBetween: handleAddCropBetween,
+              onAddCropLast: handleAddCropLast,
+            }}
+            // pendingCrop={pending?.kind === 'crop' ? pending : null}
+            // pendingRowIndex={pending?.kind === 'row' ? pending.rowIndex : null}
           />
         </Box>
 
@@ -484,24 +505,24 @@ export default function CroppingPatternEdit({
             <CropInputPanel
               mode="edit"
               patternForm={patternForm}
-              rowIndex={selectedRowIndex!}
-              cropIndex={selectedCropIndex!}
+              rowIndex={selectedCrop.rowIndex!}
+              cropIndex={selectedCrop.cropIndex!}
               crop={selectedCropData}
               plants={plants.data}
               onPickPlant={(plantId) => {
                 patternForm.setFieldValue(
-                  `rows.${selectedRowIndex}.crops.${selectedCropIndex}.plantId`,
+                  `rows.${selectedCrop.rowIndex}.crops.${selectedCrop.cropIndex}.plantId`,
                   plantId,
                 );
               }}
-              onDelete={() => handleDeleteCrop(selectedRowIndex!, selectedCropIndex!)}
+              onDelete={() => handleDeleteCrop(selectedCrop.rowIndex!, selectedCrop.cropIndex!)}
             />
           ) : selectedRowData ? (
             <RowInputPanel
               patternForm={patternForm}
-              rowIndex={selectedRowIndex!}
+              rowIndex={selectedRow.rowIndex!}
               row={selectedRowData}
-              onDelete={() => handleDeleteRow(selectedRowIndex!)}
+              onDelete={() => handleDeleteRow(selectedRow.rowIndex!)}
             />
           ) : (
             <PatternFormPanel patternForm={patternForm} />

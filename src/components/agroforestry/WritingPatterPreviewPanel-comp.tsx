@@ -232,7 +232,7 @@ function formatLengthM(m: number): string {
  * Pure layout: maps pattern rows into SVG-ready geometry. Working in metres
  * (treated as SVG units).
  */
-function buildPreviewGeometry(pattern: CroppingPatternReadData) {
+export function buildPreviewGeometry(pattern: CroppingPatternReadData) {
   const rows = pattern.rows;
 
   let xCursorM = PATTERN_LEFT_PADDING_M;
@@ -374,29 +374,29 @@ export interface WritingPatternPreviewPanelProps {
   pattern: CroppingPatternReadData;
   /** Crop currently selected (by position) in the side panel. */
   selectedPosition: SelectedPosition | null;
-  /** Called when the user clicks a crop. */
-  onCropSelect: (position: SelectedPosition) => void;
   /** Called when the user clicks the body of a row. */
   onRowSelect: (rowIndex: number) => void;
+  /** Called when the user clicks a crop. */
+  onCropSelect: (position: SelectedPosition) => void;
   /** Called when the user clicks the (always-visible) row-arrange arrows. */
   onRowMoveLeft?: (rowIndex: number) => void;
   onRowMoveRight?: (rowIndex: number) => void;
-  /** Called when the user clicks the plus-icon at the end of a row of crops. */
-  onAddCropAtEnd?: (rowIndex: number) => void;
   /** Called when the user clicks the plus-icon after the last row of the pattern. */
   onAddRow?: () => void;
+  /** Called when the user clicks a plus-icon next to a row start-offset line. */
+  onAddCropFirst?: (rowIndex: number) => void;
   /** Called when the user clicks a plus-icon between two existing crops. */
   onAddCropBetween?: (rowIndex: number, afterCropIndex: number) => void;
-  /** Called when the user clicks a plus-icon next to a row start-offset line. */
-  onAddFirstCrop?: (rowIndex: number) => void;
-  /** Called when the user clicks a crop-spacing diamond (edit length). */
-  onEditCropSpacing?: (rowIndex: number, cropIndex: number) => void;
-  /** Called when the user clicks a row-spacing diamond (edit length). */
-  onEditRowSpacing?: (rowIndex: number) => void;
-  /** Called when the user clicks a row-offset triangle (edit length). */
-  onEditRowOffset?: (rowIndex: number) => void;
+  /** Called when the user clicks the plus-icon at the end of a row of crops. */
+  onAddCropAtEnd?: (rowIndex: number) => void;
   /** Called when the user clicks the empty-offset triangle (set offset). */
   onSetRowOffset?: (rowIndex: number) => void;
+  /** Called when the user clicks a row-offset triangle (edit length). */
+  onEditRowOffset?: (rowIndex: number) => void;
+  /** Called when the user clicks a row-spacing diamond (edit length). */
+  onEditRowSpacing?: (rowIndex: number) => void;
+  /** Called when the user clicks a crop-spacing diamond (edit length). */
+  onEditCropSpacing?: (rowIndex: number, cropIndex: number) => void;
   /**
    * If set, the geometry renders a dashed pending crop at this position. The
    * form has not yet recorded a plant for it; the user must pick one. Cleared
@@ -419,8 +419,8 @@ export interface WritingPatternPreviewPanelProps {
 export function WritingPatternPreviewPanel({
   pattern,
   selectedPosition,
-  onCropSelect,
   onRowSelect,
+  onCropSelect,
   onRowMoveLeft,
   onRowMoveRight,
   onAddCropAtEnd,
@@ -445,7 +445,7 @@ export function WritingPatternPreviewPanel({
     [[0, 0], [totalYM, totalXM]]
   ), [totalYM, totalXM]);
 
-  const rowToPreviewY = (yM: number) => totalYM - yM;
+  const rowYToLat = (yM: number) => totalYM - yM;
 
   // Re-derive "selected" by position, not by taxon name.
   const selectedRenderedCrop = selectedPosition
@@ -474,7 +474,7 @@ export function WritingPatternPreviewPanel({
     const row = pattern.rows[r.rowIndex];
     const labelText = `Linha ${row.position ?? r.rowIndex + 1}`;
     const labelY = r.rowStartYM - ROW_LABEL_GAP_M;
-    const arrowsLat = rowToPreviewY(labelY - ROW_LABEL_GAP_M/3);
+    const arrowsLat = rowYToLat(labelY - ROW_LABEL_GAP_M/3);
     const hasLeft = i > 0 && onRowMoveLeft !== undefined;
     const hasRight = i < rendered.length - 1 && onRowMoveRight !== undefined;
 
@@ -482,7 +482,7 @@ export function WritingPatternPreviewPanel({
       <Fragment key={`row-label-fragment-${i}`}>
         <Marker
           key={`row-label-${i}`}
-          position={[rowToPreviewY(labelY), r.rowXM]}
+          position={[rowYToLat(labelY), r.rowXM]}
           icon={rowLabelIcon(labelText, [20, 0], r.isRep)}
           interactive={true}
           keyboard={false}
@@ -533,7 +533,7 @@ export function WritingPatternPreviewPanel({
             labelText={formatLengthM(r.rowStartOffsetM)}
             onEditSpacing={() => onEditRowOffset?.(r.rowIndex)}
             onAddFirstCrop={() => onAddFirstCrop?.(r.rowIndex)}
-            rowToPreviewY={rowToPreviewY}
+            rowYToLat={rowYToLat}
           />
         )}
         {r.rowStartOffsetM === 0 && !r.isRep && r.crops.length > 0 && (
@@ -542,7 +542,7 @@ export function WritingPatternPreviewPanel({
             rowXM={r.rowXM}
             onSetOffset={() => onSetRowOffset?.(r.rowIndex)}
             onAddFirstCrop={() => onAddFirstCrop?.(r.rowIndex)}
-            rowToPreviewY={rowToPreviewY}
+            rowYToLat={rowYToLat}
           />
         )}
 
@@ -559,7 +559,7 @@ export function WritingPatternPreviewPanel({
               labelAnchorX={CROP_SPACING_LABEL_GAP_M}
               onEditSpacing={() => onEditCropSpacing?.(r.rowIndex, c.cropIndex)}
               onAddCropBetween={() => onAddCropBetween?.(r.rowIndex, c.cropIndex)}
-              rowToPreviewY={rowToPreviewY}
+              rowYToLat={rowYToLat}
             />
           );
         })}
@@ -578,7 +578,7 @@ export function WritingPatternPreviewPanel({
               <Fragment key={`crop-fragment-${i}-${j}`}>
                 <CircleMarker
                   key={`pending-crop-${i}-${j}`}
-                  center={[rowToPreviewY(c.cropYM), c.cropXM]}
+                  center={[rowYToLat(c.cropYM), c.cropXM]}
                   radius={CROP_RADIUS_M * PX_PER_M}
                   pathOptions={{
                     color: '#5f6368',
@@ -595,7 +595,7 @@ export function WritingPatternPreviewPanel({
             <Fragment key={`crop-fragment-${i}-${j}`}>
               <CircleMarker
                 key={`crop-${i}-${j}`}
-                center={[rowToPreviewY(c.cropYM), c.cropXM]}
+                center={[rowYToLat(c.cropYM), c.cropXM]}
                 radius={CROP_RADIUS_M * PX_PER_M}
                 pathOptions={{
                   color: TEXT_COLOR,
@@ -619,7 +619,7 @@ export function WritingPatternPreviewPanel({
         {/* Plus-icon at the end of the last non-rep crop. */}
         {!r.isRep && r.crops.length > 0 && (
           <CirclePlusMarker
-            latLng={[rowToPreviewY(r.crops[r.crops.length - 1].cropYM), r.rowXM]}
+            latLng={[rowYToLat(r.crops[r.crops.length - 1].cropYM), r.rowXM]}
             onClick={() => onAddCropAtEnd?.(r.rowIndex)}
           />
         )}
@@ -681,13 +681,13 @@ export function WritingPatternPreviewPanel({
           labelText={r.spacingLabel}
           onEditSpacing={() => onEditRowSpacing?.(r.rowIndex)}
           onAddRow={() => onAddRow?.()}
-          rowToPreviewY={rowToPreviewY}
+          rowYToLat={rowYToLat}
         />
       ))}
 
       {lastRow && onAddRow && (
         <CirclePlusMarker
-          latLng={[rowToPreviewY(lastRow.rowStartYM), lastRowEndXM]}
+          latLng={[rowYToLat(lastRow.rowStartYM), lastRowEndXM]}
           onClick={() => onAddRow()}
         />
       )}
@@ -696,11 +696,6 @@ export function WritingPatternPreviewPanel({
   );
 }
 
-/**
- * Forces the Leaflet map to recompute its size whenever its parent might have
- * changed (e.g. modal scrolling, panel resizes). Without this, the map can
- * render with the wrong projection after layout shifts.
- */
 /**
  * Renders a vertical spacing line + its label + hover overlays for the
  * writing-mode editor. Hovering the label reveals a diamond around it
@@ -715,7 +710,7 @@ function CropSpacingHoverGroup({
   labelAnchorX,
   onEditSpacing,
   onAddCropBetween,
-  rowToPreviewY,
+  rowYToLat,
 }: {
   startYM: number;
   endYM: number;
@@ -724,16 +719,16 @@ function CropSpacingHoverGroup({
   labelAnchorX: number;
   onEditSpacing: () => void;
   onAddCropBetween: () => void;
-  rowToPreviewY: (yM: number) => number;
+  rowYToLat: (yM: number) => number;
 }) {
   const [hovered, setHovered] = useState(false);
   const labelLatLng: L.LatLngExpression = [
-    rowToPreviewY((startYM + endYM) / 2),
+    rowYToLat((startYM + endYM) / 2),
     xM - labelAnchorX,
   ];
   const diamondLatLng: L.LatLngExpression = labelLatLng;
   const circlePlusLatLng: L.LatLngExpression = [
-    rowToPreviewY((startYM + endYM) / 2),
+    rowYToLat((startYM + endYM) / 2),
     xM + labelAnchorX,
   ];
 
@@ -747,8 +742,8 @@ function CropSpacingHoverGroup({
     <FeatureGroup>
       <ArrowPolyline
         positions={[
-          [rowToPreviewY(startYM + CROP_SPACING_PADDING_M + CROP_RADIUS_M), xM],
-          [rowToPreviewY(endYM - CROP_SPACING_PADDING_M - CROP_RADIUS_M), xM],
+          [rowYToLat(startYM + CROP_SPACING_PADDING_M + CROP_RADIUS_M), xM],
+          [rowYToLat(endYM - CROP_SPACING_PADDING_M - CROP_RADIUS_M), xM],
         ]}
         pathOptions={{ color: SPACING_COLOR, weight: 1 }}
       />
@@ -792,7 +787,7 @@ function RowSpacingHoverGroup({
   labelText,
   onEditSpacing,
   onAddRow,
-  rowToPreviewY,
+  rowYToLat,
 }: {
   yM: number;
   startXM: number;
@@ -800,11 +795,11 @@ function RowSpacingHoverGroup({
   labelText: string;
   onEditSpacing: () => void;
   onAddRow: () => void;
-  rowToPreviewY: (yM: number) => number;
+  rowYToLat: (yM: number) => number;
 }) {
   const [hovered, setHovered] = useState(false);
   const labelLatLng: L.LatLngExpression = [
-    rowToPreviewY(yM - CROP_SPACING_LABEL_GAP_M),
+    rowYToLat(yM - CROP_SPACING_LABEL_GAP_M),
     (startXM + endXM) / 2,
   ];
 
@@ -818,8 +813,8 @@ function RowSpacingHoverGroup({
     <FeatureGroup>
       <ArrowPolyline
         positions={[
-          [rowToPreviewY(yM), startXM + ROW_SPACING_PADDING_M],
-          [rowToPreviewY(yM), endXM - ROW_SPACING_PADDING_M],
+          [rowYToLat(yM), startXM + ROW_SPACING_PADDING_M],
+          [rowYToLat(yM), endXM - ROW_SPACING_PADDING_M],
         ]}
         pathOptions={{ color: SPACING_COLOR, weight: 1 }}
       />
@@ -842,7 +837,7 @@ function RowSpacingHoverGroup({
             onMouseOut={() => setHovered(false)}
           />
           <CirclePlusMarker
-            latLng={[rowToPreviewY(yM), (startXM + endXM) / 2]}
+            latLng={[rowYToLat(yM), (startXM + endXM) / 2]}
             onClick={onAddRow}
           />
         </>
@@ -862,9 +857,9 @@ function RowOffsetHoverGroup({
   endYM,
   xM,
   labelText,
+  rowYToLat,
   onEditSpacing,
   onAddFirstCrop,
-  rowToPreviewY,
 }: {
   startYM: number;
   endYM: number;
@@ -872,16 +867,16 @@ function RowOffsetHoverGroup({
   labelText: string;
   onEditSpacing: () => void;
   onAddFirstCrop: () => void;
-  rowToPreviewY: (yM: number) => number;
+  rowYToLat: (yM: number) => number;
 }) {
   const [hovered, setHovered] = useState(false);
   const labelLatLng: L.LatLngExpression = [
-    rowToPreviewY((startYM + endYM) / 2),
+    rowYToLat((startYM + endYM) / 2),
     xM - ROW_START_OFFSET_LABEL_GAP_M,
   ];
   const triangleLatLng: L.LatLngExpression = labelLatLng;
   const circlePlusLatLng: L.LatLngExpression = [
-    rowToPreviewY((startYM + endYM) / 2),
+    rowYToLat((startYM + endYM) / 2),
     xM + ROW_START_OFFSET_LABEL_GAP_M,
   ];
 
@@ -895,8 +890,8 @@ function RowOffsetHoverGroup({
     <FeatureGroup>
       <ArrowPolyline
         positions={[
-          [rowToPreviewY(startYM), xM],
-          [rowToPreviewY(endYM), xM],
+          [rowYToLat(startYM), xM],
+          [rowYToLat(endYM), xM],
         ]}
         pathOptions={{ color: SPACING_COLOR, weight: 1 }}
         backHead={false}
@@ -939,24 +934,24 @@ function EmptyStartOffsetMarkers({
   rowXM,
   onSetOffset,
   onAddFirstCrop,
-  rowToPreviewY,
+  rowYToLat,
 }: {
   firstCropYM: number;
   rowXM: number;
   onSetOffset: () => void;
   onAddFirstCrop: () => void;
-  rowToPreviewY: (yM: number) => number;
+  rowYToLat: (yM: number) => number;
 }) {
   const [hovered, setHovered] = useState(false);
 
   const midYM = firstCropYM / 2;
-  const anchorLatLng: L.LatLngExpression = [rowToPreviewY(midYM), rowXM];
+  const anchorLatLng: L.LatLngExpression = [rowYToLat(midYM), rowXM];
   const triangleLatLng: L.LatLngExpression = [
-    rowToPreviewY(midYM),
+    rowYToLat(midYM),
     rowXM - ROW_START_OFFSET_LABEL_GAP_M,
   ];
   const circlePlusLatLng: L.LatLngExpression = [
-    rowToPreviewY(midYM),
+    rowYToLat(midYM),
     rowXM + ROW_START_OFFSET_LABEL_GAP_M,
   ];
 

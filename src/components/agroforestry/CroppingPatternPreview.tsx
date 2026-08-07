@@ -39,9 +39,9 @@ import { QueryLoader } from "../common/QueryLoader";
 import FieldView from "../common/FieldView";
 import { UserName } from "../user";
 import PatternPreviewPanel, {
-  RenderedCrop,
-  RenderedRow,
-  renderRows,
+  buildPreviewGeometry,
+  CropPosition,
+  SelectedElement,
 } from "./PatternPreviewPanel";
 import { CropLegend, NativityBadge } from ".";
 
@@ -61,34 +61,46 @@ export default function CroppingPatternPreview({
   onClone,
 }: CroppingPatternPreviewProps) {
   const { user } = useAuth();
-  const [selectedRow, setSelectedRow] = useState<RenderedRow | null>(null);
-  const [selectedCrop, setSelectedCrop] = useState<RenderedCrop | null>(null);
+  const [selected, setSelected] = useState<SelectedElement | null>(null);
 
   const isAuthor = user?.id === pattern.author.id;
 
-  const handleCropSelect = (c: RenderedCrop) => {
-    setSelectedRow(null);
-    const secondSelection = selectedCrop &&
-      selectedCrop.crop.plant.acceptedTaxonName === c.crop.plant.acceptedTaxonName;
+  const handleCropSelect = ({ rowIndex, cropIndex }: CropPosition) => {
+    setSelected((prev) => {
+      const isReselection = prev?.type === 'crop' && prev.rowIndex === rowIndex && prev.cropIndex === cropIndex;
+      if (isReselection) return null;
 
-    if (secondSelection)
-      return setSelectedCrop(null);
-
-    setSelectedCrop(c);
+      return {
+        type: 'crop',
+        rowIndex,
+        cropIndex,
+      }
+    });
   };
 
-  const handleRowSelect = (r: RenderedRow) => {
-    setSelectedCrop(null);
-    const secondSelection = selectedRow && selectedRow.rowIndex === r.rowIndex;
+  const handleRowSelect = (rowIndex: number) => {
+    setSelected((prev) => {
+      const isReselection = prev?.type === 'row' && prev.rowIndex === rowIndex;
+      if (isReselection) return null;
 
-    if (secondSelection)
-      return setSelectedRow(null);
-
-    setSelectedRow(r);
+      return {
+        type: 'row',
+        rowIndex,
+      }
+    });
   };
 
-  const { rows, totalXM, totalYM } = useMemo(
-    () => renderRows(pattern),
+  const selectedRow = selected?.type === 'row' ? selected : null;
+  const selectedCrop = selected?.type === 'crop' ? selected : null;
+  const selectedRowData = selectedRow !== null
+    ? pattern.rows[selectedRow.rowIndex]
+    : null;
+  const selectedCropData = selectedCrop !== null
+    ? pattern.rows[selectedCrop.rowIndex]?.crops[selectedCrop.cropIndex] ?? null
+    : null;
+
+  const { totalYM } = useMemo(
+    () => buildPreviewGeometry(pattern),
     [pattern]
   );
 
@@ -121,13 +133,9 @@ export default function CroppingPatternPreview({
         >
           <PatternPreviewPanel
             pattern={pattern}
-            renderedRows={rows}
-            selectedRow={selectedRow}
-            selectedCrop={selectedCrop}
-            onRowSelect={(row: RenderedRow) => handleRowSelect(row)}
-            onCropSelect={(crop: RenderedCrop) => handleCropSelect(crop)}
-            totalXM={totalXM}
-            totalYM={totalYM}
+            selectedElement={selected}
+            onRowSelect={handleRowSelect}
+            onCropSelect={handleCropSelect}
           />
         </Box>
 
@@ -137,10 +145,10 @@ export default function CroppingPatternPreview({
           w={280}
           style={{ minHeight: panelHeightPx }}
         >
-          {selectedCrop ? (
-            <PlantInfoPanel plant={selectedCrop.crop.plant} />
-          ) : selectedRow ? (
-            <RowInfoPanel row={pattern.rows[selectedRow.rowIndex]} />
+          {selectedCropData ? (
+            <PlantInfoPanel plant={selectedCropData.plant} />
+          ) : selectedRowData ? (
+            <RowInfoPanel row={selectedRowData} />
           ) : (
             <PatternInfoPanel pattern={pattern} />
           )}
