@@ -46,6 +46,7 @@ import CroppingPatternPreviewPage from './CroppingPatternPreviewPage';
 import NativityBadge from './NativityBadge';
 import CropLegend from './CropLegend';
 import LeafletStyleButtonControl from './LeafletStyleButtonControl';
+import ShapeMarker from './ShapeMarker';
 
 export {
   ArrowPolyline,
@@ -79,6 +80,7 @@ export {
   NativityBadge,
   PolygonDrawing,
   ProjectDashboard,
+  ShapeMarker,
   SiteTraitsDetails,
   SiteTraitValueDisplay,
   SiteTraitValueInput,

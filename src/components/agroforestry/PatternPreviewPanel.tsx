@@ -12,8 +12,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import * as L from "leaflet";
-import "leaflet-svg-shape-markers";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, PropsWithChildren, ReactNode, useEffect, useMemo, useState } from "react";
 import {
   CircleMarker,
   MapContainer,
@@ -27,8 +26,8 @@ import { IconEye, IconEyeOff } from "@tabler/icons-react";
 import { CroppingPatternReadData, PatternCrop } from "../../apis/agroforestry";
 import { PlantReadData } from "../../apis/catalog";
 import { PlantFullNameLabel } from "../catalog";
-import { MapBoundsFraming, ArrowPolyline, LeafletStyleButtonControl } from ".";
-import { getBBox } from "../../utils/agroforestry";
+import { MapBoundsFraming, ArrowPolyline, LeafletStyleButtonControl, ShapeMarker } from ".";
+import { BBox } from "../../utils/agroforestry";
 
 const PX_PER_M = 30;
 const PATTERN_LEFT_PADDING_M = 1.4;
@@ -46,179 +45,11 @@ const CROP_SPACING_LABEL_GAP_M = 0.4;
  * Sizes for the hover-overlay shape markers. Tuned to match the spacing
  * labels visually.
  */
-const HOVER_SHAPE_RADIUS_PX = 12;
+const ADD_CROP_SHAPE_RADIUS_PX = 11;
+const OFFSET_SHAPE_RADIUS_PX = 9;
+const SPACING_SHAPE_RADIUS_PX = 8;
 const ROW_ARROW_SHAPE_RADIUS_PX = 5;
-const ROW_ARROW_SHAPES_GAP_M = 0.3;
-
-/**
- * Hover-overlay shapes for the editor's spacing interactivity. We render them
- * via `L.shapeMarker` (from `leaflet-svg-shape-markers`) so we get crisp SVG
- * with fillColor/color controlled by Leaflet path options.
- */
-function DiamondMarker({
-  latLng,
-  onClick,
-  onMouseOver,
-  onMouseOut,
-}: {
-  latLng: L.LatLngExpression;
-  onClick?: () => void;
-  onMouseOver?: () => void;
-  onMouseOut?: () => void;
-}) {
-  const map = useMap();
-  return (
-    <ShapeMarkerLayer
-      shape="diamond"
-      latLng={latLng}
-      radiusPx={HOVER_SHAPE_RADIUS_PX}
-      pathOptions={{ color: "#9aa0a6", fillColor: "#ffffff", fillOpacity: 1, weight: 1 }}
-      interactive
-      map={map}
-      onClick={onClick}
-      onMouseOver={onMouseOver}
-      onMouseOut={onMouseOut}
-    />
-  );
-}
-
-function TriangleDownMarker({
-  latLng,
-  rotation,
-  onClick,
-  onMouseOver,
-  onMouseOut,
-}: {
-  latLng: L.LatLngExpression;
-  rotation?: number;
-  onClick?: () => void;
-  onMouseOver?: () => void;
-  onMouseOut?: () => void;
-}) {
-  const map = useMap();
-  return (
-    <ShapeMarkerLayer
-      shape="triangle-down"
-      latLng={latLng}
-      radiusPx={HOVER_SHAPE_RADIUS_PX}
-      rotation={rotation ?? 0}
-      pathOptions={{ color: "#9aa0a6", fillColor: "#ffffff", fillOpacity: 1, weight: 1 }}
-      interactive
-      map={map}
-      onClick={onClick}
-      onMouseOver={onMouseOver}
-      onMouseOut={onMouseOut}
-    />
-  );
-}
-
-function TriangleArrowMarker({
-  latLng,
-  rotation,
-  onClick,
-}: {
-  latLng: L.LatLngExpression;
-  rotation: number;
-  onClick?: () => void;
-}) {
-  const map = useMap();
-  return (
-    <ShapeMarkerLayer
-      shape="triangle"
-      latLng={latLng}
-      radiusPx={ROW_ARROW_SHAPE_RADIUS_PX}
-      rotation={rotation}
-      pathOptions={{ color: "#5f6368", fillColor: "#9aa0a6", fillOpacity: 1, weight: 0.5 }}
-      interactive
-      map={map}
-      onClick={onClick}
-    />
-  );
-}
-
-/**
- * Imperative leaflet wrapper around `L.ShapeMarker` (from
- * `leaflet-svg-shape-markers`). React-leaflet doesn't expose a binding for
- * it, so we manage the lifecycle in an effect. The marker extends
- * `L.CircleMarker`, so the path options use the same fields.
- */
-function ShapeMarkerLayer({
-  shape,
-  latLng,
-  radiusPx,
-  rotation,
-  pathOptions,
-  interactive,
-  map,
-  onClick,
-  onMouseOver,
-  onMouseOut,
-}: {
-  shape: string;
-  latLng: L.LatLngExpression;
-  radiusPx: number;
-  rotation?: number;
-  pathOptions: L.PathOptions;
-  interactive: boolean;
-  map: L.Map;
-  onClick?: () => void;
-  onMouseOver?: () => void;
-  onMouseOut?: () => void;
-}) {
-  useEffect(() => {
-    const marker = (L as any).shapeMarker(latLng, {
-      shape,
-      radius: radiusPx,
-      rotation: rotation ?? 0,
-      ...pathOptions,
-      interactive,
-    }).addTo(map);
-    if (onClick) marker.on('click', onClick);
-    if (onMouseOver) marker.on('mouseover', onMouseOver);
-    if (onMouseOut) marker.on('mouseout', onMouseOut);
-    return () => {
-      marker.off();
-      if (map.hasLayer(marker)) map.removeLayer(marker);
-    };
-  }, [map, shape, latLng, radiusPx, rotation, pathOptions, interactive, onClick, onMouseOver, onMouseOut]);
-  return null;
-}
-
-/**
- * Circle-with-plus-icon hover marker. Rendered as a `Marker` with a custom
- * `divIcon` so the plus is crisp at any zoom.
- */
-function CirclePlusMarker({
-  latLng,
-  onClick,
-  onMouseOver,
-  onMouseOut,
-}: {
-  latLng: L.LatLngExpression;
-  onClick?: () => void;
-  onMouseOver?: () => void;
-  onMouseOut?: () => void;
-}) {
-  const icon = L.divIcon({
-    className: 'pattern-preview-circle-plus',
-    html: `<div class="pattern-preview-circle-plus__inner"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#5f6368" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>`,
-    iconSize: [HOVER_SHAPE_RADIUS_PX * 2, HOVER_SHAPE_RADIUS_PX * 2],
-    iconAnchor: [HOVER_SHAPE_RADIUS_PX, HOVER_SHAPE_RADIUS_PX],
-  });
-  return (
-    <Marker
-      position={latLng}
-      icon={icon}
-      interactive
-      keyboard={false}
-      eventHandlers={{
-        click: onClick,
-        mouseover: onMouseOver,
-        mouseout: onMouseOut,
-      }}
-    />
-  );
-}
+const ROW_ARROW_SHAPES_GAP_M = 0.6;
 
 const BACKGROUND_COLOR = "#fafafa";
 const TEXT_COLOR = "var(--mantine-color-dark-7)";
@@ -372,35 +203,36 @@ export interface CropPosition {
 }
 
 interface SelectedRow {
-  type: 'row';
+  kind: 'row';
   rowIndex: number;
 }
 
 interface SelectedCrop extends CropPosition {
-  type: 'crop';
+  kind: 'crop';
 }
 
 interface SelectedRowOffset {
-  type: 'spacing';
+  kind: 'rowOffset';
   rowIndex: number;
 }
 
 interface SelectedRowSpacing {
-  type: 'spacing';
+  kind: 'rowSpacing';
   afterRowIndex: number;
 }
 
 interface SelectedCropSpacing {
-  type: 'spacing';
+  kind: 'cropSpacing';
   rowIndex: number;
   afterCropIndex: number;
 }
 
-/**
- * Coordinates of a crop in the rendered layout, used by the editor to address
- * a specific crop by position rather than by plant.
- */
-export type SelectedElement = SelectedRow | SelectedCrop | SelectedRowOffset | SelectedRowSpacing | SelectedCropSpacing;
+export type SelectedSpacing = SelectedRowOffset | SelectedRowSpacing | SelectedCropSpacing;
+
+/** Coordinates of an element in the rendered layout. */
+export type SelectedElement = SelectedRow | SelectedCrop | SelectedSpacing;
+
+export type PendingElement = SelectedRow | SelectedCrop;
 
 interface PatternEditHandlers {
   /** Called when the user clicks the (always-visible) row-arrange arrows. */
@@ -430,6 +262,8 @@ interface PatternPreviewPanelProps {
   pattern: CroppingPatternReadData;
   /** Crop or row currently selected (by position) in the side panel. */
   selectedElement: SelectedElement | null;
+  /** If set, the geometry renders a dashed pending crop at the position. */
+  pendingElement?: PendingElement | null;
   /** Called when the user clicks the a row label. */
   onRowSelect: (rowIndex: number) => void;
   /** Called when the user clicks a crop. */
@@ -450,6 +284,7 @@ export default function PatternPreviewPanel({
   onCropSelect,
   edit = false,
   editHandlers = {},
+  pendingElement = null,
 }: PatternPreviewPanelProps) {
   const [showReps, setShowReps] = useState(!edit);
   
@@ -499,16 +334,17 @@ export default function PatternPreviewPanel({
 
     const row = pattern.rows[r.rowIndex];
     const labelText = `Linha ${row.position}`;
-    const labelY = r.rowStartYM - ROW_LABEL_GAP_M;
+    const labelYM = r.rowStartYM - ROW_LABEL_GAP_M;
 
     const hasLeft = i > 0 && onRowMoveLeft !== undefined;
     const hasRight = i < (nonRepRows.length - 1) && onRowMoveRight !== undefined;
-    const arrowsLat = rowYToLat(labelY - ROW_LABEL_GAP_M/3);
+    const arrowsYM = labelYM - ROW_LABEL_GAP_M / 3;
     
     const leftArrow = edit && !r.isRep && hasLeft && (
       <TriangleArrowMarker
         key={`row-arrow-left-${i}`}
-        latLng={[arrowsLat, r.rowXM - ROW_ARROW_SHAPES_GAP_M]}
+        latLng={[rowYToLat(arrowsYM), r.rowXM - ROW_ARROW_SHAPES_GAP_M / 2]}
+        radiusPx={ROW_ARROW_SHAPE_RADIUS_PX}
         rotation={-90}
         onClick={() => onRowMoveLeft?.(r.rowIndex)}
       />
@@ -516,7 +352,8 @@ export default function PatternPreviewPanel({
     const rightArrow = edit && !r.isRep && hasRight && (
       <TriangleArrowMarker
         key={`row-arrow-right-${i}`}
-        latLng={[arrowsLat, r.rowXM + ROW_ARROW_SHAPES_GAP_M]}
+        latLng={[rowYToLat(arrowsYM), r.rowXM + ROW_ARROW_SHAPES_GAP_M / 2]}
+        radiusPx={ROW_ARROW_SHAPE_RADIUS_PX}
         rotation={90}
         onClick={() => onRowMoveRight?.(r.rowIndex)}
       />
@@ -526,7 +363,7 @@ export default function PatternPreviewPanel({
       <Fragment key={`row-label-fragment-${i}`}>
         <Marker
           key={`row-label-${i}`}
-          position={[rowYToLat(labelY), r.rowXM]}
+          position={[rowYToLat(labelYM), r.rowXM]}
           icon={rowLabelIcon(labelText, [20, 0], r.isRep)}
           interactive={true}
           keyboard={false}
@@ -636,7 +473,6 @@ function RowGeometry({
   onCropSelect: (pos: CropPosition) => void;
   rowYToLat: (yM: number) => number;
 }) {
-  const [repsHovered, setRepsHovered] = useState(false);
   const {
     onAddRowLast,
     onAddCropFirst,
@@ -647,9 +483,8 @@ function RowGeometry({
     onEditCropSpacing,
   } = editHandlers;
 
-  const isSelectedRow = selectedElement?.type === 'row' && selectedElement.rowIndex === r.rowIndex;
-    
-  const selectedCrop = selectedElement?.type === 'crop' ? selectedElement : null;
+  const isSelectedRow = selectedElement?.kind === 'row' && selectedElement.rowIndex === r.rowIndex;
+  const selectedCrop = selectedElement?.kind === 'crop' ? selectedElement : null;
 
   const spacingLabelIcon = (label: string, anchor: [number, number], isRep?: boolean) =>
     L.divIcon({
@@ -671,7 +506,7 @@ function RowGeometry({
         xM={r.rowXM}
         labelIcon={spacingLabelIcon(
           formatLengthM(r.rowStartOffsetM),
-          [14, 8],
+          [10, 6],
         )}
         edit={edit}
         isRep={r.isRep}
@@ -723,91 +558,57 @@ function RowGeometry({
     </Fragment>
   );
 
-  const topRepCrop = repCrops[0];
-  const botRepCrop = repCrops[repCrops.length-1];
-  const repsBounds: L.LatLngExpression[] = [
-    [rowYToLat(topRepCrop.cropYM - CROP_RADIUS_M*1.5), topRepCrop.cropXM - CROP_RADIUS_M*1.5],
-    [rowYToLat(topRepCrop.cropYM - CROP_RADIUS_M*1.5), topRepCrop.cropXM + CROP_RADIUS_M*1.5],
-    [rowYToLat(botRepCrop.cropYM + CROP_RADIUS_M*1.5), botRepCrop.cropXM + CROP_RADIUS_M*1.5],
-    [rowYToLat(botRepCrop.cropYM + CROP_RADIUS_M*1.5), botRepCrop.cropXM - CROP_RADIUS_M*1.5],
-  ];
   const repElements = (
-    <FeatureGroup>
-      {edit && 
-        <Polygon
-          positions={repsBounds}
-          pathOptions={{
-            fillColor: BACKGROUND_COLOR,
-            opacity: 0,
-          }}
-          eventHandlers={{
-            mouseover: () => setRepsHovered(true),
-            mouseout: () => setRepsHovered(false),
-          }}
+    <Fragment>
+      {r.isRep &&
+        <RowOffset
+          startYM={r.rowStartYM}
+          endYM={r.rowStartYM + r.rowStartOffsetM}
+          xM={r.rowXM}
+          edit={edit}
+          isRep={r.isRep}
+          rowYToLat={rowYToLat}
+          onSetOffset={() => onSetRowOffset?.(r.rowIndex)}
+          onEditOffset={() => onEditRowOffset?.(r.rowIndex)}
+          onAddCrop={() => onAddCropFirst?.(r.rowIndex)}
         />
       }
-      {!repsHovered &&
-        <Fragment>
-          {r.isRep &&
-            <RowOffset
-              startYM={r.rowStartYM}
-              endYM={r.rowStartYM + r.rowStartOffsetM}
-              xM={r.rowXM}
-              labelIcon={spacingLabelIcon(
-                formatLengthM(r.rowStartOffsetM),
-                [14, 8],
-              )}
-              edit={edit}
-              isRep={r.isRep}
-              rowYToLat={rowYToLat}
-              onSetOffset={() => onSetRowOffset?.(r.rowIndex)}
-              onEditOffset={() => onEditRowOffset?.(r.rowIndex)}
-              onAddCrop={() => onAddCropFirst?.(r.rowIndex)}
-            />
-          }
 
-          {repCrops.map((c, j) => {
-            if (c.isRep && !showReps) return null;
-            const isSelectedCrop = selectedCrop?.rowIndex === c.rowIndex && selectedCrop?.cropIndex === c.cropIndex;
-            return (
-              <Crop
-                key={`crop-${j}`}
-                yM={c.cropYM}
-                xM={c.cropXM}
-                color={c.crop.plant.colorHex}
-                plant={c.crop.plant}
-                isRep={c.isRep}
-                isSelected={isSelectedRow || isSelectedCrop}
-                onCropSelect={() => onCropSelect({ rowIndex: c.rowIndex, cropIndex: c.cropIndex })}
-                rowYToLat={rowYToLat}
-              />
-            );
-          })}
+      {repCrops.map((c, j) => {
+        if (c.isRep && !showReps) return null;
+        const isSelectedCrop = selectedCrop?.rowIndex === c.rowIndex && selectedCrop?.cropIndex === c.cropIndex;
+        return (
+          <Crop
+            key={`crop-${j}`}
+            yM={c.cropYM}
+            xM={c.cropXM}
+            color={c.crop.plant.colorHex}
+            plant={c.crop.plant}
+            isRep={c.isRep}
+            isSelected={isSelectedRow || isSelectedCrop}
+            onCropSelect={() => onCropSelect({ rowIndex: c.rowIndex, cropIndex: c.cropIndex })}
+            rowYToLat={rowYToLat}
+          />
+        );
+      })}
 
-          {repCrops.slice(0, -1).map((c, j) => {
-            if (c.isRep && !showReps) return null;
-            return (
-              <CropSpacing
-                key={`cs-${j}`}
-                startYM={c.spacingStartYM}
-                endYM={c.spacingEndYM}
-                xM={c.spacingXM}
-                labelIcon={spacingLabelIcon(
-                  c.spacingLabel,
-                  [10, 6],
-                  c.isRep
-                )}
-                edit={edit}
-                isRep={c.isRep}
-                rowYToLat={rowYToLat}
-                onEditSpacing={() => onEditCropSpacing?.(r.rowIndex, c.cropIndex)}
-                onAddCrop={() => onAddCropBetween?.(r.rowIndex, c.cropIndex)}
-              />
-            );
-          })}
-        </Fragment>
-      }
-    </FeatureGroup>
+      {repCrops.slice(0, -1).map((c, j) => {
+        if (c.isRep && !showReps) return null;
+        return (
+          <CropSpacing
+            key={`cs-${j}`}
+            startYM={c.spacingStartYM}
+            endYM={c.spacingEndYM}
+            xM={c.spacingXM}
+            edit={edit}
+            isRep={c.isRep}
+            rowYToLat={rowYToLat}
+            onEditSpacing={() => onEditCropSpacing?.(r.rowIndex, c.cropIndex)}
+            onAddCrop={() => onAddCropBetween?.(r.rowIndex, c.cropIndex)}
+          />
+        );
+      })}
+    </Fragment>
   )
 
   const addElements = (
@@ -816,9 +617,8 @@ function RowGeometry({
       {!r.isRep && r.crops.length > 0 && (
         <CirclePlusMarker
           latLng={[rowYToLat(repCrops[0].cropYM), r.rowXM]}
+          radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
           onClick={() => onAddCropLast?.(r.rowIndex)} // TODO: when clicked, a placeholder crop should show-up
-          onMouseOver={() => setRepsHovered(true)}
-          onMouseOut={() => setRepsHovered(false)}
         />
       )}
      
@@ -829,19 +629,33 @@ function RowGeometry({
       {r.isRep && (
         <CirclePlusMarker
           latLng={[rowYToLat(r.rowStartYM), r.rowXM]}
+          radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
           onClick={onAddRowLast} // TODO: when clicked, a placeholder row should show-up
-          onMouseOver={() => setRepsHovered(true)}
-          onMouseOut={() => setRepsHovered(false)}
         />
       )}
     </Fragment>
   )
 
+  const topRepCrop = repCrops[0];
+  const botRepCrop = repCrops[repCrops.length-1];
+  const repsBBox: BBox = {
+    minX: topRepCrop.cropXM - CROP_RADIUS_M*1.5,
+    maxX: botRepCrop.cropXM + CROP_RADIUS_M*1.5,
+    minY: rowYToLat(botRepCrop.cropYM + CROP_RADIUS_M*1.5),
+    maxY: rowYToLat(topRepCrop.cropYM - CROP_RADIUS_M*1.5),
+  }
+
   return (
     <FeatureGroup>
       {nonRepElements}
-      {showReps && repElements}
-      {edit && (!showReps || repsHovered) && addElements}
+      {edit 
+        ? showReps
+          ? <ShowOnHoverBox boundingBox={repsBBox} placeholder={repElements}>
+              {addElements}
+            </ShowOnHoverBox>
+          : addElements
+        : showReps && repElements
+      }
     </FeatureGroup>
   )
 }
@@ -912,27 +726,54 @@ function CropSpacing({
   startYM: number;
   endYM: number;
   xM: number;
-  labelIcon: L.DivIcon;
+  labelIcon?: L.DivIcon;
   edit: boolean;
   isRep: boolean;
   rowYToLat: (yM: number) => number;
   onEditSpacing: () => void;
   onAddCrop: () => void;
 }) {
-  const [hovered, setHovered] = useState(false);
+  // as the distance between startYM and endYM smaller, the fixed additions 
+  // tend to make endYM greater than endYM
+  const arrowStartYM = Math.min(startYM + CROP_SPACING_PADDING_M + CROP_RADIUS_M, endYM);
+  const arrowEndYM = Math.max(endYM - CROP_SPACING_PADDING_M - CROP_RADIUS_M, startYM);
+
+  const arrowPositions: L.LatLngExpression[] = [
+    [rowYToLat(arrowStartYM), xM],
+    [rowYToLat(arrowEndYM), xM],
+  ];
   const labelLatLng: L.LatLngExpression = [
     rowYToLat((startYM + endYM) / 2),
     xM - CROP_SPACING_LABEL_GAP_M,
   ];
+  const addCropLatLng: L.LatLngExpression = [
+    rowYToLat((startYM + endYM) / 2),
+    xM + CROP_SPACING_LABEL_GAP_M,
+  ];
 
-  // TODO: try wraping the FeatureGroup children into a wider shape marker and passing the eventHandlers into it
+  const diamondRadiusM = SPACING_SHAPE_RADIUS_PX / PX_PER_M;
+
+  const spacingBB: BBox = {
+    minX: xM - CROP_SPACING_LABEL_GAP_M - diamondRadiusM,
+    maxX: xM + CROP_SPACING_LABEL_GAP_M + CROP_RADIUS_M,
+    minY: rowYToLat(arrowStartYM),
+    maxY: rowYToLat(arrowEndYM),
+  };
+
+  const label = labelIcon && (
+    <Marker
+      position={labelLatLng}
+      icon={labelIcon}
+      interactive={edit}
+      keyboard={false}
+      zIndexOffset={1}
+    />
+  );
+
   return (
     <FeatureGroup>
       <ArrowPolyline
-        positions={[
-          [rowYToLat(startYM + CROP_SPACING_PADDING_M + CROP_RADIUS_M), xM],
-          [rowYToLat(endYM - CROP_SPACING_PADDING_M - CROP_RADIUS_M), xM],
-        ]}
+        positions={arrowPositions}
         pathOptions={{
           color: SPACING_COLOR,
           weight: 1,
@@ -946,32 +787,22 @@ function CropSpacing({
           }
         }}
       />
-      {!isRep &&
-        <Marker
-          position={labelLatLng}
-          icon={labelIcon}
-          interactive={edit}
-          keyboard={false}
-          eventHandlers={{
-            mouseover: () => setHovered(true),
-            mouseout: () => setHovered(false),
-          }}
-        />
+      {edit && !isRep
+        ? <ShowOnHoverBox boundingBox={spacingBB} placeholder={label}>
+            {label}
+            <DiamondMarker
+              latLng={labelLatLng}
+              radiusPx={SPACING_SHAPE_RADIUS_PX}
+              onClick={onEditSpacing}
+            />
+            <CirclePlusMarker
+              latLng={addCropLatLng}
+              radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
+              onClick={onAddCrop}
+            />
+          </ShowOnHoverBox>
+        : label
       }
-      {edit && hovered && (
-        <>
-          <DiamondMarker
-            latLng={labelLatLng}
-            onClick={onEditSpacing}
-            onMouseOver={() => setHovered(true)}
-            onMouseOut={() => setHovered(false)}
-          />
-          <CirclePlusMarker
-            latLng={labelLatLng}
-            onClick={onAddCrop}
-          />
-        </>
-      )}
     </FeatureGroup>
   );
 }
@@ -1000,45 +831,58 @@ function RowSpacing({
   onEditSpacing: () => void;
   onAddRow: () => void;
 }) {
-  const [hovered, setHovered] = useState(false);
+  const arrowPositions: L.LatLngExpression[] = [
+    [rowYToLat(yM), startXM + CROP_RADIUS_M],
+    [rowYToLat(yM), endXM - CROP_RADIUS_M],
+  ];
   const labelLatLng: L.LatLngExpression = [
     rowYToLat(yM - CROP_SPACING_LABEL_GAP_M),
     (startXM + endXM) / 2,
   ];
+  const addCropLatLng: L.LatLngExpression = [
+    rowYToLat(yM + CROP_SPACING_LABEL_GAP_M),
+    (startXM + endXM) / 2
+  ];
+
+  const diamondRadiusM = SPACING_SHAPE_RADIUS_PX / PX_PER_M;
+
+  const spacingBB: BBox = {
+    minX: startXM + ROW_SPACING_PADDING_M,
+    maxX: endXM - ROW_SPACING_PADDING_M,
+    minY: rowYToLat(yM - CROP_SPACING_LABEL_GAP_M - diamondRadiusM),
+    maxY: rowYToLat(yM + CROP_SPACING_LABEL_GAP_M + CROP_RADIUS_M),
+  }
+
+  const label = (
+    <Marker
+      position={labelLatLng}
+      icon={labelIcon}
+      zIndexOffset={1}
+    />
+  );
 
   return (
     <FeatureGroup>
       <ArrowPolyline
-        positions={[
-          [rowYToLat(yM), startXM + ROW_SPACING_PADDING_M],
-          [rowYToLat(yM), endXM - ROW_SPACING_PADDING_M],
-        ]}
+        positions={arrowPositions}
         pathOptions={{ color: SPACING_COLOR, weight: 1 }}
       />
-      <Marker
-        position={labelLatLng}
-        icon={labelIcon}
-        interactive={edit}
-        keyboard={false}
-        eventHandlers={{
-          mouseover: () => setHovered(true),
-          mouseout: () => setHovered(false),
-        }}
-      />
-      {edit && hovered && (
-        <>
-          <DiamondMarker
-            latLng={labelLatLng}
-            onClick={onEditSpacing}
-            onMouseOver={() => setHovered(true)}
-            onMouseOut={() => setHovered(false)}
-          />
-          <CirclePlusMarker
-            latLng={[rowYToLat(yM), (startXM + endXM) / 2]}
-            onClick={onAddRow}
-          />
-        </>
-      )}
+      {edit
+        ? <ShowOnHoverBox boundingBox={spacingBB} placeholder={label}>
+            {label}
+            <DiamondMarker
+              latLng={labelLatLng}
+              radiusPx={SPACING_SHAPE_RADIUS_PX}
+              onClick={onEditSpacing}
+            />
+            <CirclePlusMarker
+              latLng={addCropLatLng}
+              radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
+              onClick={onAddRow}
+            />
+          </ShowOnHoverBox>
+        : label
+      }
     </FeatureGroup>
   );
 }
@@ -1064,7 +908,7 @@ function RowOffset({
   startYM: number;
   endYM: number;
   xM: number;
-  labelIcon: L.DivIcon;
+  labelIcon?: L.DivIcon;
   edit: boolean;
   isRep: boolean;
   rowYToLat: (yM: number) => number;
@@ -1072,12 +916,39 @@ function RowOffset({
   onEditOffset?: () => void;
   onAddCrop?: () => void;
 }) {
-  const [hovered, setHovered] = useState(false);
-  const offsetLength = endYM - startYM;
+  const midYM = (startYM + endYM) / 2;
+
+  const arrowPositions: L.LatLngExpression[] = [
+    [rowYToLat(startYM), xM],
+    [rowYToLat(endYM - CROP_RADIUS_M), xM],
+  ];
   const labelLatLng: L.LatLngExpression = [
-    rowYToLat((startYM + endYM) / 2),
+    rowYToLat(midYM - CROP_RADIUS_M / 2),
     xM - ROW_START_OFFSET_LABEL_GAP_M,
   ];
+  const addCropLatLng: L.LatLngExpression = [
+    rowYToLat(midYM - CROP_RADIUS_M / 2 + 0.02),
+    xM + ROW_START_OFFSET_LABEL_GAP_M,
+  ];
+
+  const triangleSideM = OFFSET_SHAPE_RADIUS_PX / PX_PER_M;
+
+  const offsetBB: BBox = {
+    minX: xM - ROW_START_OFFSET_LABEL_GAP_M - triangleSideM,
+    maxX: xM + ROW_START_OFFSET_LABEL_GAP_M + CROP_RADIUS_M,
+    minY: rowYToLat(startYM - CROP_RADIUS_M - ROW_LABEL_GAP_M / 2),
+    maxY: rowYToLat(endYM - CROP_RADIUS_M),
+  };
+
+  const label = labelIcon && (
+    <Marker
+      position={labelLatLng}
+      icon={labelIcon}
+      zIndexOffset={1}
+    />
+  );
+
+  const offsetLength = endYM - startYM;
 
   if (offsetLength === 0 && edit && !isRep)
     return (
@@ -1094,10 +965,7 @@ function RowOffset({
     return (
       <FeatureGroup>
         <ArrowPolyline
-          positions={[
-            [rowYToLat(startYM), xM],
-            [rowYToLat(endYM - CROP_RADIUS_M), xM],
-          ]}
+          positions={arrowPositions}
           pathOptions={{
             color: SPACING_COLOR,
             weight: 1,
@@ -1112,32 +980,24 @@ function RowOffset({
             }
           }}
         />
-        {!isRep &&
-          <Marker
-            position={labelLatLng}
-            icon={labelIcon}
-            interactive={edit}
-            keyboard={false}
-            eventHandlers={{
-              mouseover: () => setHovered(true),
-              mouseout: () => setHovered(false),
-            }}
-          />
+        {edit
+          ? (
+            <ShowOnHoverBox boundingBox={offsetBB} placeholder={label}>
+              {label}
+              <TriangleDownMarker
+                latLng={labelLatLng}
+                radiusPx={OFFSET_SHAPE_RADIUS_PX}
+                onClick={onEditOffset}
+              />
+              <CirclePlusMarker
+                latLng={addCropLatLng}
+                radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
+                onClick={onAddCrop}
+              />
+            </ShowOnHoverBox>
+          )
+          : label
         }
-        {edit && hovered && (
-          <>
-            <TriangleDownMarker
-              latLng={labelLatLng}
-              onClick={onEditOffset}
-              onMouseOver={() => setHovered(true)}
-              onMouseOut={() => setHovered(false)}
-            />
-            <CirclePlusMarker
-              latLng={labelLatLng}
-              onClick={onAddCrop}
-            />
-          </>
-        )}
       </FeatureGroup>
     );
 }
@@ -1160,45 +1020,39 @@ function NullOffsetMarkers({
   onAddCrop?: () => void;
   rowYToLat: (yM: number) => number;
 }) {
-  const [hovered, setHovered] = useState(false);
+  const midYM = startYM - ROW_LABEL_GAP_M / 2;
 
-  const midYM = startYM / 2;
-  const anchorLatLng: L.LatLngExpression = [rowYToLat(midYM), xM];
   const triangleLatLng: L.LatLngExpression = [
     rowYToLat(midYM),
     xM - ROW_START_OFFSET_LABEL_GAP_M,
   ];
-  const circlePlusLatLng: L.LatLngExpression = [
-    rowYToLat(midYM),
+  const addCropLatLng: L.LatLngExpression = [
+    rowYToLat(midYM + 0.02),
     xM + ROW_START_OFFSET_LABEL_GAP_M,
   ];
 
+  const triangleSideM = OFFSET_SHAPE_RADIUS_PX / PX_PER_M;
+
+  const offsetBB: BBox = {
+    minX: xM - ROW_START_OFFSET_LABEL_GAP_M - triangleSideM,
+    maxX: xM + ROW_START_OFFSET_LABEL_GAP_M + CROP_RADIUS_M,
+    minY: rowYToLat(midYM - CROP_RADIUS_M),
+    maxY: rowYToLat(midYM + CROP_RADIUS_M),
+  };
+
   return (
-    <FeatureGroup>
-      <CircleMarker
-        center={anchorLatLng}
-        radius={12}
-        pathOptions={{ fillOpacity: 0, stroke: false, interactive: true }}
-        eventHandlers={{
-          mouseover: () => setHovered(true),
-          mouseout: () => setHovered(false),
-        }}
+    <ShowOnHoverBox boundingBox={offsetBB}>
+      <TriangleDownMarker
+        latLng={triangleLatLng}
+        radiusPx={OFFSET_SHAPE_RADIUS_PX}
+        onClick={onSetOffset}
       />
-      {hovered && (
-        <>
-          <TriangleDownMarker
-            latLng={triangleLatLng}
-            onClick={onSetOffset}
-            onMouseOver={() => setHovered(true)}
-            onMouseOut={() => setHovered(false)}
-          />
-          <CirclePlusMarker
-            latLng={circlePlusLatLng}
-            onClick={onAddCrop}
-          />
-        </>
-      )}
-    </FeatureGroup>
+      <CirclePlusMarker
+        latLng={addCropLatLng}
+        radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
+        onClick={onAddCrop}
+      />
+    </ShowOnHoverBox>
   );
 }
 
@@ -1226,7 +1080,7 @@ function PreviewLabelStyles() {
         user-select: none;
         line-height: 1.2;
         font-size: 12px;
-        background-color: ${BACKGROUND_COLOR};
+        background-color: transparent;
       }
       .pattern-preview-label--row .pattern-preview-label__inner {
         font-weight: 600;
@@ -1243,8 +1097,8 @@ function PreviewLabelStyles() {
         color: ${SPACING_REP_COLOR};
       }
       .pattern-preview-circle-plus__inner {
-        width: ${HOVER_SHAPE_RADIUS_PX * 2}px;
-        height: ${HOVER_SHAPE_RADIUS_PX * 2}px;
+        width: ${ADD_CROP_SHAPE_RADIUS_PX * 2}px;
+        height: ${ADD_CROP_SHAPE_RADIUS_PX * 2}px;
         border-radius: 50%;
         background: ${BACKGROUND_COLOR};
         border: 1px solid #9aa0a6;
@@ -1255,4 +1109,157 @@ function PreviewLabelStyles() {
       }
     `}</style>
   );
+}
+
+/**
+ * Circle-with-plus-icon hover marker. Rendered as a `Marker` with a custom
+ * `divIcon` so the plus is crisp at any zoom.
+ */
+function CirclePlusMarker({
+  latLng,
+  radiusPx,
+  onClick,
+  onMouseOver,
+  onMouseOut,
+}: {
+  latLng: L.LatLngExpression;
+  radiusPx: number;
+  onClick?: () => void;
+  onMouseOver?: () => void;
+  onMouseOut?: () => void;
+}) {
+  const icon = L.divIcon({
+    className: 'pattern-preview-circle-plus',
+    html: `<div class="pattern-preview-circle-plus__inner"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#5f6368" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>`,
+    iconSize: [radiusPx * 2, radiusPx * 2],
+    iconAnchor: [radiusPx, radiusPx],
+  });
+
+  return (
+    <Marker
+      position={latLng}
+      icon={icon}
+      interactive
+      keyboard={false}
+      eventHandlers={{
+        click: onClick,
+        mouseover: onMouseOver,
+        mouseout: onMouseOut,
+      }}
+    />
+  );
+}
+
+function DiamondMarker({
+  latLng,
+  radiusPx,
+  onClick,
+  onMouseOver,
+  onMouseOut,
+}: {
+  latLng: L.LatLngExpression;
+  radiusPx: number;
+  onClick?: () => void;
+  onMouseOver?: () => void;
+  onMouseOut?: () => void;
+}) {
+  return (
+    <ShapeMarker
+      shape="diamond"
+      latLng={latLng}
+      radiusPx={radiusPx}
+      pathOptions={{ color: "#9aa0a6", fillColor: "#ffffff", fillOpacity: 1, weight: 1 }}
+      interactive
+      onClick={onClick}
+      onMouseOver={onMouseOver}
+      onMouseOut={onMouseOut}
+    />
+  );
+}
+
+function TriangleDownMarker({
+  latLng,
+  radiusPx,
+  rotation,
+  onClick,
+  onMouseOver,
+  onMouseOut,
+}: {
+  latLng: L.LatLngExpression;
+  radiusPx: number;
+  rotation?: number;
+  onClick?: () => void;
+  onMouseOver?: () => void;
+  onMouseOut?: () => void;
+}) {
+  return (
+    <ShapeMarker
+      shape="triangle-down"
+      latLng={latLng}
+      radiusPx={radiusPx}
+      rotation={rotation}
+      pathOptions={{ color: "#9aa0a6", fillColor: "#ffffff", fillOpacity: 1, weight: 1 }}
+      interactive
+      onClick={onClick}
+      onMouseOver={onMouseOver}
+      onMouseOut={onMouseOut}
+    />
+  );
+}
+
+function TriangleArrowMarker({
+  latLng,
+  radiusPx,
+  rotation,
+  onClick,
+}: {
+  latLng: L.LatLngExpression;
+  radiusPx: number;
+  rotation: number;
+  onClick?: () => void;
+}) {
+  return (
+    <ShapeMarker
+      shape="triangle"
+      latLng={latLng}
+      radiusPx={radiusPx}
+      rotation={rotation}
+      pathOptions={{ color: "#5f6368", fillColor: "#9aa0a6", fillOpacity: 1, weight: 0.5 }}
+      interactive
+      onClick={onClick}
+    />
+  );
+}
+
+interface ShowOnHoverBoxProps extends PropsWithChildren {
+  boundingBox: BBox;
+  placeholder?: ReactNode;
+}
+
+function ShowOnHoverBox({ boundingBox, placeholder, children }: ShowOnHoverBoxProps) {
+  const [hovered, setHovered] = useState(false);
+  const { minX, maxX, minY, maxY } = boundingBox;
+
+  return (
+    <FeatureGroup
+      eventHandlers={{
+        mouseover: () => setHovered(true),
+        mouseout: () => setHovered(false),
+      }}
+    >
+      <Polygon
+        positions={[
+          [maxY, minX],
+          [maxY, maxX],
+          [minY, maxX],
+          [minY, minX],
+        ]}
+        pathOptions={{
+          fillOpacity: 0,
+          opacity: 0,
+        }}
+      />
+      {hovered ? children : placeholder}
+    </FeatureGroup>
+  )
 }

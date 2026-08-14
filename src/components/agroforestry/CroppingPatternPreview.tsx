@@ -67,11 +67,11 @@ export default function CroppingPatternPreview({
 
   const handleCropSelect = ({ rowIndex, cropIndex }: CropPosition) => {
     setSelected((prev) => {
-      const isReselection = prev?.type === 'crop' && prev.rowIndex === rowIndex && prev.cropIndex === cropIndex;
+      const isReselection = prev?.kind === 'crop' && prev.rowIndex === rowIndex && prev.cropIndex === cropIndex;
       if (isReselection) return null;
 
       return {
-        type: 'crop',
+        kind: 'crop',
         rowIndex,
         cropIndex,
       }
@@ -80,18 +80,18 @@ export default function CroppingPatternPreview({
 
   const handleRowSelect = (rowIndex: number) => {
     setSelected((prev) => {
-      const isReselection = prev?.type === 'row' && prev.rowIndex === rowIndex;
+      const isReselection = prev?.kind === 'row' && prev.rowIndex === rowIndex;
       if (isReselection) return null;
 
       return {
-        type: 'row',
+        kind: 'row',
         rowIndex,
       }
     });
   };
 
-  const selectedRow = selected?.type === 'row' ? selected : null;
-  const selectedCrop = selected?.type === 'crop' ? selected : null;
+  const selectedRow = selected?.kind === 'row' ? selected : null;
+  const selectedCrop = selected?.kind === 'crop' ? selected : null;
   const selectedRowData = selectedRow !== null
     ? pattern.rows[selectedRow.rowIndex]
     : null;
@@ -113,14 +113,14 @@ export default function CroppingPatternPreview({
         <Button
           variant="subtle"
           size="xs"
-          w={160}
+          w={155}
           leftSection={<IconChevronLeft size={16} />}
           onClick={onBackToList}
         >
           Voltar para a lista
         </Button>
         <Text p={0} fw={600} fz="md">{pattern.name}</Text>
-        <div style={{width: 160}}/> {/* spacer to keep title centered */}
+        <div style={{ width: 100 }} />
       </Group>}
 
       <Group align="flex-start" gap="md" wrap="nowrap">

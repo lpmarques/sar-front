@@ -15,7 +15,7 @@ import { Position } from "geojson";
 import { latLng, LatLng } from "leaflet";
 
 // export type Position = [number, number]; // [x, y] in metres
-type BBox = { minX: number; minY: number; maxX: number; maxY: number };
+export type BBox = { minX: number; minY: number; maxX: number; maxY: number };
 
 export const DEG2RAD = Math.PI / 180;
 const EARTH_R = 6_371_000; // metres
