@@ -327,3 +327,12 @@ export async function getFarmPlantFitnessList({ queryKey: [_, farmId, ...params]
 export async function getFarmPlantFitness({ queryKey: [_, farmId, plantId, ...params] }: QueryFnInput ): Promise<SitePlantFitness> {
   return defaultQueryFn({ endpoint: `/agroforestry/farms/${farmId}/site-plant-fitnesses/${plantId}`, params });
 }
+
+export interface CroppingRowPurposeReadData {
+  id: number;
+  name: string;
+}
+
+export async function getCroppingRowPurposeList({ queryKey: [_, ...params] }: QueryFnInput ): Promise<CroppingRowPurposeReadData[]> {
+  return defaultQueryFn({ endpoint: `/agroforestry/cropping-row-purposes`, params });
+}

@@ -27,7 +27,7 @@ interface CroppingPatternsModalProps {
 type View =
   | { kind: "list" }
   | { kind: "preview"; pattern: CroppingPatternReadData }
-  | { kind: "edit"; pattern?: CroppingPatternReadData; clone?: boolean };
+  | { kind: "edit"; pattern?: CroppingPatternReadData; copy?: boolean };
 
 /**
  * Contents of the cropping-patterns preview modal.
@@ -64,7 +64,7 @@ export default function CroppingPatternsModal({
     return (
       <CroppingPatternEdit
         pattern={view.pattern}
-        clone={view.clone}
+        copy={view.copy}
         onBackToList={() => setView({ kind: "list" })}
         onSaved={() => setView({ kind: "list" })}
       />
@@ -79,8 +79,9 @@ export default function CroppingPatternsModal({
         modals.closeAll();
       }}
       onBackToList={() => setView({ kind: "list" })}
-      onEdit={() => setView({ kind: "edit", pattern: view.pattern, clone: false })}
-      onClone={() => setView({ kind: "edit", pattern: view.pattern, clone: true })}
+      onEdit={() => setView({ kind: "edit", pattern: view.pattern, copy: false })}
+      onClone={() => setView({ kind: "edit", pattern: view.pattern, copy: true })}
+      onDeleted={() => setView({ kind: "list" })}
     />
   );
 }

@@ -35,11 +35,10 @@ const PATTERN_BOTTOM_PADDING_M = 0;
 const PATTERN_RIGHT_PADDING_M = 1;
 const PATTERN_TOP_PADDING_M = 1.5;
 const ROW_START_OFFSET_LABEL_GAP_M = 0.4;
-const ROW_SPACING_PADDING_M = 0.45;
 const ROW_LABEL_GAP_M = 1.25;
-const CROP_RADIUS_M = 0.35;
-const CROP_SPACING_PADDING_M = 0.1;
+const CROP_RADIUS_M = 0.3;
 const CROP_SPACING_LABEL_GAP_M = 0.4;
+const SPACING_PADDING_M = 0.1;
 
 /**
  * Sizes for the hover-overlay shape markers. Tuned to match the spacing
@@ -49,7 +48,7 @@ const ADD_CROP_SHAPE_RADIUS_PX = 11;
 const OFFSET_SHAPE_RADIUS_PX = 9;
 const SPACING_SHAPE_RADIUS_PX = 8;
 const ROW_ARROW_SHAPE_RADIUS_PX = 5;
-const ROW_ARROW_SHAPES_GAP_M = 0.6;
+const ROW_ARROW_SHAPES_GAP_M = 0.4;
 
 const BACKGROUND_COLOR = "#fafafa";
 const TEXT_COLOR = "var(--mantine-color-dark-7)";
@@ -58,15 +57,32 @@ const SPACING_COLOR = "var(--mantine-color-gray-7)";
 const SPACING_REP_COLOR = "var(--mantine-color-gray-6)";
 
 /**
+ * Placeholder plant used in the synthetic `CroppingPatternReadData` while a
+ * pending crop has no plant picked. White fill at the marker layer makes the
+ * "pending" state visually obvious.
+ */
+export const PENDING_PLANT: PlantReadData = {
+  id: 0,
+  contentId: 0,
+  contentStatus: 'proposed',
+  acceptedTaxonName: '',
+  acceptedFamilyName: '',
+  mainPopularName: 'Pendente',
+  colorHex: '#ffffff',
+};
+
+/**
  * Formats a metre distance for axis labels, falling back to centimetres when
  * the value is sub-metre (so 0.5m reads "50 cm").
  */
 function formatLengthM(m: number): string {
+  const roundIfFloat = (n: number) => Number.isInteger(n) ? n : n.toFixed(2);
+
   if (Math.abs(m) < 1) {
     const cm = Math.round(m * 100);
-    return `${cm} cm`;
+    return `${roundIfFloat(cm)} cm`;
   }
-  return `${m} m`;
+  return `${roundIfFloat(m)} m`;
 }
 
 /**
@@ -197,18 +213,49 @@ export function renderRows(
   return { rows, totalXM, totalYM };
 }
 
+/**
+ * Calculates start and end edges for a spacing arrow that A) is proportional to spacing length,
+ * B) is limited by min and max values and C) prevents a negative distance between arrow heads
+ * when spacing length is too small
+ */
+function calcSpacingArrowEdges({
+  spacingStartM,
+  spacingEndM,
+  minPaddingM = 0,
+  maxPaddingM = CROP_RADIUS_M + SPACING_PADDING_M,
+}: {
+  spacingStartM: number,
+  spacingEndM: number,
+  minPaddingM?: number,
+  maxPaddingM?: number,
+}) {
+  const spacingLengthM = spacingEndM - spacingStartM;
+  const arrowPaddingM = Math.min(
+    Math.max(
+      minPaddingM,
+      (spacingLengthM - CROP_RADIUS_M * 2) / 2
+    ),
+    maxPaddingM
+  );
+    
+  const arrowStartM = Math.min(spacingStartM + arrowPaddingM, spacingEndM);
+  const arrowEndM = Math.max(spacingEndM - arrowPaddingM, spacingStartM);
+
+  return [arrowStartM, arrowEndM];
+}
+
 export interface CropPosition {
   rowIndex: number;
   cropIndex: number;
 }
 
+interface SelectedCrop extends CropPosition {
+  kind: 'crop';
+}
+
 interface SelectedRow {
   kind: 'row';
   rowIndex: number;
-}
-
-interface SelectedCrop extends CropPosition {
-  kind: 'crop';
 }
 
 interface SelectedRowOffset {
@@ -232,7 +279,9 @@ export type SelectedSpacing = SelectedRowOffset | SelectedRowSpacing | SelectedC
 /** Coordinates of an element in the rendered layout. */
 export type SelectedElement = SelectedRow | SelectedCrop | SelectedSpacing;
 
-export type PendingElement = SelectedRow | SelectedCrop;
+export type PendingElement = (SelectedRow | SelectedCrop) & {
+  isLast: boolean;
+};
 
 interface PatternEditHandlers {
   /** Called when the user clicks the (always-visible) row-arrange arrows. */
@@ -393,7 +442,7 @@ export default function PatternPreviewPanel({
         attributionControl={false}
         zoomSnap={0.5}
         zoomDelta={0.5}
-        minZoom={4.5}
+        minZoom={5}
         maxZoom={8}
       >
         <MapBoundsFraming bounds={bounds} maxZoom={8} padding={0} deps={[bounds]} />
@@ -439,6 +488,7 @@ export default function PatternPreviewPanel({
             endXM={r.spacingEndXM}
             labelIcon={spacingLabelIcon(r.spacingLabel, [10, 6])}
             edit={edit}
+            isSelected={selectedElement?.kind === 'rowSpacing' && selectedElement?.afterRowIndex === r.rowIndex}
             rowYToLat={rowYToLat}
             onEditSpacing={() => onEditRowSpacing?.(r.rowIndex)}
             onAddRow={() => onAddRowBetween?.(r.rowIndex)}
@@ -485,6 +535,8 @@ function RowGeometry({
 
   const isSelectedRow = selectedElement?.kind === 'row' && selectedElement.rowIndex === r.rowIndex;
   const selectedCrop = selectedElement?.kind === 'crop' ? selectedElement : null;
+  const selectedOffset = selectedElement?.kind === 'rowOffset' ? selectedElement : null;
+  const selectedSpacing = selectedElement?.kind === 'cropSpacing' ? selectedElement : null;
 
   const spacingLabelIcon = (label: string, anchor: [number, number], isRep?: boolean) =>
     L.divIcon({
@@ -510,6 +562,7 @@ function RowGeometry({
         )}
         edit={edit}
         isRep={r.isRep}
+        isSelected={selectedOffset?.rowIndex === r.rowIndex}
         rowYToLat={rowYToLat}
         onSetOffset={() => onSetRowOffset?.(r.rowIndex)}
         onEditOffset={() => onEditRowOffset?.(r.rowIndex)}
@@ -536,6 +589,8 @@ function RowGeometry({
 
       {nonRepCrops.map((c, j) => {
         if (c.isRep && !showReps) return null;
+        const isSelectedSpacing = selectedSpacing?.rowIndex === c.rowIndex
+          && selectedSpacing?.afterCropIndex === c.cropIndex;
         return (
           <CropSpacing
             key={`cs-${j}`}
@@ -549,6 +604,7 @@ function RowGeometry({
             )}
             edit={edit}
             isRep={c.isRep}
+            isSelected={isSelectedSpacing}
             rowYToLat={rowYToLat}
             onEditSpacing={() => onEditCropSpacing?.(r.rowIndex, c.cropIndex)}
             onAddCrop={() => onAddCropBetween?.(r.rowIndex, c.cropIndex)}
@@ -567,6 +623,7 @@ function RowGeometry({
           xM={r.rowXM}
           edit={edit}
           isRep={r.isRep}
+          isSelected={selectedOffset?.rowIndex === r.rowIndex}
           rowYToLat={rowYToLat}
           onSetOffset={() => onSetRowOffset?.(r.rowIndex)}
           onEditOffset={() => onEditRowOffset?.(r.rowIndex)}
@@ -594,6 +651,8 @@ function RowGeometry({
 
       {repCrops.slice(0, -1).map((c, j) => {
         if (c.isRep && !showReps) return null;
+        const isSelectedSpacing = selectedSpacing?.rowIndex === c.rowIndex
+          && selectedSpacing?.afterCropIndex === c.cropIndex;
         return (
           <CropSpacing
             key={`cs-${j}`}
@@ -602,6 +661,7 @@ function RowGeometry({
             xM={c.spacingXM}
             edit={edit}
             isRep={c.isRep}
+            isSelected={isSelectedSpacing}
             rowYToLat={rowYToLat}
             onEditSpacing={() => onEditCropSpacing?.(r.rowIndex, c.cropIndex)}
             onAddCrop={() => onAddCropBetween?.(r.rowIndex, c.cropIndex)}
@@ -619,7 +679,11 @@ function RowGeometry({
           latLng={[rowYToLat(repCrops[0].cropYM), r.rowXM]}
           radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
           onClick={() => onAddCropLast?.(r.rowIndex)} // TODO: when clicked, a placeholder crop should show-up
-        />
+        >
+          <LeafletTooltip direction="bottom" offset={[0, 6]}>
+            Adicionar cultivo (fim)
+          </LeafletTooltip>
+        </CirclePlusMarker>
       )}
      
       {/**
@@ -631,7 +695,11 @@ function RowGeometry({
           latLng={[rowYToLat(r.rowStartYM), r.rowXM]}
           radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
           onClick={onAddRowLast} // TODO: when clicked, a placeholder row should show-up
-        />
+        >
+          <LeafletTooltip direction="top" offset={[0, -6]}>
+            Adicionar linha
+          </LeafletTooltip>
+        </CirclePlusMarker>
       )}
     </Fragment>
   )
@@ -639,10 +707,10 @@ function RowGeometry({
   const topRepCrop = repCrops[0];
   const botRepCrop = repCrops[repCrops.length-1];
   const repsBBox: BBox = {
-    minX: topRepCrop.cropXM - CROP_RADIUS_M*1.5,
-    maxX: botRepCrop.cropXM + CROP_RADIUS_M*1.5,
-    minY: rowYToLat(botRepCrop.cropYM + CROP_RADIUS_M*1.5),
-    maxY: rowYToLat(topRepCrop.cropYM - CROP_RADIUS_M*1.5),
+    minX: topRepCrop.cropXM - CROP_RADIUS_M,
+    maxX: botRepCrop.cropXM + CROP_RADIUS_M,
+    minY: rowYToLat(botRepCrop.cropYM + CROP_RADIUS_M),
+    maxY: rowYToLat(topRepCrop.cropYM - CROP_RADIUS_M),
   }
 
   return (
@@ -682,8 +750,6 @@ function Crop({
   onCropSelect: () => void;
   rowYToLat: (yM: number) => number;
 }) {
-
-
   return (
     <CircleMarker
       center={[rowYToLat(yM), xM]}
@@ -719,6 +785,7 @@ function CropSpacing({
   labelIcon,
   edit,
   isRep,
+  isSelected,
   rowYToLat,
   onEditSpacing,
   onAddCrop,
@@ -729,14 +796,15 @@ function CropSpacing({
   labelIcon?: L.DivIcon;
   edit: boolean;
   isRep: boolean;
+  isSelected: boolean;
   rowYToLat: (yM: number) => number;
   onEditSpacing: () => void;
   onAddCrop: () => void;
 }) {
-  // as the distance between startYM and endYM smaller, the fixed additions 
-  // tend to make endYM greater than endYM
-  const arrowStartYM = Math.min(startYM + CROP_SPACING_PADDING_M + CROP_RADIUS_M, endYM);
-  const arrowEndYM = Math.max(endYM - CROP_SPACING_PADDING_M - CROP_RADIUS_M, startYM);
+  const [arrowStartYM, arrowEndYM] = calcSpacingArrowEdges({
+    spacingStartM: startYM,
+    spacingEndM: endYM,
+  });
 
   const arrowPositions: L.LatLngExpression[] = [
     [rowYToLat(arrowStartYM), xM],
@@ -764,10 +832,21 @@ function CropSpacing({
     <Marker
       position={labelLatLng}
       icon={labelIcon}
-      interactive={edit}
-      keyboard={false}
+      interactive={false}
       zIndexOffset={1}
     />
+  );
+
+  const addCropMarker = (
+    <CirclePlusMarker
+      latLng={addCropLatLng}
+      radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
+      onClick={onAddCrop}
+    >
+      <LeafletTooltip direction="top" offset={[0, -6]}>
+        Inserir cultivo
+      </LeafletTooltip>
+    </CirclePlusMarker>
   );
 
   return (
@@ -788,19 +867,35 @@ function CropSpacing({
         }}
       />
       {edit && !isRep
-        ? <ShowOnHoverBox boundingBox={spacingBB} placeholder={label}>
-            {label}
-            <DiamondMarker
-              latLng={labelLatLng}
-              radiusPx={SPACING_SHAPE_RADIUS_PX}
-              onClick={onEditSpacing}
-            />
-            <CirclePlusMarker
-              latLng={addCropLatLng}
-              radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
-              onClick={onAddCrop}
-            />
-          </ShowOnHoverBox>
+        ? isSelected
+          ? (
+            <Fragment>
+              <DiamondMarker
+                latLng={labelLatLng}
+                radiusPx={SPACING_SHAPE_RADIUS_PX}
+                onClick={onEditSpacing}
+              >
+                {label}
+              </DiamondMarker>
+              <ShowOnHoverBox boundingBox={spacingBB}>
+                {addCropMarker}
+              </ShowOnHoverBox>
+            </Fragment>
+          ) : (
+            <ShowOnHoverBox boundingBox={spacingBB} placeholder={label}>
+              <DiamondMarker
+                latLng={labelLatLng}
+                radiusPx={SPACING_SHAPE_RADIUS_PX}
+                onClick={onEditSpacing}
+              >
+                {label}
+                <LeafletTooltip direction="top" offset={[0, -6]}>
+                  Alterar espaçamento
+                </LeafletTooltip>
+              </DiamondMarker>
+              {addCropMarker}
+            </ShowOnHoverBox>
+          )
         : label
       }
     </FeatureGroup>
@@ -818,6 +913,7 @@ function RowSpacing({
   endXM,
   labelIcon,
   edit,
+  isSelected,
   rowYToLat,
   onEditSpacing,
   onAddRow,
@@ -827,13 +923,19 @@ function RowSpacing({
   endXM: number;
   labelIcon: L.DivIcon;
   edit: boolean;
+  isSelected: boolean;
   rowYToLat: (yM: number) => number;
   onEditSpacing: () => void;
   onAddRow: () => void;
 }) {
+  const [arrowStartXM, arrowEndXM] = calcSpacingArrowEdges({
+    spacingStartM: startXM,
+    spacingEndM: endXM,
+  });
+
   const arrowPositions: L.LatLngExpression[] = [
-    [rowYToLat(yM), startXM + CROP_RADIUS_M],
-    [rowYToLat(yM), endXM - CROP_RADIUS_M],
+    [rowYToLat(yM), arrowStartXM],
+    [rowYToLat(yM), arrowEndXM],
   ];
   const labelLatLng: L.LatLngExpression = [
     rowYToLat(yM - CROP_SPACING_LABEL_GAP_M),
@@ -847,8 +949,8 @@ function RowSpacing({
   const diamondRadiusM = SPACING_SHAPE_RADIUS_PX / PX_PER_M;
 
   const spacingBB: BBox = {
-    minX: startXM + ROW_SPACING_PADDING_M,
-    maxX: endXM - ROW_SPACING_PADDING_M,
+    minX: arrowStartXM,
+    maxX: arrowEndXM,
     minY: rowYToLat(yM - CROP_SPACING_LABEL_GAP_M - diamondRadiusM),
     maxY: rowYToLat(yM + CROP_SPACING_LABEL_GAP_M + CROP_RADIUS_M),
   }
@@ -857,8 +959,21 @@ function RowSpacing({
     <Marker
       position={labelLatLng}
       icon={labelIcon}
+      interactive={false}
       zIndexOffset={1}
     />
+  );
+
+  const addCropMarker = (
+    <CirclePlusMarker
+      latLng={addCropLatLng}
+      radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
+      onClick={onAddRow}
+    >
+      <LeafletTooltip direction="bottom" offset={[0, 6]}>
+        Inserir linha
+      </LeafletTooltip>
+    </CirclePlusMarker>
   );
 
   return (
@@ -868,19 +983,35 @@ function RowSpacing({
         pathOptions={{ color: SPACING_COLOR, weight: 1 }}
       />
       {edit
-        ? <ShowOnHoverBox boundingBox={spacingBB} placeholder={label}>
-            {label}
-            <DiamondMarker
-              latLng={labelLatLng}
-              radiusPx={SPACING_SHAPE_RADIUS_PX}
-              onClick={onEditSpacing}
-            />
-            <CirclePlusMarker
-              latLng={addCropLatLng}
-              radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
-              onClick={onAddRow}
-            />
-          </ShowOnHoverBox>
+        ? isSelected
+          ? (
+            <Fragment>
+              <DiamondMarker
+                latLng={labelLatLng}
+                radiusPx={SPACING_SHAPE_RADIUS_PX}
+                onClick={onEditSpacing}
+              >
+                {label}
+              </DiamondMarker>
+              <ShowOnHoverBox boundingBox={spacingBB}>
+                {addCropMarker}
+              </ShowOnHoverBox>
+            </Fragment>
+          ) : (
+            <ShowOnHoverBox boundingBox={spacingBB} placeholder={label}>
+              {label}
+              <DiamondMarker
+                latLng={labelLatLng}
+                radiusPx={SPACING_SHAPE_RADIUS_PX}
+                onClick={onEditSpacing}
+              >
+                <LeafletTooltip direction="top" offset={[0, -6]}>
+                  Altrar espaçamento
+                </LeafletTooltip>
+              </DiamondMarker>
+              {addCropMarker}
+            </ShowOnHoverBox>
+          )
         : label
       }
     </FeatureGroup>
@@ -888,7 +1019,7 @@ function RowSpacing({
 }
 
 /**
- * Hover group for a row start-offset line. Shows a downward triangle around
+ * Feature group for a row start-offset line. Shows a downward triangle around
  * the label and a circle+plus to the right (next to where the first crop
  * would be). Used both when the offset exists (label is visible) and when it
  * doesn't (label absent — see `EmptyStartOffsetHover`).
@@ -900,6 +1031,7 @@ function RowOffset({
   labelIcon,
   edit,
   isRep,
+  isSelected,
   rowYToLat,
   onSetOffset,
   onEditOffset,
@@ -911,16 +1043,22 @@ function RowOffset({
   labelIcon?: L.DivIcon;
   edit: boolean;
   isRep: boolean;
+  isSelected: boolean;
   rowYToLat: (yM: number) => number;
   onSetOffset?: () => void;
   onEditOffset?: () => void;
   onAddCrop?: () => void;
 }) {
   const midYM = (startYM + endYM) / 2;
+  const [_, arrowEndYM] = calcSpacingArrowEdges({
+    spacingStartM: startYM,
+    spacingEndM: endYM,
+    minPaddingM: CROP_RADIUS_M,
+  });
 
   const arrowPositions: L.LatLngExpression[] = [
     [rowYToLat(startYM), xM],
-    [rowYToLat(endYM - CROP_RADIUS_M), xM],
+    [rowYToLat(arrowEndYM), xM],
   ];
   const labelLatLng: L.LatLngExpression = [
     rowYToLat(midYM - CROP_RADIUS_M / 2),
@@ -937,15 +1075,28 @@ function RowOffset({
     minX: xM - ROW_START_OFFSET_LABEL_GAP_M - triangleSideM,
     maxX: xM + ROW_START_OFFSET_LABEL_GAP_M + CROP_RADIUS_M,
     minY: rowYToLat(startYM - CROP_RADIUS_M - ROW_LABEL_GAP_M / 2),
-    maxY: rowYToLat(endYM - CROP_RADIUS_M),
+    maxY: rowYToLat(arrowEndYM),
   };
 
   const label = labelIcon && (
     <Marker
       position={labelLatLng}
       icon={labelIcon}
+      interactive={false}
       zIndexOffset={1}
     />
+  );
+
+  const addCropMarker = (
+    <CirclePlusMarker
+      latLng={addCropLatLng}
+      radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
+      onClick={onAddCrop}
+    >
+      <LeafletTooltip direction="top" offset={[0, -6]}>
+        Adicionar cultivo (início)
+      </LeafletTooltip>
+    </CirclePlusMarker>
   );
 
   const offsetLength = endYM - startYM;
@@ -955,9 +1106,10 @@ function RowOffset({
       <NullOffsetMarkers
         startYM={startYM}
         xM={xM}
+        isSelected={isSelected}
+        rowYToLat={rowYToLat}
         onSetOffset={onSetOffset}
         onAddCrop={onAddCrop}
-        rowYToLat={rowYToLat}
       />
     )
 
@@ -980,22 +1132,36 @@ function RowOffset({
             }
           }}
         />
-        {edit
-          ? (
-            <ShowOnHoverBox boundingBox={offsetBB} placeholder={label}>
-              {label}
-              <TriangleDownMarker
-                latLng={labelLatLng}
-                radiusPx={OFFSET_SHAPE_RADIUS_PX}
-                onClick={onEditOffset}
-              />
-              <CirclePlusMarker
-                latLng={addCropLatLng}
-                radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
-                onClick={onAddCrop}
-              />
-            </ShowOnHoverBox>
-          )
+        {edit && !isRep
+          ? isSelected
+            ? (
+              <Fragment>
+                <TriangleDownMarker
+                  latLng={labelLatLng}
+                  radiusPx={OFFSET_SHAPE_RADIUS_PX}
+                  onClick={onEditOffset}
+                >
+                  {label}
+                </TriangleDownMarker>
+                <ShowOnHoverBox boundingBox={offsetBB}>
+                  {addCropMarker}
+                </ShowOnHoverBox>
+              </Fragment>
+            ) : (
+              <ShowOnHoverBox boundingBox={offsetBB} placeholder={label}>
+                <TriangleDownMarker
+                  latLng={labelLatLng}
+                  radiusPx={OFFSET_SHAPE_RADIUS_PX}
+                  onClick={onEditOffset}
+                >
+                  {label}
+                  <LeafletTooltip direction="top" offset={[0, -6]}>
+                    Alterar deslocamento
+                  </LeafletTooltip>
+                </TriangleDownMarker>
+                {addCropMarker}
+              </ShowOnHoverBox>
+            )
           : label
         }
       </FeatureGroup>
@@ -1003,19 +1169,21 @@ function RowOffset({
 }
 
 /**
- * When a row has no start-offset (`cropsOffsetM === 0`), reveal triangle +
+ * When a row has no start-offset (`cropsOffsetM === 0`), revealx triangle +
  * circle+plus icons between the row label and the first crop on hover.
  * Click triangle → set offset; click circle+plus → add a new first crop.
  */
 function NullOffsetMarkers({
   startYM,
   xM,
+  isSelected,
   onSetOffset,
   onAddCrop,
   rowYToLat,
 }: {
   startYM: number;
   xM: number;
+  isSelected: boolean;
   onSetOffset?: () => void;
   onAddCrop?: () => void;
   rowYToLat: (yM: number) => number;
@@ -1040,20 +1208,69 @@ function NullOffsetMarkers({
     maxY: rowYToLat(midYM + CROP_RADIUS_M),
   };
 
+  const addCropMarker = (
+    <CirclePlusMarker
+      latLng={addCropLatLng}
+      radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
+      onClick={onAddCrop}
+    >
+      <LeafletTooltip direction="top" offset={[0, -6]}>
+        Adicionar cultivo (início)
+      </LeafletTooltip>
+    </CirclePlusMarker>
+  );
+
+  if (isSelected) {
+    return (
+      <Fragment>
+        <TriangleDownMarker
+          latLng={triangleLatLng}
+          radiusPx={OFFSET_SHAPE_RADIUS_PX}
+          onClick={onSetOffset}
+        />
+        <ShowOnHoverBox boundingBox={offsetBB}>
+          {addCropMarker}
+        </ShowOnHoverBox>
+      </Fragment>
+    )
+  }
+  
   return (
     <ShowOnHoverBox boundingBox={offsetBB}>
       <TriangleDownMarker
         latLng={triangleLatLng}
         radiusPx={OFFSET_SHAPE_RADIUS_PX}
         onClick={onSetOffset}
-      />
-      <CirclePlusMarker
-        latLng={addCropLatLng}
-        radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
-        onClick={onAddCrop}
-      />
+      >
+        <LeafletTooltip direction="top" offset={[0, -6]}>
+          Criar deslocamento
+        </LeafletTooltip>
+      </TriangleDownMarker>
+      {addCropMarker}
     </ShowOnHoverBox>
   );
+}
+
+/**
+ * Subscribes to Leaflet's `zoomend` event and returns the current zoom level
+ * as React state, so consumers re-render when the map is zoomed. Leaflet
+ * doesn't put the new zoom on the event payload, so the handler reads it
+ * back from the map. We also re-read once inside the effect to catch any
+ * zoom change that happened between render and listener attachment (e.g. a
+ * resize-triggered fitBounds during mount).
+ */
+function useMapZoom(): number {
+  const map = useMap();
+  const [zoom, setZoom] = useState(map.getZoom());
+  useEffect(() => {
+    const handler = () => setZoom(map.getZoom());
+    map.on('zoomend', handler);
+    setZoom(map.getZoom());
+    return () => {
+      map.off('zoomend', handler);
+    };
+  }, [map]);
+  return zoom;
 }
 
 /**
@@ -1118,12 +1335,14 @@ function PreviewLabelStyles() {
 function CirclePlusMarker({
   latLng,
   radiusPx,
+  children,
   onClick,
   onMouseOver,
   onMouseOut,
 }: {
   latLng: L.LatLngExpression;
   radiusPx: number;
+  children?: React.ReactNode;
   onClick?: () => void;
   onMouseOver?: () => void;
   onMouseOut?: () => void;
@@ -1146,19 +1365,23 @@ function CirclePlusMarker({
         mouseover: onMouseOver,
         mouseout: onMouseOut,
       }}
-    />
+    >
+      {children}
+    </Marker>
   );
 }
 
 function DiamondMarker({
   latLng,
   radiusPx,
+  children,
   onClick,
   onMouseOver,
   onMouseOut,
 }: {
   latLng: L.LatLngExpression;
   radiusPx: number;
+  children?: React.ReactNode;
   onClick?: () => void;
   onMouseOver?: () => void;
   onMouseOut?: () => void;
@@ -1168,12 +1391,14 @@ function DiamondMarker({
       shape="diamond"
       latLng={latLng}
       radiusPx={radiusPx}
-      pathOptions={{ color: "#9aa0a6", fillColor: "#ffffff", fillOpacity: 1, weight: 1 }}
+      pathOptions={{ color: "#9aa0a6", fillColor: "#ffffff", fillOpacity: 0, weight: 1 }}
       interactive
       onClick={onClick}
       onMouseOver={onMouseOver}
       onMouseOut={onMouseOut}
-    />
+    >
+      {children}
+    </ShapeMarker>
   );
 }
 
@@ -1181,6 +1406,7 @@ function TriangleDownMarker({
   latLng,
   radiusPx,
   rotation,
+  children,
   onClick,
   onMouseOver,
   onMouseOut,
@@ -1188,6 +1414,7 @@ function TriangleDownMarker({
   latLng: L.LatLngExpression;
   radiusPx: number;
   rotation?: number;
+  children?: React.ReactNode;
   onClick?: () => void;
   onMouseOver?: () => void;
   onMouseOut?: () => void;
@@ -1198,12 +1425,14 @@ function TriangleDownMarker({
       latLng={latLng}
       radiusPx={radiusPx}
       rotation={rotation}
-      pathOptions={{ color: "#9aa0a6", fillColor: "#ffffff", fillOpacity: 1, weight: 1 }}
+      pathOptions={{ color: "#9aa0a6", fillColor: "#ffffff", fillOpacity: 0, weight: 1 }}
       interactive
       onClick={onClick}
       onMouseOver={onMouseOver}
       onMouseOut={onMouseOut}
-    />
+    >
+      {children}
+    </ShapeMarker>
   );
 }
 

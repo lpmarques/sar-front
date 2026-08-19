@@ -20,16 +20,17 @@ import {
   Paper,
   Stack,
   Text,
-  Tooltip as MantineTooltip,
+  Tooltip,
 } from "@mantine/core";
 import {
   IconChevronLeft,
   IconExternalLink,
   IconTrash,
 } from "@tabler/icons-react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CroppingPatternReadData,
+  deleteCroppingPattern,
   PatternRow,
 } from "../../apis/agroforestry";
 import { getPlantPopularNameList, PlantReadData } from "../../apis/catalog";
@@ -44,13 +45,17 @@ import PatternPreviewPanel, {
   SelectedElement,
 } from "./PatternPreviewPanel";
 import { CropLegend, NativityBadge } from ".";
+import { capitalize } from "../../utils/common";
+import { showSuccess } from "../common/notifications";
+import { showMutationError } from "../../apis/common";
 
 interface CroppingPatternPreviewProps {
   pattern: CroppingPatternReadData;
-  onSelect?: (patternId: number) => void;
-  onBackToList?: () => void;
-  onEdit?: (patternId: number) => void;
-  onClone?: (patternId: number) => void;
+  onSelect: (patternId: number) => void;
+  onBackToList: () => void;
+  onEdit: (patternId: number) => void;
+  onClone: (patternId: number) => void;
+  onDeleted: () => void;
 }
 
 export default function CroppingPatternPreview({
@@ -59,11 +64,25 @@ export default function CroppingPatternPreview({
   onSelect,
   onEdit,
   onClone,
+  onDeleted,
 }: CroppingPatternPreviewProps) {
   const { user } = useAuth();
   const [selected, setSelected] = useState<SelectedElement | null>(null);
+  const queryClient = useQueryClient();
 
   const isAuthor = user?.id === pattern.author.id;
+
+  const patternDeletion = useMutation({
+    mutationFn: deleteCroppingPattern,
+    onSuccess: (data) => {
+      showSuccess(data.msg);
+      queryClient.refetchQueries({
+        predicate: (q) => q.queryKey[0] === 'croppingPatternList',
+      });
+      onDeleted();
+    },
+    onError: showMutationError,
+  });
 
   const handleCropSelect = ({ rowIndex, cropIndex }: CropPosition) => {
     setSelected((prev) => {
@@ -88,6 +107,10 @@ export default function CroppingPatternPreview({
         rowIndex,
       }
     });
+  };
+
+  const handlePatternDelete = () => {
+    patternDeletion.mutate(pattern.id);
   };
 
   const selectedRow = selected?.kind === 'row' ? selected : null;
@@ -126,8 +149,7 @@ export default function CroppingPatternPreview({
       <Group align="flex-start" gap="md" wrap="nowrap">
         <Box
           style={{
-            flex: 1,
-            minWidth: 0,
+            width: "70%",
             height: panelHeightPx,
           }}
         >
@@ -142,7 +164,7 @@ export default function CroppingPatternPreview({
         <Paper
           withBorder
           p="sm"
-          w={280}
+          w="30%"
           style={{ minHeight: panelHeightPx }}
         >
           {selectedCropData ? (
@@ -162,32 +184,34 @@ export default function CroppingPatternPreview({
             Selecionar padrão
           </Button>}
           {onClone &&
-          <Button
-            variant="default"
-            onClick={() => onClone(pattern.id)}
-          >
-            Copiar padrão
-          </Button>}
+          <Tooltip label="Copiar padrão para criar um novo">
+            <Button
+              variant="default"
+              onClick={() => onClone(pattern.id)}
+            >
+              Copiar
+            </Button>
+          </Tooltip>}
         {isAuthor && onEdit &&
-          <Button
-            variant="default"
-            onClick={() => onEdit(pattern.id)}
-          >
-            Editar padrão
-          </Button>}
+          <Tooltip label="Editar padrão, substituindo-o">
+            <Button
+              variant="default"
+              onClick={() => onEdit(pattern.id)}
+            >
+              Editar
+            </Button>
+          </Tooltip>}
         {isAuthor &&
-          <MantineTooltip label="Excluir padrão">
+          <Tooltip label="Excluir padrão">
             <ActionIcon
               variant="outline"
               color="red"
               size="lg"
-              onClick={() => {
-                /* TODO: wire to deleteCroppingPattern mutation */
-              }}
+              onClick={handlePatternDelete}
             >
               <IconTrash size={18} />
             </ActionIcon>
-          </MantineTooltip>}
+          </Tooltip>}
         </Group>
       </Group>
     </Stack>
@@ -206,7 +230,7 @@ function PatternInfoPanel({ pattern }: { pattern: CroppingPatternReadData }) {
         </FieldView>
       </Stack>
       <Text fz="sm" c="dimmed" ta="center">
-        Clique em uma linha ou em um cultivo (círculo) para ver detalhes.
+        Clique no título da linha ("Linha Nº") ou em um cultivo (círculo) para ver seus detalhes.
       </Text>
     </Stack>
   )
@@ -223,7 +247,7 @@ function RowInfoPanel({ row }: { row: PatternRow }) {
         Linha {row.position}
       </Text>
       <FieldView fz={15} label="Função">
-        {row.purpose}
+        {capitalize(row.purpose)}
       </FieldView>
       <FieldView fz={15} label="Cultivos">
         {cropsLegend}

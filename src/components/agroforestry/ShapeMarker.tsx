@@ -1,4 +1,5 @@
 import * as L from "leaflet";
+import { PropsWithChildren } from "react";
 import {
   Marker,
 } from "react-leaflet";
@@ -168,6 +169,19 @@ function buildShapePath(
   };
 }
 
+interface ShapeMarkerProps {
+  shape: ShapeName;
+  latLng: L.LatLngExpression;
+  radiusPx: number;
+  rotation?: number;
+  pathOptions: L.PathOptions;
+  interactive: boolean;
+  children?: React.ReactNode;
+  onClick?: () => void;
+  onMouseOver?: () => void;
+  onMouseOut?: () => void;
+}
+
 /**
  * Declarative shape marker. Renders a `react-leaflet` `Marker` with a
  * `divIcon` containing an inline SVG, so React owns the lifecycle. This
@@ -186,20 +200,11 @@ export default function ShapeMarker({
   rotation,
   pathOptions,
   interactive,
+  children,
   onClick,
   onMouseOver,
   onMouseOut,
-}: {
-  shape: ShapeName;
-  latLng: L.LatLngExpression;
-  radiusPx: number;
-  rotation?: number;
-  pathOptions: L.PathOptions;
-  interactive: boolean;
-  onClick?: () => void;
-  onMouseOver?: () => void;
-  onMouseOut?: () => void;
-}) {
+}: ShapeMarkerProps) {
   const { kind, d, viewBox, hitArea } = buildShapePath(shape, radiusPx);
   const rotationDeg = rotation ?? 0;
 
@@ -260,6 +265,8 @@ export default function ShapeMarker({
         mouseover: onMouseOver,
         mouseout: onMouseOut,
       }}
-    />
+    >
+      {children}
+    </Marker>
   );
 }

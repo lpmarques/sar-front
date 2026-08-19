@@ -11,7 +11,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import {
   ActionIcon,
   Box,
@@ -24,17 +24,17 @@ import {
   Text,
   TextInput,
   Textarea,
-  Tooltip as MantineTooltip,
+  Tooltip,
 } from "@mantine/core";
 import { useForm, UseFormReturnType } from "@mantine/form";
-import { modals } from "@mantine/modals";
-import { IconChevronLeft, IconExternalLink } from "@tabler/icons-react";
+import { IconArrowNarrowDown, IconArrowsHorizontal, IconArrowsVertical, IconChevronLeft, IconCopy, IconExternalLink } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CroppingPatternReadData,
   CroppingPatternWriteRequestData,
   createCroppingPattern,
   getCroppingPatternList,
+  getCroppingRowPurposeList,
   PatternCrop,
   PatternRow,
   updateCroppingPattern,
@@ -46,41 +46,11 @@ import { useProject } from "../../hooks/useProject";
 import { QueryLoader } from "../common/QueryLoader";
 import DeleteButton from "../common/DeleteButton";
 import FieldView from "../common/FieldView";
+import LocalConfirmModal from "../common/LocalConfirmModal";
 import { showError, showSuccess } from "../common/notifications";
 import { CropLegend, NativityBadge } from ".";
-import PatternPreviewPanel, { buildPreviewGeometry, CropPosition, PendingElement, SelectedElement, SelectedSpacing } from "./PatternPreviewPanel";
-
-/**
- * Side panel state that drives `SpacingInputPanel`. Each variant names the
- * form path it edits plus a short label for the panel header.
- */
-type SpacingEditState =
-  | { kind: 'cropSpacing'; rowIndex: number; cropIndex: number }
-  | { kind: 'rowSpacing'; rowIndex: number }
-  | { kind: 'rowOffset'; rowIndex: number }
-  | { kind: 'rowOffset'; rowIndex: number };
-
-/**
- * Internal form shape. Mirrors `CroppingPatternWriteRequestData` with extra
- * `id` fields on rows and crops for stable React keys; those get stripped by
- * `transformValues` before submission. `position` is implicit (derived from
- * array index) and never carries transient state.
- */
-export interface CroppingPatternFormValues {
-  name: string;
-  description: string;
-  rows: {
-    id: string;
-    purposeId: number;
-    distanceToNextRowM: number;
-    cropsOffsetM: number;
-    crops: {
-      id: string;
-      plantId: number;
-      distanceToNextCropM: number;
-    }[];
-  }[];
-}
+import PatternPreviewPanel, { buildPreviewGeometry, CropPosition, PENDING_PLANT, PendingElement, SelectedElement, SelectedSpacing } from "./PatternPreviewPanel";
+import { capitalize } from "../../utils/common";
 
 interface CroppingPatternEditProps {
   /**
@@ -92,14 +62,14 @@ interface CroppingPatternEditProps {
    * save button calls `createCroppingPattern` rather than
    * `updateCroppingPattern`. Used by the "Copiar padrão" entry point.
    */
-  clone?: boolean;
+  copy?: boolean;
   onBackToList: () => void;
   onSaved: () => void;
 }
 
 export default function CroppingPatternEdit({
   pattern,
-  clone = false,
+  copy = false,
   onBackToList,
   onSaved,
 }: CroppingPatternEditProps) {
@@ -119,6 +89,11 @@ export default function CroppingPatternEdit({
   };
   const patterns = useQuery(patternsQueryOptions);
 
+  const purposes = useQuery({
+    queryKey: ['croppingRowPurposeList'],
+    queryFn: getCroppingRowPurposeList,
+  });
+
   const plantsById = useMemo(() => {
     const map = new Map<number, PlantReadData>();
     if (plants.data) {
@@ -127,18 +102,16 @@ export default function CroppingPatternEdit({
     return map;
   }, [plants.data]);
 
-  const initialValues: CroppingPatternFormValues = useMemo(() => {
+  const initialValues: CroppingPatternWriteRequestData = useMemo(() => {
     if (pattern) {
       return {
         name: pattern.name,
         description: pattern.description,
-        rows: pattern.rows.map((r, i) => ({
-          id: rowKey(i),
-          purposeId: (r as unknown as { purposeId?: number }).purposeId ?? 0,
+        rows: pattern.rows.map((r) => ({
+          purposeId: purposes.data?.find((p) => p.name === r.purpose)?.id ?? 0,
           distanceToNextRowM: r.distanceToNextRowM,
           cropsOffsetM: r.cropsOffsetM,
-          crops: r.crops.map((c, j) => ({
-            id: cropKey(i, j),
+          crops: r.crops.map((c) => ({
             plantId: c.plant.id,
             distanceToNextCropM: c.distanceToNextCropM,
           })),
@@ -150,38 +123,41 @@ export default function CroppingPatternEdit({
       name: '',
       description: '',
       rows: [{
-        id: rowKey(0),
         purposeId: 0,
         distanceToNextRowM: 1,
         cropsOffsetM: 0,
         crops: [{
-          id: cropKey(0, 0),
           plantId: 0,
           distanceToNextCropM: 1,
         }],
       }],
     };
-  }, [pattern]);
+  }, [pattern, purposes.data]);
 
-  const patternForm = useForm<CroppingPatternFormValues>({
+  const patternForm = useForm<CroppingPatternWriteRequestData>({
     mode: 'controlled',
     initialValues,
     validate: {
-      name: (value) =>
-        value.trim().length === 0 ? 'Campo obrigatório' : null,
+      name: (value) => value.trim().length === 0 ? 'Campo obrigatório' : null,
+      description: (value) => value.trim().length === 0 ? 'Campo obrigatório' : null,
+      rows: {
+        purposeId: (value) => !value ? 'Campo obrigatório' : null,
+        distanceToNextRowM: (value) => value <= 0 ? 'Espaçamento inválido' : null,
+        crops: {
+          distanceToNextCropM: (value) => value <= 0 ? 'Espaçamento inválido' : null,
+        }
+      }
     },
     transformValues: (values) => ({
       name: values.name.trim(),
-      description: values.description,
+      description: values.description.trim(),
       rows: values.rows.map((r) => ({
-        id: r.id,
         purposeId: r.purposeId,
-        distanceToNextRowM: r.distanceToNextRowM,
+        distanceToNextRowM: Number(r.distanceToNextRowM.toFixed(2)),
         cropsOffsetM: r.cropsOffsetM,
         crops: r.crops.map((c) => ({
-          id: c.id,
           plantId: c.plantId,
-          distanceToNextCropM: c.distanceToNextCropM,
+          distanceToNextCropM: Number(c.distanceToNextCropM.toFixed(2)),
         })),
       })),
     }),
@@ -189,9 +165,10 @@ export default function CroppingPatternEdit({
 
   const [selected, setSelected] = useState<SelectedElement | null>(null);
   const [pending, setPending] = useState<PendingElement | null>(null);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
 
   /**
-   * Synthetic `CroppingPatternReadData` for the writing preview. Plants are
+   * Synthetic `CroppingPatternReadData` for the edit preview. Plants are
    * resolved from `plantsById` (or the pending placeholder when missing).
    * Array index in `rows` / `crops` encodes the position.
    */
@@ -204,7 +181,7 @@ export default function CroppingPatternEdit({
     author: pattern?.author ?? user!,
     rows: patternForm.values.rows.map((r, ri) => ({
       position: ri + 1,
-      purpose: '',
+      purpose: purposes.data?.find((p) => p.id === r.purposeId)?.name ?? '',
       cropsOffsetM: r.cropsOffsetM,
       distanceToNextRowM: r.distanceToNextRowM,
       crops: r.crops.map((c, ci) => ({
@@ -213,7 +190,7 @@ export default function CroppingPatternEdit({
         distanceToNextCropM: c.distanceToNextCropM,
       })),
     })),
-  }), [patternForm.values, plantsById, pattern, user]);
+  }), [patternForm.values, purposes.data, plantsById, pattern, user]);
 
   const mutations = useMutation({
     mutationFn: ({ id, data }: { id?: number; data: CroppingPatternWriteRequestData }) =>
@@ -222,7 +199,7 @@ export default function CroppingPatternEdit({
         : createCroppingPattern({ data }),
     onSuccess: (data) => {
       showSuccess(data.msg);
-      queryClient.invalidateQueries({
+      queryClient.refetchQueries({
         predicate: (q) => q.queryKey[0] === 'croppingPatternList',
       });
       onSaved();
@@ -230,80 +207,107 @@ export default function CroppingPatternEdit({
     onError: showMutationError,
   });
 
-  /**
-   * Map the form values into the write-shape expected by the API. We do this
-   * here (rather than inside `transformValues`) so the form values keep
-   * matching the type Mantine v8 expects from its transform callback.
-   */
-  const toWriteData = (values: CroppingPatternFormValues): CroppingPatternWriteRequestData => ({
-    name: values.name.trim(),
-    description: values.description,
-    rows: values.rows.map((r) => ({
-      purposeId: r.purposeId,
-      distanceToNextRowM: r.distanceToNextRowM,
-      cropsOffsetM: r.cropsOffsetM,
-      crops: r.crops.map((c) => ({
-        plantId: c.plantId,
-        distanceToNextCropM: c.distanceToNextCropM,
-      })),
-    })),
-  });
-
   const handleSubmit = () => {
+    const values = patternForm.getTransformedValues();
+    const initialValues = patternForm.getInitialValues();
+
+    patternForm.clearErrors();
     const formValidation = patternForm.validate();
-    if (formValidation.hasErrors) {
+
+    // Name uniqueness
+    const conflicting = (patterns.data ?? []).find(
+      (p) => p.name === values.name && (copy || p.id !== pattern?.id),
+    );
+    if (conflicting)
+      patternForm.setFieldError('name', 'Igual a nome já cadastrado para outro padrão');
+
+    // Description change (when copying)
+    if (copy && values.description === initialValues.description)
+      patternForm.setFieldError('description', 'Igual à descrição do padrão original');
+
+    if (formValidation.hasErrors || Object.keys(patternForm.errors).length > 0) {
       showError('Há campos inválidos no formulário.', 'Erro');
+
+      // Pick the first nested error so the user lands on the panel that
+      // contains the offending field. Spacing fields route to the spacing
+      // panel; other row-/crop-nested fields route to the row/crop panel.
+      // Form-level errors (name, description) need no selection — the default
+      // `PatternFormPanel` already covers them.
+      let focus: SelectedElement | null = null;
+      for (const path of Object.keys(patternForm.errors)) {
+        const cropSpacingMatch = path.match(/^rows\.(\d+)\.crops\.(\d+)\.distanceToNextCropM$/);
+        if (cropSpacingMatch) {
+          focus = {
+            kind: 'cropSpacing',
+            rowIndex: Number(cropSpacingMatch[1]),
+            afterCropIndex: Number(cropSpacingMatch[2]),
+          };
+          break;
+        }
+        const rowSpacingMatch = path.match(/^rows\.(\d+)\.distanceToNextRowM$/);
+        if (rowSpacingMatch) {
+          focus = {
+            kind: 'rowSpacing',
+            afterRowIndex: Number(rowSpacingMatch[1]),
+          };
+          break;
+        }
+        const rowOffsetMatch = path.match(/^rows\.(\d+)\.cropsOffsetM$/);
+        if (rowOffsetMatch) {
+          focus = { kind: 'rowOffset', rowIndex: Number(rowOffsetMatch[1]) };
+          break;
+        }
+        const cropMatch = path.match(/^rows\.(\d+)\.crops\.(\d+)\./);
+        if (cropMatch) {
+          focus = {
+            kind: 'crop',
+            rowIndex: Number(cropMatch[1]),
+            cropIndex: Number(cropMatch[2]),
+          };
+          break;
+        }
+        const rowMatch = path.match(/^rows\.(\d+)\./);
+        if (rowMatch) {
+          focus = { kind: 'row', rowIndex: Number(rowMatch[1]) };
+          break;
+        }
+      }
+      setSelected(focus);
       return;
     }
-    const values = patternForm.values;
 
     // Row/crop count sanity checks.
     if (values.rows.length === 0) {
       showError('O padrão deve ter pelo menos uma linha.', 'Erro');
+      setSelected(null);
       return;
     }
+
     const emptyRowIndex = values.rows.findIndex((r) => r.crops.length === 0);
     if (emptyRowIndex !== -1) {
       showError(`A linha ${emptyRowIndex + 1} não tem cultivos.`, 'Erro');
-      return;
-    }
-    const placeholderCropIndex = values.rows
-      .flatMap((r, ri) => r.crops.map((c, ci) => ({ ri, ci, plantId: c.plantId })))
-      .findIndex((c) => c.plantId === 0);
-    if (placeholderCropIndex !== -1) {
-      showError('Há cultivos pendentes (sem planta definida).', 'Erro');
+      // patternForm.setFieldError(`rows.${emptyRowIndex}.crops.0.plantId`, 'Campo obrigatório');
+      setSelected({ kind: 'row', rowIndex: emptyRowIndex });
       return;
     }
 
-    // Name uniqueness (skip the pattern itself; skip when cloning).
-    const conflicting = (patterns.data ?? []).find(
-      (p) => p.name === values.name && (p.id !== pattern?.id || clone),
-    );
-    if (conflicting) {
-      patternForm.setFieldError('name', 'Igual a nome já cadastrado para outro padrão');
-      showError('Há campos inválidos no formulário.', 'Erro');
-      return;
-    }
+    values.rows.forEach((row, rowIndex) => {
+      const pendingCropIndex = row.crops.findIndex((c) => c.plantId === 0);
+      if (pendingCropIndex !== -1) {
+        showError('Há cultivos pendentes (sem planta definida).', 'Erro');
+        setSelected({ kind: 'crop', rowIndex, cropIndex: pendingCropIndex });
+        return;
+      }
+    })
 
     mutations.mutate({
-      id: !clone && pattern ? pattern.id : undefined,
-      data: toWriteData(values),
+      id: !copy && pattern ? pattern.id : undefined,
+      data: values,
     });
   };
 
   const handleCancel = () => {
-    modals.openConfirmModal({
-      title: 'Deseja descartar as mudanças?',
-      children: (
-        <Text>
-          Você está prestes a fechar o padrão sem salvar. Todas as alterações
-          feitas serão descartadas.
-        </Text>
-      ),
-      labels: { confirm: 'Descartar mudanças', cancel: 'Cancelar' },
-      confirmProps: { color: 'red' },
-      onConfirm: onBackToList,
-    });
+    setCancelModalOpen(true);
   };
 
   // -------------------------------------------------------------------------
@@ -341,83 +345,124 @@ export default function CroppingPatternEdit({
 
   const handleRowMoveLeft = (rowIndex: number) => {
     if (rowIndex === 0) return;
-    const next = patternForm.values.rows.slice();
-    [next[rowIndex - 1], next[rowIndex]] = [next[rowIndex], next[rowIndex - 1]];
-    patternForm.setFieldValue('rows', next);
+    const rows = patternForm.values.rows.slice();
+    [rows[rowIndex - 1], rows[rowIndex]] = [rows[rowIndex], rows[rowIndex - 1]];
+    patternForm.setFieldValue('rows', rows);
     setSelected(null);
     setPending(null);
   };
 
   const handleRowMoveRight = (rowIndex: number) => {
-    const rows = patternForm.values.rows;
+    const rows = patternForm.values.rows.slice();
     if (rowIndex >= rows.length - 1) return;
-    const next = rows.slice();
-    [next[rowIndex + 1], next[rowIndex]] = [next[rowIndex], next[rowIndex + 1]];
-    patternForm.setFieldValue('rows', next);
+    [rows[rowIndex + 1], rows[rowIndex]] = [rows[rowIndex], rows[rowIndex + 1]];
+    patternForm.setFieldValue('rows', rows);
     setSelected(null);
     setPending(null);
   };
 
   const handleAddCropLast = (rowIndex: number) => {
-    setPending({
+    const pending: PendingElement = {
       kind: 'crop',
       rowIndex,
       cropIndex: patternForm.values.rows[rowIndex].crops.length,
-    });
-    setSelected(null);
+      isLast: true,
+    };
+    setPending(pending);
+    setSelected(pending);
   };
 
   const handleAddCropBetween = (rowIndex: number, afterCropIndex: number) => {
-    setPending({ kind: 'crop', rowIndex, cropIndex: afterCropIndex + 1 });
-    setSelected(null);
+    const pending: PendingElement = {
+      kind: 'crop',
+      rowIndex,
+      cropIndex: afterCropIndex + 1,
+      isLast: false,
+    };
+    setPending(pending);
+    setSelected(pending);
   };
 
   const handleAddCropFirst = (rowIndex: number) => {
-    setPending({ kind: 'crop', rowIndex, cropIndex: 0 });
-    setSelected(null);
+    const pending: PendingElement = {
+      kind: 'crop',
+      rowIndex,
+      cropIndex: 0,
+      isLast: false
+    };
+    setPending(pending);
+    setSelected(pending);
   };
 
   const handleAddRowLast = () => {
-    setPending({ kind: 'row', rowIndex: patternForm.values.rows.length });
-    setSelected(null);
+    const pending: PendingElement = {
+      kind: 'row',
+      rowIndex: patternForm.values.rows.length,
+      isLast: true,
+    };
+    setPending(pending);
+    setSelected(pending);
   };
 
   const handleAddRowBetween = (afterRowIndex: number) => {
-    setPending({ kind: 'row', rowIndex: afterRowIndex });
-    setSelected(null);
+    const pending: PendingElement = {
+      kind: 'row',
+      rowIndex: afterRowIndex + 1,
+      isLast: false
+    };
+    setPending(pending);
+    setSelected(pending);
   }
 
   const handlePlantPicked = (plantId: number) => {
     if (!pending) return;
 
     if (pending.kind === 'crop') {
-      const next = patternForm.values.rows.slice();
-      if (!next[pending.rowIndex]) return;
-      const row = { ...next[pending.rowIndex], crops: next[pending.rowIndex].crops.slice() };
+      const rows = patternForm.values.rows.slice();
+      if (!rows[pending.rowIndex]) return;
+      const row = { ...rows[pending.rowIndex], crops: rows[pending.rowIndex].crops.slice() };
+      let spacingM = 1;
+      if (pending.cropIndex > 0 && !pending.isLast) {
+        spacingM = row.crops[pending.cropIndex-1].distanceToNextCropM / 2;
+        row.crops.splice(pending.cropIndex-1, 1, {
+          ...row.crops[pending.cropIndex-1],
+          distanceToNextCropM: spacingM,
+        });
+      }
       row.crops.splice(pending.cropIndex, 0, {
-        id: cropKey(pending.rowIndex, pending.cropIndex),
         plantId,
-        distanceToNextCropM: 1,
+        distanceToNextCropM: spacingM,
       });
-      next[pending.rowIndex] = row;
-      patternForm.setFieldValue('rows', next);
+      rows[pending.rowIndex] = row;
+      patternForm.setFieldValue('rows', rows);
     } else {
-      const next = patternForm.values.rows.slice();
-      next.splice(pending.rowIndex, 0, {
-        id: rowKey(pending.rowIndex),
+      const rows = patternForm.values.rows.slice();
+      let spacingM = 1;
+      if (pending.rowIndex > 0 && !pending.isLast) {
+        spacingM = rows[pending.rowIndex-1].distanceToNextRowM / 2;
+        rows.splice(pending.rowIndex-1, 1, {
+          ...rows[pending.rowIndex-1],
+          distanceToNextRowM: spacingM,
+        });
+      }
+      rows.splice(pending.rowIndex, 0, {
         purposeId: 0,
-        distanceToNextRowM: 2,
+        distanceToNextRowM: spacingM,
         cropsOffsetM: 0,
         crops: [{
-          id: cropKey(pending.rowIndex, 0),
           plantId,
           distanceToNextCropM: 1,
         }],
       });
-      patternForm.setFieldValue('rows', next);
+      patternForm.setFieldValue('rows', rows);
     }
+
     setPending(null);
-    setSelected(null);
+    setSelected({
+      kind: 'crop',
+      rowIndex: pending.rowIndex,
+      cropIndex: pending.kind === 'crop' ? pending.cropIndex : 0,
+    });
   };
 
   const handleDeleteRow = (rowIndex: number) => {
@@ -427,6 +472,28 @@ export default function CroppingPatternEdit({
     );
     setSelected(null);
     setPending(null);
+  };
+
+  const handleDuplicateRow = (rowIndex: number) => {
+    const rows = patternForm.values.rows.slice();
+    const original = rows[rowIndex];
+    if (!original) return;
+
+    // Insert the duplicate immediately to the right of the original. Both
+    // rows keep the original's `distanceToNextRowM`; the copy is a deep copy
+    // of `purposeId`, `cropsOffsetM`, and the `crops` array.
+    rows.splice(rowIndex + 1, 0, {
+      purposeId: original.purposeId,
+      distanceToNextRowM: original.distanceToNextRowM,
+      cropsOffsetM: original.cropsOffsetM,
+      crops: original.crops.map((c) => ({
+        plantId: c.plantId,
+        distanceToNextCropM: c.distanceToNextCropM,
+      })),
+    });
+    patternForm.setFieldValue('rows', rows);
+    setPending(null);
+    setSelected({ kind: 'row', rowIndex: rowIndex + 1 });
   };
 
   const handleDeleteCrop = (rowIndex: number, cropIndex: number) => {
@@ -440,22 +507,34 @@ export default function CroppingPatternEdit({
   };
 
   const handleEditCropSpacing = (rowIndex: number, afterCropIndex: number) => {
-    setSelected({ kind: 'cropSpacing', rowIndex, afterCropIndex });
+    setSelected((prev) => {
+      const isReselection = prev?.kind === 'cropSpacing'
+        && prev.rowIndex === rowIndex
+        && prev.afterCropIndex === afterCropIndex;
+      if (isReselection) return null;
+
+      return { kind: 'cropSpacing', rowIndex, afterCropIndex };
+    });
     setPending(null);
   };
 
   const handleEditRowSpacing = (afterRowIndex: number) => {
-    setSelected({ kind: 'rowSpacing', afterRowIndex });
+    setSelected((prev) => {
+      const isReselection = prev?.kind === 'rowSpacing' && prev.afterRowIndex === afterRowIndex;
+      if (isReselection) return null;
+
+      return { kind: 'rowSpacing', afterRowIndex };
+    });
     setPending(null);
   };
 
   const handleEditRowOffset = (rowIndex: number) => {
-    setSelected({ kind: 'rowOffset', rowIndex });
-    setPending(null);
-  };
+    setSelected((prev) => {
+      const isReselection = prev?.kind === 'rowOffset' && prev.rowIndex === rowIndex;
+      if (isReselection) return null;
 
-  const handleSetRowOffset = (rowIndex: number) => {
-    setSelected({ kind: 'rowOffset', rowIndex });
+      return { kind: 'rowOffset', rowIndex };
+    });
     setPending(null);
   };
 
@@ -466,16 +545,16 @@ export default function CroppingPatternEdit({
   const selectedRow = selected?.kind === 'row' ? selected : null;
   const selectedCrop = selected?.kind === 'crop' ? selected : null;
   const selectedRowData = selectedRow !== null
-  ? syntheticPattern.rows[selectedRow.rowIndex]
-  : null;
+    ? syntheticPattern.rows[selectedRow.rowIndex]
+    : null;
   const selectedCropData = selectedCrop !== null
-  ? syntheticPattern.rows[selectedCrop.rowIndex]?.crops[selectedCrop.cropIndex] ?? null
-  : null;
+    ? syntheticPattern.rows[selectedCrop.rowIndex]?.crops[selectedCrop.cropIndex] ?? null
+    : null;
   const selectedSpacing = selected && [
     'rowOffset',
     'rowSpacing',
     'cropSpacing'
-  ].includes(selected.kind) ? selected : null;
+  ].includes(selected.kind) ? selected as SelectedSpacing : null;
   
   const { totalYM } = useMemo(
     () => buildPreviewGeometry(syntheticPattern),
@@ -489,6 +568,7 @@ export default function CroppingPatternEdit({
   }
 
   return (
+    <>
     <Stack gap="md">
       <Group justify="space-between" align="center" wrap="nowrap">
         <Button
@@ -501,9 +581,9 @@ export default function CroppingPatternEdit({
           Voltar para a lista
         </Button>
         <Text p={0} fw={600} fz="md">
-          {pattern && !clone
+          {pattern && !copy
             ? `Editando: ${pattern.name}`
-            : pattern && clone
+            : pattern && copy
               ? `Cópia de ${pattern.name}`
               : 'Novo padrão'}
         </Text>
@@ -511,7 +591,7 @@ export default function CroppingPatternEdit({
       </Group>
 
       <Group align="flex-start" gap="md" wrap="nowrap">
-        <Box style={{ flex: 1, minWidth: 0, height: panelHeightPx }}>
+        <Box style={{ width: "70%", height: panelHeightPx }}>
           <PatternPreviewPanel
             pattern={syntheticPattern}
             selectedElement={selected}
@@ -529,19 +609,22 @@ export default function CroppingPatternEdit({
               onEditCropSpacing: handleEditCropSpacing,
               onEditRowSpacing: handleEditRowSpacing,
               onEditRowOffset: handleEditRowOffset,
-              onSetRowOffset: handleSetRowOffset,
+              onSetRowOffset: handleEditRowOffset,
             }}
             // pendingCrop={pending?.kind === 'crop' ? pending : null}
             // pendingRowIndex={pending?.kind === 'row' ? pending.rowIndex : null}
           />
         </Box>
 
-        <Paper withBorder p="sm" w={280} style={{ minHeight: panelHeightPx }}>
+        <Paper withBorder p="sm" w="30%" style={{ minHeight: panelHeightPx }}>
           {pending ? (
             <CropInputPanel
               mode="pending"
+              pendingKind={pending.kind}
+              rowIndex={pending.rowIndex}
+              cropIndex={pending.kind === 'crop' ? pending.cropIndex : undefined}
               plants={plants.data}
-              onPickPlant={handlePlantPicked}
+              onPlantPicked={handlePlantPicked}
             />
           ) : selectedCrop && selectedCropData ? (
             <CropInputPanel
@@ -551,7 +634,7 @@ export default function CroppingPatternEdit({
               cropIndex={selectedCrop.cropIndex!}
               crop={selectedCropData}
               plants={plants.data}
-              onPickPlant={(plantId) => {
+              onPlantPicked={(plantId) => {
                 patternForm.setFieldValue(
                   `rows.${selectedCrop.rowIndex}.crops.${selectedCrop.cropIndex}.plantId`,
                   plantId,
@@ -565,12 +648,13 @@ export default function CroppingPatternEdit({
               rowIndex={selectedRow.rowIndex!}
               row={selectedRowData}
               onDelete={() => handleDeleteRow(selectedRow.rowIndex!)}
+              onDuplicate={() => handleDuplicateRow(selectedRow.rowIndex!)}
             />
           ) : selectedSpacing ? (
             <SpacingInputPanel
               selected={selectedSpacing}
+              pattern={syntheticPattern}
               patternForm={patternForm}
-              onDone={() => setSpacingEdit(null)}
             />
           ) : (
             <PatternFormPanel patternForm={patternForm} />
@@ -589,6 +673,18 @@ export default function CroppingPatternEdit({
         </Group>
       </Group>
     </Stack>
+    <LocalConfirmModal
+      opened={cancelModalOpen}
+      onClose={() => setCancelModalOpen(false)}
+      onConfirm={onBackToList}
+      title="Deseja descartar as mudanças?"
+      labels={{ confirm: 'Descartar mudanças', cancel: 'Cancelar' }}
+      confirmProps={{ color: 'red' }}
+    >
+      Você está prestes a fechar o padrão sem salvar. Todas as alterações
+      feitas serão descartadas.
+    </LocalConfirmModal>
+    </>
   );
 }
 
@@ -599,7 +695,7 @@ export default function CroppingPatternEdit({
 function PatternFormPanel({
   patternForm,
 }: {
-  patternForm: UseFormReturnType<CroppingPatternFormValues>;
+  patternForm: UseFormReturnType<CroppingPatternWriteRequestData>;
 }) {
   return (
     <Stack gap="sm">
@@ -624,28 +720,24 @@ function RowInputPanel({
   rowIndex,
   row,
   onDelete,
+  onDuplicate,
 }: {
-  patternForm: UseFormReturnType<CroppingPatternFormValues>;
+  patternForm: UseFormReturnType<CroppingPatternWriteRequestData>;
   rowIndex: number;
   row: PatternRow;
   onDelete: () => void;
+  onDuplicate: () => void;
 }) {
-  // Placeholder purpose options until `getCroppingRowPatterns` is implemented.
-  // See commented skeleton below.
-  const purposeOptions = [
-    { value: '1', label: 'Cobertura' },
-    { value: '2', label: 'Adubação' },
-    { value: '3', label: 'Produção' },
-  ];
+  const rowPath = `rows.${rowIndex}`;
 
-  /*
-  // Skeleton: when `getCroppingRowPatterns` lands, replace the placeholder
-  // list with this `useQuery`.
   const purposesQuery = useQuery({
-    queryKey: ['croppingRowPatterns'],
-    queryFn: getCroppingRowPatterns,
+    queryKey: ['croppingRowPurposeList'],
+    queryFn: getCroppingRowPurposeList,
   });
-  */
+  const purposeOptions = (purposesQuery.data ?? []).map((p) => ({
+    value: String(p.id),
+    label: capitalize(p.name),
+  }));
 
   const cropsLegend = row.crops.map((c, i) => (
     <CropLegend key={i} plant={c.plant} />
@@ -655,27 +747,51 @@ function RowInputPanel({
     <Stack gap="sm">
       <Group justify="space-between" align="baseline">
         <Text fw="bold">Linha {rowIndex + 1}</Text>
-        <DeleteButton
-          modalTitle="Remover linha do padrão?"
-          modalContent={
-            <Text size="sm">
-              Você está prestes a <strong>remover</strong> a linha {rowIndex + 1}
-              {' '}do padrão, junto com todos os seus cultivos.
-            </Text>
-          }
-          onModalConfirm={onDelete}
-        />
+        <Group gap="xs" wrap="nowrap">
+          <Tooltip label="Duplicar linha">
+            <Button
+              variant="outline"
+              size="compact-md"
+              color="var(--mantine-color-dark-4)"
+              onClick={onDuplicate}
+              aria-label="Duplicar linha"
+            >
+              <IconCopy size={20} />
+            </Button>
+          </Tooltip>
+          <Tooltip label="Excluir linha">
+            <DeleteButton
+              confirmModal={{
+                title: "Remover linha do padrão?",
+                children: (
+                  <Text size="sm">
+                    Você está prestes a <strong>remover</strong> a linha {rowIndex + 1}
+                    {' '}do padrão, junto com todos os seus cultivos.
+                  </Text>
+                ),
+                onConfirm: onDelete,
+                local: true,
+              }}
+            />
+          </Tooltip>
+        </Group>
       </Group>
       <Select
         label="Função"
         data={purposeOptions}
-        value={String(patternForm.values.rows[rowIndex].purposeId ?? '')}
+        placeholder="Selecione..."
+        {...patternForm.getInputProps(`${rowPath}.purposeId`)}
+        value={
+          patternForm.values.rows[rowIndex].purposeId
+            ? String(patternForm.values.rows[rowIndex].purposeId)
+            : null
+        }
         onChange={(value) => {
-          patternForm.setFieldValue(`rows.${rowIndex}.purposeId`, Number(value ?? 0));
+          patternForm.setFieldValue(`${rowPath}.purposeId`, Number(value ?? 0));
         }}
-        allowDeselect={false}
+        allowDeselect
       />
-      <FieldView fz="sm" label="Cultivos">
+      <FieldView fz="sm" label="Sequência de cultivos">
         {cropsLegend.length > 0 ? cropsLegend : <Text c="dimmed" fz="sm">Nenhum cultivo</Text>}
       </FieldView>
     </Stack>
@@ -685,11 +801,13 @@ function RowInputPanel({
 interface CropInputPanelProps {
   mode: 'edit' | 'pending';
   plants: PlantReadData[];
-  onPickPlant: (plantId: number) => void;
-  // edit-mode extras:
-  patternForm?: UseFormReturnType<CroppingPatternFormValues>;
-  rowIndex?: number;
+  patternForm?: UseFormReturnType<CroppingPatternWriteRequestData>;
+  rowIndex: number;
   cropIndex?: number;
+  onPlantPicked: (plantId: number) => void;
+  // pending-mode-only props:
+  pendingKind?: 'crop' | 'row';
+  // edit-mode-only props:
   crop?: PatternCrop;
   onDelete?: () => void;
 }
@@ -697,12 +815,13 @@ interface CropInputPanelProps {
 function CropInputPanel({
   mode,
   plants,
-  onPickPlant,
   patternForm,
   rowIndex,
   cropIndex,
-  crop,
   onDelete,
+  onPlantPicked,
+  pendingKind,
+  crop,
 }: CropInputPanelProps) {
   const { plantsFitnessMap } = useProject();
 
@@ -715,7 +834,7 @@ function CropInputPanel({
     });
   }, [plants, plantsFitnessMap]);
 
-  const selectData = rankedPlants.map((p) => ({
+  const plantOptions = rankedPlants.map((p) => ({
     value: String(p.id),
     label: `${p.mainPopularName} (${p.acceptedTaxonName})`,
   }));
@@ -729,150 +848,161 @@ function CropInputPanel({
 
   const plantFitness = currentPlant ? plantsFitnessMap[currentPlant.acceptedTaxonName] : null;
 
-  const popularNamesQueryOptions = currentPlant
-    ? {
-        queryKey: ['plantPopularNameList', String(currentPlant.id)],
-        queryFn: getPlantPopularNameList,
-      }
-    : { queryKey: ['plantPopularNameList', 'none'] as string[], queryFn: () => Promise.resolve([]) };
+  const popularNamesQueryOptions = {
+    queryKey: ['plantPopularNameList', String(currentPlant?.id ?? 0)],
+    queryFn: getPlantPopularNameList,
+    enable: currentPlant,
+  };
   const popularNames = useQuery(popularNamesQueryOptions);
+
+  const deleteButton = onDelete && (
+    <Tooltip label="Remover cultivo">
+      <DeleteButton onClick={onDelete} />
+    </Tooltip>
+  );
 
   return (
     <Stack gap="xs">
-      {mode === 'edit' && currentPlant && (
-        <Group gap={6} wrap="nowrap" align="baseline">
-          <Text fw="bold" fs="italic" style={{ flex: 1 }}>
-            {currentPlant.acceptedTaxonName}
-          </Text>
-          {plantFitness && <NativityBadge plantFitness={plantFitness} />}
-          <ActionIcon
-            variant="subtle"
-            size="sm"
-            onClick={() => window.open(`/plants/${currentPlant.id}`, '_blank')}
-            aria-label="Abrir página da planta em nova aba"
-          >
-            <IconExternalLink size={14} />
-          </ActionIcon>
-        </Group>
+      <Group gap={6} wrap="nowrap" align="baseline">
+        {mode === 'edit' && currentPlant && (
+          <Fragment>
+            <Text fw="bold" fs="italic" style={{ flex: 1 }}>
+              {currentPlant.acceptedTaxonName}
+            </Text>
+            {plantFitness && <NativityBadge plantFitness={plantFitness} />}
+            <ActionIcon
+              variant="subtle"
+              size="sm"
+              onClick={() => window.open(`/plants/${currentPlant.id}`, '_blank')}
+              aria-label="Abrir página da planta em nova aba"
+              >
+              <IconExternalLink size={14} />
+            </ActionIcon>
+            {deleteButton}
+          </Fragment>
+        )}
+        {mode === 'pending' && pendingKind === 'crop' && (
+          <Text fw="bold">Novo cultivo</Text>
+        )}
+        {mode === 'pending' && pendingKind === 'row' && (
+          <Text fw="bold">Nova linha</Text>
       )}
+      </Group>
       {mode === 'edit' && currentPlant && popularNames.data && popularNames.data.length > 0 && (
         <Text fz="sm">
           {popularNames.data.map((n) => n.name).join(', ')}
         </Text>
       )}
+      <FieldView fz="sm" label="Linha">{rowIndex + 1}</FieldView>
+      <FieldView fz="sm" label="Posição">{(cropIndex ?? 0) + 1}</FieldView>
       <Select
-        label={mode === 'pending' ? 'Escolha uma planta' : 'Planta'}
+        label={mode === 'pending' ? 'Escolha uma planta:' : 'Planta:'}
         placeholder={mode === 'pending' ? 'Selecione...' : undefined}
         searchable
-        data={selectData}
+        allowDeselect={false}
+        data={plantOptions}
+        {...patternForm?.getInputProps(`rows.${rowIndex}.crops.${cropIndex}.plantId`)}
         value={currentPlantId !== null ? String(currentPlantId) : null}
-        onChange={(value) => onPickPlant(Number(value ?? 0))}
+        onChange={(value) => onPlantPicked(Number(value ?? 0))}
       />
-      {mode === 'edit' && onDelete && (
-        <MantineTooltip label="Excluir cultivo">
-          <div>
-            <DeleteButton
-              modalTitle="Remover cultivo do padrão?"
-              modalContent={
-                <Text size="sm">
-                  Você está prestes a <strong>remover</strong> este cultivo da linha.
-                </Text>
-              }
-              onModalConfirm={onDelete}
-            />
-          </div>
-        </MantineTooltip>
-      )}
     </Stack>
   );
 }
 
 function SpacingInputPanel({
   selected,
+  pattern,
   patternForm,
-  onDone,
 }: {
   selected: SelectedSpacing;
-  patternForm: UseFormReturnType<CroppingPatternFormValues>;
-  onDone: () => void;
+  pattern: CroppingPatternReadData;
+  patternForm: UseFormReturnType<CroppingPatternWriteRequestData>;
 }) {
   /**
    * Map the spacing state into a form path + a short title. The path is
    * written through on every keystroke (so the user sees the preview update
-   * live); `onDone` is wired to the "Concluído" button so they can return to
-   * the form-panel view without unselecting.
+   * live);
    */
-  const { path, title, initialValue } = useMemo(() => {
+  const { path, title, minValue, initialValue, info } = useMemo(() => {
     switch (selected.kind) {
       case 'cropSpacing':
         return {
-          path: `rows.${selected.rowIndex}.crops.${selected.afterCropIndex}.distanceToNextCropM` as const,
+          path: `rows.${selected.rowIndex}.crops.${selected.afterCropIndex}.distanceToNextCropM`,
           title: 'Espaçamento entre cultivos',
-          initialValue: patternForm.values.rows[selected.rowIndex]?.crops[selected.afterCropIndex]
+          minValue: 25,
+          initialValue: pattern.rows[selected.rowIndex]?.crops[selected.afterCropIndex]
             ?.distanceToNextCropM ?? 1,
+          info: (() => {
+            const row = pattern.rows[selected.rowIndex];
+            const cropA = row.crops[selected.afterCropIndex];
+            const cropB = row.crops[(selected.afterCropIndex + 1) % row.crops.length];
+            return (
+              <Stack gap={5}>
+                <Text fz={15}>{`Linha ${row.position}`}</Text>
+                <CropLegend pl={4} plant={cropA.plant} />
+                <IconArrowsVertical stroke={1.5} />
+                <CropLegend pl={4} plant={cropB.plant} />
+              </Stack>
+            )
+          })(),
         };
       case 'rowSpacing':
         return {
-          path: `rows.${selected.afterRowIndex}.distanceToNextRowM` as const,
+          path: `rows.${selected.afterRowIndex}.distanceToNextRowM`,
           title: 'Espaçamento entre linhas',
-          initialValue: patternForm.values.rows[selected.afterRowIndex]?.distanceToNextRowM ?? 1,
+          minValue: 25,
+          initialValue: pattern.rows[selected.afterRowIndex]?.distanceToNextRowM ?? 1,
+          info: (() => {
+            const rowA = pattern.rows[selected.afterRowIndex];
+            const rowB = pattern.rows[(selected.afterRowIndex + 1) % pattern.rows.length];
+            return (
+              <Group gap={10}>
+                <Text fz={15}>{`Linha ${rowA.position}`}</Text>
+                <IconArrowsHorizontal stroke={1.5} />
+                <Text fz={15}>{`Linha ${rowB.position}`}</Text>
+              </Group>
+            )
+          })(),
         };
       case 'rowOffset':
         return {
-          path: `rows.${selected.rowIndex}.cropsOffsetM` as const,
+          path: `rows.${selected.rowIndex}.cropsOffsetM`,
           title: 'Deslocamento inicial da linha',
-          initialValue: patternForm.values.rows[selected.rowIndex]?.cropsOffsetM ?? 0,
+          minValue: 0,
+          initialValue: pattern.rows[selected.rowIndex]?.cropsOffsetM ?? 0,
+          info: (() => {
+            const firstCrop = pattern.rows[selected.rowIndex].crops[0];
+            return (
+              <Stack gap={5}>
+                <Text fz={15}>{`Linha ${selected.rowIndex + 1} (início)`}</Text>
+                <IconArrowNarrowDown stroke={1.5} />
+                <CropLegend pl={4} plant={firstCrop.plant} />
+              </Stack>
+            )
+          })()
         };
     }
-  }, [selected, patternForm.values]);
+  }, [selected, pattern]);
 
   return (
     <Stack gap="sm">
       <Text fw="bold">{title}</Text>
+      {info}
       <NumberInput
         label="Distância (cm)"
-        min={0}
+        min={minValue}
         step={25}
         decimalScale={2}
+        {...patternForm.getInputProps(path)}
         value={initialValue*100}
         onChange={(value) => {
           // Mantine v8 NumberInput yields `number | string`; coerce and guard.
-          const next = typeof value === 'number' ? value : parseFloat(String(value));
-          if (Number.isFinite(next)) {
-            patternForm.setFieldValue(path, next/100);
+          const float = typeof value === 'number' ? value : parseFloat(value);
+          if (Number.isFinite(float)) {
+            patternForm.setFieldValue(path, float/100);
           }
         }}
       />
-      <Button variant="default" onClick={onDone}>
-        Concluído
-      </Button>
     </Stack>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function rowKey(i: number): string {
-  return `row-${i}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function cropKey(i: number, j: number): string {
-  return `crop-${i}-${j}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-/**
- * Placeholder plant used in the synthetic `CroppingPatternReadData` while a
- * pending crop has no plant picked. White fill at the marker layer makes the
- * "pending" state visually obvious.
- */
-const PENDING_PLANT: PlantReadData = {
-  id: 0,
-  contentId: 0,
-  contentStatus: 'pending',
-  acceptedTaxonName: 'Pendente',
-  acceptedFamilyName: '',
-  mainPopularName: 'Pendente',
-  colorHex: '#ffffff',
-};

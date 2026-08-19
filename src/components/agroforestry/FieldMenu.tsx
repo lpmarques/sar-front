@@ -106,7 +106,7 @@ export default function FieldMenu({
     })
   });
 
-  const handleSubmitButtonClick = () => {
+  const handleSubmit = () => {
     const fieldValidation = fieldForm.validate();
 
     if (fieldValidation.hasErrors)
@@ -123,29 +123,29 @@ export default function FieldMenu({
     });
   }
 
-  const onUnsavedFieldClose = () => {
+  const handleUnsavedClose = () => {
     resetField();
     unselectField();
   }
 
   const deleteButtonProps = initialField ? {
-    modalTitle: "Deseja mesmo excluir essa área de cultivo?",
-    modalContent: (
+    title: "Deseja mesmo excluir essa área de cultivo?",
+    children: (
       <Text size="sm" mb={20}>
         Ao confirmar, você <strong>removerá</strong> o cadastro do 
         SAF <Text span fw={700}>{initialField.name}</Text>,
         junto com todos os dados vinculados a ele.
       </Text>
     ),
-    onModalConfirm: () => fieldDelete.mutate(initialField.id),
+    onConfirm: () => fieldDelete.mutate(initialField.id),
   } : {
-    modalTitle: "Deseja mesmo excluir essa área de cultivo?",
-    modalContent: (
+    title: "Deseja mesmo excluir essa área de cultivo?",
+    children: (
       <Text size="sm" mb={20}>
         Ao confirmar, você <strong>removerá</strong> a área desenhada.
       </Text>
     ),
-    onModalConfirm: () => removeField(),
+    onConfirm: () => removeField(),
   };
 
   const fieldDeleteButton = 
@@ -165,17 +165,19 @@ export default function FieldMenu({
     <Tooltip label="Fechar área de cultivo">
       {isFieldChanged ?
         <ConfirmingButton
-          modalTitle="Deseja descartar as mudanças?"
-          modalContent={
-            <Text>
-              Você está prestes a fechar o SAF <strong>{initialField.name}</strong>.
-              Há mudanças não salvas nessa área. 
-              Se fechar agora, elas serão descartadas.
-            </Text>
-          }
-          modalLabels={{ confirm: 'Descartar mudanças', cancel: 'Cancelar' }}
-          modalConfirmProps={{ color: 'red' }}
-          onModalConfirm={onUnsavedFieldClose}
+          modal={{
+            title: "Deseja descartar as mudanças?",
+            children: (
+              <Text>
+                Você está prestes a fechar o SAF <strong>{initialField.name}</strong>.
+                Há mudanças não salvas nessa área. 
+                Se fechar agora, elas serão descartadas.
+              </Text>
+            ),
+            labels: { confirm: 'Descartar mudanças', cancel: 'Cancelar' },
+            confirmProps: { color: 'red' },
+            onConfirm: handleUnsavedClose,
+          }}
           {...closeButtonStyle}
         >
           <IconX />
@@ -189,7 +191,7 @@ export default function FieldMenu({
   const submitButton = isFieldChanged ?
     <Button
       size="lg"
-      onClick={handleSubmitButtonClick}
+      onClick={handleSubmit}
       loading={fieldSubmit.isPending}
       disabled={inputsDisabled}
     >
@@ -438,7 +440,7 @@ function CroppingPatternSelect({ selectedPatternId, label, disabled, onSelect, o
 
   const openPreviewModal = () => modals.open({
     title: 'Padrões de cultivo',
-    size: 'xl',
+    size: '75%',
     children: (
       <CroppingPatternsModal
         selectedPatternId={selectedPatternId}
