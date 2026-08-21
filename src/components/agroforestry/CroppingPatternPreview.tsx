@@ -48,6 +48,7 @@ import { CropLegend, NativityBadge } from ".";
 import { capitalize } from "../../utils/common";
 import { showSuccess } from "../common/notifications";
 import { showMutationError } from "../../apis/common";
+import DeleteButton from "../common/DeleteButton";
 
 interface CroppingPatternPreviewProps {
   pattern: CroppingPatternReadData;
@@ -203,14 +204,10 @@ export default function CroppingPatternPreview({
           </Tooltip>}
         {isAuthor &&
           <Tooltip label="Excluir padrão">
-            <ActionIcon
-              variant="outline"
-              color="red"
+            <DeleteButton
               size="lg"
               onClick={handlePatternDelete}
-            >
-              <IconTrash size={18} />
-            </ActionIcon>
+            />
           </Tooltip>}
         </Group>
       </Group>

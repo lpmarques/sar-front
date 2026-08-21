@@ -254,17 +254,19 @@ export default function ShapeMarker({
     iconAnchor: [size / 2, size / 2],
   });
 
+  const eventHandlers: Record<string, (() => void) | undefined> = {
+    click: onClick,
+  };
+  if (onMouseOver) eventHandlers.mouseover = onMouseOver;
+  if (onMouseOut) eventHandlers.mouseout = onMouseOut;
+
   return (
     <Marker
       position={latLng}
       icon={icon}
       interactive={interactive}
       keyboard={false}
-      eventHandlers={{
-        click: onClick,
-        mouseover: onMouseOver,
-        mouseout: onMouseOut,
-      }}
+      eventHandlers={eventHandlers}
     >
       {children}
     </Marker>

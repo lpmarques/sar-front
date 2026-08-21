@@ -90,7 +90,7 @@ interface PatternCropWrite {
   distanceToNextCropM: number;
 }
 
-interface PatternRowWrite {
+export interface PatternRowWrite {
   purposeId: number;
   distanceToNextRowM: number;
   cropsOffsetM: number;

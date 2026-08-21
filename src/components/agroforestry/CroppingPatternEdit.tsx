@@ -27,7 +27,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useForm, UseFormReturnType } from "@mantine/form";
-import { IconArrowNarrowDown, IconArrowsHorizontal, IconArrowsVertical, IconChevronLeft, IconCopy, IconExternalLink } from "@tabler/icons-react";
+import { IconArrowNarrowDown, IconArrowsHorizontal, IconArrowsVertical, IconChevronLeft, IconCircle, IconCopy, IconExternalLink } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CroppingPatternReadData,
@@ -49,7 +49,7 @@ import FieldView from "../common/FieldView";
 import LocalConfirmModal from "../common/LocalConfirmModal";
 import { showError, showSuccess } from "../common/notifications";
 import { CropLegend, NativityBadge } from ".";
-import PatternPreviewPanel, { buildPreviewGeometry, CropPosition, PENDING_PLANT, PendingElement, SelectedElement, SelectedSpacing } from "./PatternPreviewPanel";
+import PatternPreviewPanel, { buildPreviewGeometry, CropPosition, SelectedElement, SelectedSpacing } from "./PatternPreviewPanel";
 import { capitalize } from "../../utils/common";
 
 interface CroppingPatternEditProps {
@@ -164,7 +164,7 @@ export default function CroppingPatternEdit({
   });
 
   const [selected, setSelected] = useState<SelectedElement | null>(null);
-  const [pending, setPending] = useState<PendingElement | null>(null);
+  const [pendingCrop, setPendingCrop] = useState<CropPosition | null>(pattern ? null : { rowIndex: 0, cropIndex: 0 });
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
 
   /**
@@ -229,10 +229,7 @@ export default function CroppingPatternEdit({
       showError('Há campos inválidos no formulário.', 'Erro');
 
       // Pick the first nested error so the user lands on the panel that
-      // contains the offending field. Spacing fields route to the spacing
-      // panel; other row-/crop-nested fields route to the row/crop panel.
-      // Form-level errors (name, description) need no selection — the default
-      // `PatternFormPanel` already covers them.
+      // contains the offending field.
       let focus: SelectedElement | null = null;
       for (const path of Object.keys(patternForm.errors)) {
         const cropSpacingMatch = path.match(/^rows\.(\d+)\.crops\.(\d+)\.distanceToNextCropM$/);
@@ -272,6 +269,7 @@ export default function CroppingPatternEdit({
           break;
         }
       }
+
       setSelected(focus);
       return;
     }
@@ -282,23 +280,20 @@ export default function CroppingPatternEdit({
       setSelected(null);
       return;
     }
-
+    
     const emptyRowIndex = values.rows.findIndex((r) => r.crops.length === 0);
     if (emptyRowIndex !== -1) {
       showError(`A linha ${emptyRowIndex + 1} não tem cultivos.`, 'Erro');
-      // patternForm.setFieldError(`rows.${emptyRowIndex}.crops.0.plantId`, 'Campo obrigatório');
       setSelected({ kind: 'row', rowIndex: emptyRowIndex });
       return;
     }
 
-    values.rows.forEach((row, rowIndex) => {
-      const pendingCropIndex = row.crops.findIndex((c) => c.plantId === 0);
-      if (pendingCropIndex !== -1) {
-        showError('Há cultivos pendentes (sem planta definida).', 'Erro');
-        setSelected({ kind: 'crop', rowIndex, cropIndex: pendingCropIndex });
-        return;
-      }
-    })
+    if (pendingCrop) {
+      showError('Há cultivos pendentes (sem planta definida).', 'Erro');
+      patternForm.setFieldError(`rows.${pendingCrop.rowIndex}.crops.${pendingCrop.cropIndex}.plantId`, 'Campo obrigatório');
+      setSelected({ kind: 'crop', rowIndex: pendingCrop.rowIndex, cropIndex: pendingCrop.cropIndex });
+      return;
+    }
 
     mutations.mutate({
       id: !copy && pattern ? pattern.id : undefined,
@@ -309,10 +304,6 @@ export default function CroppingPatternEdit({
   const handleCancel = () => {
     setCancelModalOpen(true);
   };
-
-  // -------------------------------------------------------------------------
-  // Editor handlers — fed down to the writing preview.
-  // -------------------------------------------------------------------------
 
   const handleCropSelect = ({ rowIndex, cropIndex }: CropPosition) => {
     setSelected((prev) => {
@@ -325,8 +316,6 @@ export default function CroppingPatternEdit({
         cropIndex,
       }
     });
-
-    setPending(null);
   };
 
   const handleRowSelect = (rowIndex: number) => {
@@ -339,8 +328,6 @@ export default function CroppingPatternEdit({
         rowIndex,
       }
     });
-
-    setPending(null);
   };
 
   const handleRowMoveLeft = (rowIndex: number) => {
@@ -348,8 +335,8 @@ export default function CroppingPatternEdit({
     const rows = patternForm.values.rows.slice();
     [rows[rowIndex - 1], rows[rowIndex]] = [rows[rowIndex], rows[rowIndex - 1]];
     patternForm.setFieldValue('rows', rows);
+    
     setSelected(null);
-    setPending(null);
   };
 
   const handleRowMoveRight = (rowIndex: number) => {
@@ -357,112 +344,151 @@ export default function CroppingPatternEdit({
     if (rowIndex >= rows.length - 1) return;
     [rows[rowIndex + 1], rows[rowIndex]] = [rows[rowIndex], rows[rowIndex + 1]];
     patternForm.setFieldValue('rows', rows);
+
     setSelected(null);
-    setPending(null);
   };
+  
+  const showPendingCropError = () => {
+    if (!pendingCrop) return;
 
-  const handleAddCropLast = (rowIndex: number) => {
-    const pending: PendingElement = {
-      kind: 'crop',
-      rowIndex,
-      cropIndex: patternForm.values.rows[rowIndex].crops.length,
-      isLast: true,
-    };
-    setPending(pending);
-    setSelected(pending);
-  };
+    showError('Escolha ou remova o cultivo pendente antes de adicionar um novo cultivo')
+    patternForm.setFieldError(`rows.${pendingCrop.rowIndex}.crops.${pendingCrop.cropIndex}.plantId`, 'Campo obrigatório');
 
-  const handleAddCropBetween = (rowIndex: number, afterCropIndex: number) => {
-    const pending: PendingElement = {
-      kind: 'crop',
-      rowIndex,
-      cropIndex: afterCropIndex + 1,
-      isLast: false,
-    };
-    setPending(pending);
-    setSelected(pending);
+    setSelected({ kind: 'crop', ...pendingCrop });
   };
 
   const handleAddCropFirst = (rowIndex: number) => {
-    const pending: PendingElement = {
-      kind: 'crop',
-      rowIndex,
-      cropIndex: 0,
-      isLast: false
-    };
-    setPending(pending);
-    setSelected(pending);
+    if (pendingCrop) return showPendingCropError();
+
+    const rows = patternForm.values.rows.slice();
+    if (!rows[rowIndex]) return;
+    
+    const cropIndex = 0;
+    const row = { ...rows[rowIndex], crops: rows[rowIndex].crops.slice() };
+
+    row.crops.splice(cropIndex, 0, {
+      plantId: 0,
+      distanceToNextCropM: 1,
+    });
+    rows[rowIndex] = row;
+    patternForm.setFieldValue('rows', rows);
+
+    const cropPosition = { rowIndex, cropIndex };
+    setPendingCrop(cropPosition);
+    setSelected({ kind: 'crop', ...cropPosition });
   };
 
-  const handleAddRowLast = () => {
-    const pending: PendingElement = {
-      kind: 'row',
-      rowIndex: patternForm.values.rows.length,
-      isLast: true,
-    };
-    setPending(pending);
-    setSelected(pending);
+  const handleAddCropBetween = (rowIndex: number, afterCropIndex: number) => {
+    if (pendingCrop) return showPendingCropError();
+    
+    const rows = patternForm.values.rows.slice();
+    if (!rows[rowIndex]) return;
+    
+    const row = { ...rows[rowIndex], crops: rows[rowIndex].crops.slice() };
+    const cropIndex = afterCropIndex + 1;
+    const spacingM = row.crops[afterCropIndex].distanceToNextCropM / 2;
+
+    row.crops.splice(afterCropIndex, 1, {
+      ...row.crops[afterCropIndex],
+      distanceToNextCropM: spacingM,
+    });
+
+    row.crops.splice(cropIndex, 0, {
+      plantId: 0,
+      distanceToNextCropM: spacingM,
+    });
+    rows[rowIndex] = row;
+    patternForm.setFieldValue('rows', rows);
+
+    const cropPosition = { rowIndex, cropIndex };
+    setPendingCrop(cropPosition);
+    setSelected({ kind: 'crop', ...cropPosition });
+  };
+
+  const handleAddCropLast = (rowIndex: number) => {
+    if (pendingCrop) return showPendingCropError();
+    
+    const rows = patternForm.values.rows.slice();
+    if (!rows[rowIndex]) return;
+    
+    const row = { ...rows[rowIndex], crops: rows[rowIndex].crops.slice() };
+    const cropIndex = rows[rowIndex].crops.length;
+
+    row.crops.splice(cropIndex, 0, {
+      plantId: 0,
+      distanceToNextCropM: 1,
+    });
+    rows[rowIndex] = row;
+    patternForm.setFieldValue('rows', rows);
+
+    const cropPosition = { rowIndex, cropIndex };
+    setPendingCrop(cropPosition);
+    setSelected({ kind: 'crop', ...cropPosition });
   };
 
   const handleAddRowBetween = (afterRowIndex: number) => {
-    const pending: PendingElement = {
-      kind: 'row',
-      rowIndex: afterRowIndex + 1,
-      isLast: false
-    };
-    setPending(pending);
-    setSelected(pending);
+    if (pendingCrop) return showPendingCropError();
+    
+    const rows = patternForm.values.rows.slice();
+    if (!rows[afterRowIndex]) return;
+
+    const rowIndex = afterRowIndex + 1;
+    const spacingM = rows[afterRowIndex].distanceToNextRowM / 2;
+    
+    rows.splice(afterRowIndex, 1, {
+      ...rows[afterRowIndex],
+      distanceToNextRowM: spacingM,
+    });
+
+    rows.splice(rowIndex, 0, {
+      purposeId: 0,
+      distanceToNextRowM: spacingM,
+      cropsOffsetM: 0,
+      crops: [{
+        plantId: 0,
+        distanceToNextCropM: 1,
+      }],
+    });
+    patternForm.setFieldValue('rows', rows);
+
+    const cropPosition = { rowIndex, cropIndex: 0 };
+    setPendingCrop(cropPosition);
+    setSelected({ kind: 'crop', ...cropPosition });
   }
 
-  const handlePlantPicked = (plantId: number) => {
-    if (!pending) return;
+  const handleAddRowLast = () => {
+    if (pendingCrop) return showPendingCropError();
+    
+    const rows = patternForm.values.rows.slice();
+    const rowIndex = rows.length;
 
-    if (pending.kind === 'crop') {
-      const rows = patternForm.values.rows.slice();
-      if (!rows[pending.rowIndex]) return;
-      const row = { ...rows[pending.rowIndex], crops: rows[pending.rowIndex].crops.slice() };
-      let spacingM = 1;
-      if (pending.cropIndex > 0 && !pending.isLast) {
-        spacingM = row.crops[pending.cropIndex-1].distanceToNextCropM / 2;
-        row.crops.splice(pending.cropIndex-1, 1, {
-          ...row.crops[pending.cropIndex-1],
-          distanceToNextCropM: spacingM,
-        });
-      }
-      row.crops.splice(pending.cropIndex, 0, {
-        plantId,
-        distanceToNextCropM: spacingM,
-      });
-      rows[pending.rowIndex] = row;
-      patternForm.setFieldValue('rows', rows);
-    } else {
-      const rows = patternForm.values.rows.slice();
-      let spacingM = 1;
-      if (pending.rowIndex > 0 && !pending.isLast) {
-        spacingM = rows[pending.rowIndex-1].distanceToNextRowM / 2;
-        rows.splice(pending.rowIndex-1, 1, {
-          ...rows[pending.rowIndex-1],
-          distanceToNextRowM: spacingM,
-        });
-      }
-      rows.splice(pending.rowIndex, 0, {
-        purposeId: 0,
-        distanceToNextRowM: spacingM,
-        cropsOffsetM: 0,
-        crops: [{
-          plantId,
-          distanceToNextCropM: 1,
-        }],
-      });
-      patternForm.setFieldValue('rows', rows);
-    }
-
-    setPending(null);
-    setSelected({
-      kind: 'crop',
-      rowIndex: pending.rowIndex,
-      cropIndex: pending.kind === 'crop' ? pending.cropIndex : 0,
+    rows.splice(rowIndex, 0, {
+      purposeId: 0,
+      distanceToNextRowM: 1,
+      cropsOffsetM: 0,
+      crops: [{
+        plantId: 0,
+        distanceToNextCropM: 1,
+      }],
     });
+    patternForm.setFieldValue('rows', rows);
+
+    const cropPosition = { rowIndex, cropIndex: 0 };
+    setPendingCrop(cropPosition);
+    setSelected({ kind: 'crop', ...cropPosition });
+  };
+
+  const handlePlantPicked = (rowIndex: number, cropIndex: number, plantId: number) => {
+    patternForm.setFieldValue(
+      `rows.${rowIndex}.crops.${cropIndex}.plantId`,
+      plantId,
+    );
+    
+    if (pendingCrop 
+      && rowIndex === pendingCrop.rowIndex
+      && cropIndex === pendingCrop.cropIndex) {
+      setPendingCrop(null);
+    }
   };
 
   const handleDeleteRow = (rowIndex: number) => {
@@ -470,8 +496,13 @@ export default function CroppingPatternEdit({
       'rows',
       patternForm.values.rows.filter((_, i) => i !== rowIndex),
     );
+
+    if (pendingCrop && rowIndex === pendingCrop.rowIndex) {
+      setPendingCrop(null);
+    } else if (pendingCrop && rowIndex < pendingCrop.rowIndex) {
+      setPendingCrop((prev) => ({ rowIndex: prev!.rowIndex - 1, cropIndex: prev!.cropIndex }));
+    }
     setSelected(null);
-    setPending(null);
   };
 
   const handleDuplicateRow = (rowIndex: number) => {
@@ -479,9 +510,7 @@ export default function CroppingPatternEdit({
     const original = rows[rowIndex];
     if (!original) return;
 
-    // Insert the duplicate immediately to the right of the original. Both
-    // rows keep the original's `distanceToNextRowM`; the copy is a deep copy
-    // of `purposeId`, `cropsOffsetM`, and the `crops` array.
+    // Insert the duplicate immediately to the right of the original.
     rows.splice(rowIndex + 1, 0, {
       purposeId: original.purposeId,
       distanceToNextRowM: original.distanceToNextRowM,
@@ -492,18 +521,31 @@ export default function CroppingPatternEdit({
       })),
     });
     patternForm.setFieldValue('rows', rows);
-    setPending(null);
+
     setSelected({ kind: 'row', rowIndex: rowIndex + 1 });
   };
 
   const handleDeleteCrop = (rowIndex: number, cropIndex: number) => {
-    patternForm.setFieldValue('rows', patternForm.values.rows.map((r, i) =>
+    const rows = patternForm.values.rows.map((r, i) =>
       i === rowIndex
         ? { ...r, crops: r.crops.filter((_, j) => j !== cropIndex) }
         : r,
-    ));
+    );
+    const clearedRow = rows[rowIndex].crops.length === 0;
+    patternForm.setFieldValue('rows', rows.filter((r) => r.crops.length > 0));
+
+    if (pendingCrop 
+      && rowIndex === pendingCrop.rowIndex
+      && cropIndex === pendingCrop.cropIndex) {
+      setPendingCrop(null);
+    } else if (pendingCrop
+      && rowIndex === pendingCrop.rowIndex
+      && cropIndex < pendingCrop.cropIndex) {
+      setPendingCrop((prev) => ({ ...prev!, cropIndex: prev!.cropIndex - 1 }));
+    } else if (pendingCrop && rowIndex < pendingCrop.rowIndex && clearedRow) {
+      setPendingCrop((prev) => ({ ...prev!, rowIndex: prev!.rowIndex - 1 }));
+    }
     setSelected(null);
-    setPending(null);
   };
 
   const handleEditCropSpacing = (rowIndex: number, afterCropIndex: number) => {
@@ -515,7 +557,6 @@ export default function CroppingPatternEdit({
 
       return { kind: 'cropSpacing', rowIndex, afterCropIndex };
     });
-    setPending(null);
   };
 
   const handleEditRowSpacing = (afterRowIndex: number) => {
@@ -525,7 +566,6 @@ export default function CroppingPatternEdit({
 
       return { kind: 'rowSpacing', afterRowIndex };
     });
-    setPending(null);
   };
 
   const handleEditRowOffset = (rowIndex: number) => {
@@ -535,7 +575,6 @@ export default function CroppingPatternEdit({
 
       return { kind: 'rowOffset', rowIndex };
     });
-    setPending(null);
   };
 
   // -------------------------------------------------------------------------
@@ -611,35 +650,19 @@ export default function CroppingPatternEdit({
               onEditRowOffset: handleEditRowOffset,
               onSetRowOffset: handleEditRowOffset,
             }}
-            // pendingCrop={pending?.kind === 'crop' ? pending : null}
-            // pendingRowIndex={pending?.kind === 'row' ? pending.rowIndex : null}
+            pendingCrop={pendingCrop}
           />
         </Box>
 
         <Paper withBorder p="sm" w="30%" style={{ minHeight: panelHeightPx }}>
-          {pending ? (
+          {selectedCrop && selectedCropData ? (
             <CropInputPanel
-              mode="pending"
-              pendingKind={pending.kind}
-              rowIndex={pending.rowIndex}
-              cropIndex={pending.kind === 'crop' ? pending.cropIndex : undefined}
-              plants={plants.data}
-              onPlantPicked={handlePlantPicked}
-            />
-          ) : selectedCrop && selectedCropData ? (
-            <CropInputPanel
-              mode="edit"
               patternForm={patternForm}
               rowIndex={selectedCrop.rowIndex!}
               cropIndex={selectedCrop.cropIndex!}
               crop={selectedCropData}
               plants={plants.data}
-              onPlantPicked={(plantId) => {
-                patternForm.setFieldValue(
-                  `rows.${selectedCrop.rowIndex}.crops.${selectedCrop.cropIndex}.plantId`,
-                  plantId,
-                );
-              }}
+              onPlantPicked={(plantId) => handlePlantPicked(selectedCrop.rowIndex, selectedCrop.cropIndex, plantId)}
               onDelete={() => handleDeleteCrop(selectedCrop.rowIndex!, selectedCrop.cropIndex!)}
             />
           ) : selectedRow && selectedRowData ? (
@@ -739,8 +762,8 @@ function RowInputPanel({
     label: capitalize(p.name),
   }));
 
-  const cropsLegend = row.crops.map((c, i) => (
-    <CropLegend key={i} plant={c.plant} />
+  const cropsLegend = row.crops.map((c) => (
+    c.plant.id === 0 ? PENDING_CROP_LEGEND : <CropLegend pl={4.5} plant={c.plant} />
   ));
 
   return (
@@ -799,31 +822,30 @@ function RowInputPanel({
 }
 
 interface CropInputPanelProps {
-  mode: 'edit' | 'pending';
   plants: PlantReadData[];
-  patternForm?: UseFormReturnType<CroppingPatternWriteRequestData>;
+  patternForm: UseFormReturnType<CroppingPatternWriteRequestData>;
   rowIndex: number;
-  cropIndex?: number;
-  onPlantPicked: (plantId: number) => void;
-  // pending-mode-only props:
-  pendingKind?: 'crop' | 'row';
-  // edit-mode-only props:
-  crop?: PatternCrop;
+  cropIndex: number;
+  crop: PatternCrop;
   onDelete?: () => void;
+  onPlantPicked: (plantId: number) => void;
 }
 
 function CropInputPanel({
-  mode,
   plants,
   patternForm,
   rowIndex,
   cropIndex,
+  crop,
   onDelete,
   onPlantPicked,
-  pendingKind,
-  crop,
 }: CropInputPanelProps) {
   const { plantsFitnessMap } = useProject();
+
+  const currentPlantId = crop.plant.id > 0 ? crop.plant.id : null;
+  const currentPlant = currentPlantId !== null ? crop.plant : null;
+
+  const plantFitness = currentPlant ? plantsFitnessMap[currentPlant.acceptedTaxonName] : null;
 
   const rankedPlants = useMemo(() => {
     return plants.slice().sort((a, b) => {
@@ -839,23 +861,16 @@ function CropInputPanel({
     label: `${p.mainPopularName} (${p.acceptedTaxonName})`,
   }));
 
-  const currentPlantId = mode === 'edit' && patternForm && rowIndex !== undefined && cropIndex !== undefined
-    ? patternForm.values.rows[rowIndex].crops[cropIndex].plantId
-    : null;
-  const currentPlant = currentPlantId !== null && currentPlantId !== 0
-    ? plants.find((p) => p.id === currentPlantId) ?? null
-    : (crop?.plant ?? null);
-
-  const plantFitness = currentPlant ? plantsFitnessMap[currentPlant.acceptedTaxonName] : null;
-
   const popularNamesQueryOptions = {
     queryKey: ['plantPopularNameList', String(currentPlant?.id ?? 0)],
     queryFn: getPlantPopularNameList,
-    enable: currentPlant,
+    enable: currentPlant !== null,
   };
   const popularNames = useQuery(popularNamesQueryOptions);
 
-  const deleteButton = onDelete && (
+  const isSingleCrop = patternForm.values.rows.length === 1 && patternForm.values.rows[rowIndex].crops.length === 1;
+
+  const deleteButton = !isSingleCrop && onDelete && (
     <Tooltip label="Remover cultivo">
       <DeleteButton onClick={onDelete} />
     </Tooltip>
@@ -863,32 +878,29 @@ function CropInputPanel({
 
   return (
     <Stack gap="xs">
-      <Group gap={6} wrap="nowrap" align="baseline">
-        {mode === 'edit' && currentPlant && (
-          <Fragment>
-            <Text fw="bold" fs="italic" style={{ flex: 1 }}>
-              {currentPlant.acceptedTaxonName}
-            </Text>
-            {plantFitness && <NativityBadge plantFitness={plantFitness} />}
-            <ActionIcon
-              variant="subtle"
-              size="sm"
-              onClick={() => window.open(`/plants/${currentPlant.id}`, '_blank')}
-              aria-label="Abrir página da planta em nova aba"
+      <Group gap={6} wrap="nowrap" align="baseline" justify="space-between">
+        {currentPlant
+          ? (
+            <Fragment>
+              <Text fw="bold" fs="italic" style={{ flex: 1 }}>
+                {currentPlant.acceptedTaxonName}
+              </Text>
+              {plantFitness && <NativityBadge plantFitness={plantFitness} />}
+              <ActionIcon
+                variant="subtle"
+                size="sm"
+                onClick={() => window.open(`/plants/${currentPlant.id}`, '_blank')}
+                aria-label="Abrir página da planta em nova aba"
               >
-              <IconExternalLink size={14} />
-            </ActionIcon>
-            {deleteButton}
-          </Fragment>
-        )}
-        {mode === 'pending' && pendingKind === 'crop' && (
+                <IconExternalLink size={14} />
+              </ActionIcon>
+            </Fragment>
+        ) : (
           <Text fw="bold">Novo cultivo</Text>
         )}
-        {mode === 'pending' && pendingKind === 'row' && (
-          <Text fw="bold">Nova linha</Text>
-      )}
+        {deleteButton}
       </Group>
-      {mode === 'edit' && currentPlant && popularNames.data && popularNames.data.length > 0 && (
+      {currentPlant && popularNames.data && popularNames.data.length > 0 && (
         <Text fz="sm">
           {popularNames.data.map((n) => n.name).join(', ')}
         </Text>
@@ -896,8 +908,8 @@ function CropInputPanel({
       <FieldView fz="sm" label="Linha">{rowIndex + 1}</FieldView>
       <FieldView fz="sm" label="Posição">{(cropIndex ?? 0) + 1}</FieldView>
       <Select
-        label={mode === 'pending' ? 'Escolha uma planta:' : 'Planta:'}
-        placeholder={mode === 'pending' ? 'Selecione...' : undefined}
+        label={currentPlant ? 'Planta:' : 'Escolha uma planta:'}
+        placeholder={currentPlant ? undefined : 'Selecione...'}
         searchable
         allowDeselect={false}
         data={plantOptions}
@@ -918,6 +930,7 @@ function SpacingInputPanel({
   pattern: CroppingPatternReadData;
   patternForm: UseFormReturnType<CroppingPatternWriteRequestData>;
 }) {
+  
   /**
    * Map the spacing state into a form path + a short title. The path is
    * written through on every keystroke (so the user sees the preview update
@@ -939,9 +952,9 @@ function SpacingInputPanel({
             return (
               <Stack gap={5}>
                 <Text fz={15}>{`Linha ${row.position}`}</Text>
-                <CropLegend pl={4} plant={cropA.plant} />
+                {cropA.plant.id === 0 ? PENDING_CROP_LEGEND : <CropLegend pl={4.5} plant={cropA.plant} />}
                 <IconArrowsVertical stroke={1.5} />
-                <CropLegend pl={4} plant={cropB.plant} />
+                {cropB.plant.id === 0 ? PENDING_CROP_LEGEND : <CropLegend pl={4.5} plant={cropB.plant} />}
               </Stack>
             )
           })(),
@@ -976,7 +989,7 @@ function SpacingInputPanel({
               <Stack gap={5}>
                 <Text fz={15}>{`Linha ${selected.rowIndex + 1} (início)`}</Text>
                 <IconArrowNarrowDown stroke={1.5} />
-                <CropLegend pl={4} plant={firstCrop.plant} />
+                {firstCrop.plant.id === 0 ? PENDING_CROP_LEGEND : <CropLegend pl={4.5} plant={firstCrop.plant} />}
               </Stack>
             )
           })()
@@ -1006,3 +1019,25 @@ function SpacingInputPanel({
     </Stack>
   );
 }
+
+/**
+ * Placeholder plant used in the synthetic `CroppingPatternReadData` while a
+ * pending crop has no plant picked. White fill at the marker layer makes the
+ * "pending" state visually obvious.
+ */
+const PENDING_PLANT: PlantReadData = {
+  id: 0,
+  contentId: 0,
+  contentStatus: 'proposed',
+  acceptedTaxonName: '',
+  acceptedFamilyName: '',
+  mainPopularName: 'Pendente',
+  colorHex: '#ffffff',
+};
+
+const PENDING_CROP_LEGEND = (
+  <Group pl={4.5} justify="left" gap="xs">
+    <IconCircle size={15} />
+    <Text fz="sm">Cultivo pendente</Text>
+  </Group>
+)

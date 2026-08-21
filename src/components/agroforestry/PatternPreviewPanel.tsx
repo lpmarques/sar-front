@@ -22,6 +22,7 @@ import {
   FeatureGroup,
   Polygon,
 } from "react-leaflet";
+import { Text } from "@mantine/core";
 import { IconEye, IconEyeOff } from "@tabler/icons-react";
 import { CroppingPatternReadData, PatternCrop } from "../../apis/agroforestry";
 import { PlantReadData } from "../../apis/catalog";
@@ -55,21 +56,6 @@ const TEXT_COLOR = "var(--mantine-color-dark-7)";
 const TEXT_REP_COLOR = "var(--mantine-color-gray-6)";
 const SPACING_COLOR = "var(--mantine-color-gray-7)";
 const SPACING_REP_COLOR = "var(--mantine-color-gray-6)";
-
-/**
- * Placeholder plant used in the synthetic `CroppingPatternReadData` while a
- * pending crop has no plant picked. White fill at the marker layer makes the
- * "pending" state visually obvious.
- */
-export const PENDING_PLANT: PlantReadData = {
-  id: 0,
-  contentId: 0,
-  contentStatus: 'proposed',
-  acceptedTaxonName: '',
-  acceptedFamilyName: '',
-  mainPopularName: 'Pendente',
-  colorHex: '#ffffff',
-};
 
 /**
  * Formats a metre distance for axis labels, falling back to centimetres when
@@ -279,10 +265,6 @@ export type SelectedSpacing = SelectedRowOffset | SelectedRowSpacing | SelectedC
 /** Coordinates of an element in the rendered layout. */
 export type SelectedElement = SelectedRow | SelectedCrop | SelectedSpacing;
 
-export type PendingElement = (SelectedRow | SelectedCrop) & {
-  isLast: boolean;
-};
-
 interface PatternEditHandlers {
   /** Called when the user clicks the (always-visible) row-arrange arrows. */
   onRowMoveLeft?: (rowIndex: number) => void;
@@ -311,8 +293,8 @@ interface PatternPreviewPanelProps {
   pattern: CroppingPatternReadData;
   /** Crop or row currently selected (by position) in the side panel. */
   selectedElement: SelectedElement | null;
-  /** If set, the geometry renders a dashed pending crop at the position. */
-  pendingElement?: PendingElement | null;
+  /** Crop waiting for plant selection */
+  pendingCrop?: CropPosition | null;
   /** Called when the user clicks the a row label. */
   onRowSelect: (rowIndex: number) => void;
   /** Called when the user clicks a crop. */
@@ -329,11 +311,11 @@ interface PatternPreviewPanelProps {
 export default function PatternPreviewPanel({
   pattern,
   selectedElement,
+  pendingCrop = null,
   onRowSelect,
   onCropSelect,
   edit = false,
   editHandlers = {},
-  pendingElement = null,
 }: PatternPreviewPanelProps) {
   const [showReps, setShowReps] = useState(!edit);
   
@@ -468,8 +450,8 @@ export default function PatternPreviewPanel({
           <RowGeometry
             key={`row-geom-${i}`}
             row={r}
-            isLastRow={i === rows.length-1}
             selectedElement={selectedElement}
+            pendingCrop={pendingCrop}
             showReps={showReps}
             edit={edit}
             editHandlers={editHandlers}
@@ -501,12 +483,13 @@ export default function PatternPreviewPanel({
 
 /**
  * Renders a single row's geometry: the start-offset line (or empty-offset
- * hover icons), crop spacings (with hover overlays) and crop circles (or
- * pending dashed circle). Crops are clickable per position.
+ * hover icons), crop spacings (with hover overlays) and crop circles.
+ * Crops are clickable per position.
  */
 function RowGeometry({
   row: r,
   selectedElement,
+  pendingCrop,
   showReps,
   edit,
   editHandlers,
@@ -514,8 +497,8 @@ function RowGeometry({
   rowYToLat,
 }: {
   row: RenderedRow;
-  isLastRow: boolean;
   selectedElement: SelectedElement | null;
+  pendingCrop: CropPosition | null;
   showReps: boolean;
   edit: boolean;
   editHandlers: PatternEditHandlers;
@@ -571,7 +554,10 @@ function RowGeometry({
 
       {nonRepCrops.map((c, j) => {
         if (c.isRep && !showReps) return null;
-        const isSelectedCrop = selectedCrop?.rowIndex === c.rowIndex && selectedCrop?.cropIndex === c.cropIndex;
+        const isSelectedCrop = selectedCrop?.rowIndex === c.rowIndex
+          && selectedCrop?.cropIndex === c.cropIndex;
+        const isPendingCrop = pendingCrop?.rowIndex === c.rowIndex
+          && pendingCrop?.cropIndex === c.cropIndex;
         return (
           <Crop
             key={`crop-${j}`}
@@ -581,6 +567,7 @@ function RowGeometry({
             plant={c.crop.plant}
             isRep={c.isRep}
             isSelected={isSelectedRow || isSelectedCrop}
+            isPending={isPendingCrop}
             onCropSelect={() => onCropSelect({ rowIndex: c.rowIndex, cropIndex: c.cropIndex })}
             rowYToLat={rowYToLat}
           />
@@ -633,7 +620,10 @@ function RowGeometry({
 
       {repCrops.map((c, j) => {
         if (c.isRep && !showReps) return null;
-        const isSelectedCrop = selectedCrop?.rowIndex === c.rowIndex && selectedCrop?.cropIndex === c.cropIndex;
+        const isSelectedCrop = selectedCrop?.rowIndex === c.rowIndex
+          && selectedCrop?.cropIndex === c.cropIndex;
+        const isPendingCrop = pendingCrop?.rowIndex === c.rowIndex
+          && pendingCrop?.cropIndex === c.cropIndex;
         return (
           <Crop
             key={`crop-${j}`}
@@ -643,6 +633,7 @@ function RowGeometry({
             plant={c.crop.plant}
             isRep={c.isRep}
             isSelected={isSelectedRow || isSelectedCrop}
+            isPending={isPendingCrop}
             onCropSelect={() => onCropSelect({ rowIndex: c.rowIndex, cropIndex: c.cropIndex })}
             rowYToLat={rowYToLat}
           />
@@ -707,10 +698,10 @@ function RowGeometry({
   const topRepCrop = repCrops[0];
   const botRepCrop = repCrops[repCrops.length-1];
   const repsBBox: BBox = {
-    minX: topRepCrop.cropXM - CROP_RADIUS_M,
-    maxX: botRepCrop.cropXM + CROP_RADIUS_M,
-    minY: rowYToLat(botRepCrop.cropYM + CROP_RADIUS_M),
-    maxY: rowYToLat(topRepCrop.cropYM - CROP_RADIUS_M),
+    minX: r.rowXM - CROP_RADIUS_M,
+    maxX: r.rowXM + CROP_RADIUS_M,
+    minY: rowYToLat((r.isRep ? r.rowEndYM : botRepCrop.cropYM) + CROP_RADIUS_M),
+    maxY: rowYToLat((r.isRep ? r.rowStartYM : topRepCrop.cropYM) - CROP_RADIUS_M),
   }
 
   return (
@@ -738,6 +729,7 @@ function Crop({
   plant,
   isRep,
   isSelected,
+  isPending,
   onCropSelect,
   rowYToLat,
 }: {
@@ -747,9 +739,14 @@ function Crop({
   plant: PlantReadData;
   isRep: boolean;
   isSelected: boolean;
+  isPending: boolean;
   onCropSelect: () => void;
   rowYToLat: (yM: number) => number;
 }) {
+  const label = isPending
+    ? <Text fw="bold" fz="sm">Cultivo pendente</Text>
+    : <PlantFullNameLabel fw="bold" plant={plant} />;
+
   return (
     <CircleMarker
       center={[rowYToLat(yM), xM]}
@@ -766,7 +763,7 @@ function Crop({
       }}
     >
       <LeafletTooltip direction="top" offset={[0, -4]}>
-        <PlantFullNameLabel fw="bold" plant={plant} />
+        {label}
       </LeafletTooltip>
     </CircleMarker>
   );  
@@ -1252,28 +1249,6 @@ function NullOffsetMarkers({
 }
 
 /**
- * Subscribes to Leaflet's `zoomend` event and returns the current zoom level
- * as React state, so consumers re-render when the map is zoomed. Leaflet
- * doesn't put the new zoom on the event payload, so the handler reads it
- * back from the map. We also re-read once inside the effect to catch any
- * zoom change that happened between render and listener attachment (e.g. a
- * resize-triggered fitBounds during mount).
- */
-function useMapZoom(): number {
-  const map = useMap();
-  const [zoom, setZoom] = useState(map.getZoom());
-  useEffect(() => {
-    const handler = () => setZoom(map.getZoom());
-    map.on('zoomend', handler);
-    setZoom(map.getZoom());
-    return () => {
-      map.off('zoomend', handler);
-    };
-  }, [map]);
-  return zoom;
-}
-
-/**
  * Forces the Leaflet map to recompute its size whenever its parent might have
  * changed (e.g. modal scrolling, panel resizes). Without this, the map can
  * render with the wrong projection after layout shifts.
@@ -1354,17 +1329,19 @@ function CirclePlusMarker({
     iconAnchor: [radiusPx, radiusPx],
   });
 
+  const eventHandlers: Record<string, (() => void) | undefined> = {
+    click: onClick,
+  };
+  if (onMouseOver) eventHandlers.mouseover = onMouseOver;
+  if (onMouseOut) eventHandlers.mouseout = onMouseOut;
+
   return (
     <Marker
       position={latLng}
       icon={icon}
       interactive
       keyboard={false}
-      eventHandlers={{
-        click: onClick,
-        mouseover: onMouseOver,
-        mouseout: onMouseOut,
-      }}
+      eventHandlers={eventHandlers}
     >
       {children}
     </Marker>
