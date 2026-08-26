@@ -13,7 +13,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 
 import { useParams, useNavigate } from 'react-router';
 import { Alert, Button, Container, ContainerProps, Paper, Space, Table, Text, Tooltip } from '@mantine/core';
-import { modals } from '@mantine/modals';
+import { modals, ModalsProvider } from '@mantine/modals';
 import { IconAlertHexagon, IconCheckbox, IconEyeQuestion, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -52,30 +52,32 @@ export default function SectionDetails() {
   const sectionConfig = getSectionConfig(sectionSlug as SectionSlug);
   
   return (
-    <QueryLoader {...plantQueryOptions}>
-      {plant.data && sectionConfig &&
-      <>
-        {sectionSlug === "taxonomy" ?
-        <SectionDetailsBody<TaxonReadData, TaxonWriteRequestData>
-          plant={plant.data}
-          sectionConfig={sectionConfig as SectionConfig<TaxonReadData, TaxonWriteRequestData>}
-          size={1000}
-          /> : 
-        sectionSlug === "popular-names" ? 
-        <SectionDetailsBody<PopularNameReadData, PopularNameWriteRequestData>
-          plant={plant.data}
-          sectionConfig={sectionConfig as SectionConfig<PopularNameReadData, PopularNameWriteRequestData>}
-          size={700}
-          /> : 
-        sectionSlug === "natural-occurrence-regions" ? 
-        <SectionDetailsBody<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>
-          plant={plant.data}
-          sectionConfig={sectionConfig as SectionConfig<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>}
-          size={1000}
-          /> : 
-        <></>}
-      </>}
-    </QueryLoader>
+    <ModalsProvider>
+      <QueryLoader {...plantQueryOptions}>
+        {plant.data && sectionConfig &&
+        <>
+          {sectionSlug === "taxonomy" ?
+          <SectionDetailsBody<TaxonReadData, TaxonWriteRequestData>
+            plant={plant.data}
+            sectionConfig={sectionConfig as SectionConfig<TaxonReadData, TaxonWriteRequestData>}
+            size={1000}
+            /> : 
+          sectionSlug === "popular-names" ? 
+          <SectionDetailsBody<PopularNameReadData, PopularNameWriteRequestData>
+            plant={plant.data}
+            sectionConfig={sectionConfig as SectionConfig<PopularNameReadData, PopularNameWriteRequestData>}
+            size={700}
+            /> : 
+          sectionSlug === "natural-occurrence-regions" ? 
+          <SectionDetailsBody<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>
+            plant={plant.data}
+            sectionConfig={sectionConfig as SectionConfig<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>}
+            size={1000}
+            /> : 
+          <></>}
+        </>}
+      </QueryLoader>
+    </ModalsProvider>
   )
 }
 
@@ -140,7 +142,7 @@ export function AcceptedItems<ReadT extends ContentReadData, WriteT extends Cont
       <sectionConfig.Header />
       <Table.Th fz="h6" fw={550}>Fonte</Table.Th>
       <Table.Th fz="h6" fw={550}>Proponente</Table.Th>
-      <Table.Th fz="h6" fw={550}>Aceita em</Table.Th>
+      <Table.Th fz="h6" fw={550}>Aceito em</Table.Th>
       <Table.Th fz="h6" fw={550} w={170}>Apoios</Table.Th>
     </Table.Tr>
   );
@@ -284,7 +286,8 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
       <Table.Th fz="h6" fw={550}>Proponente</Table.Th>
       <Table.Th fz="h6" fw={550}>Proposta em</Table.Th>
       <Table.Th fz="h6" fw={550} w={120}>Apoios</Table.Th>
-      <Table.Th w={50}></Table.Th>
+      <Table.Th></Table.Th>
+      <Table.Th></Table.Th>
     </Table.Tr>
   );
   

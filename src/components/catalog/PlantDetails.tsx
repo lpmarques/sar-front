@@ -14,6 +14,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 import { ReactElement, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { Alert, Button, Center, Container, Group, Paper, SimpleGrid, Space, Table, Text } from '@mantine/core';
+import { modals, ModalsProvider } from "@mantine/modals";
 import { IconAlertHexagon, IconCheckbox, IconCircleDashedPlus, IconPencil, IconPencilOff, IconTrash } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -33,15 +34,14 @@ import {
   TraitValueReadData,
   acceptPlant,
 } from "../../apis/catalog";
+import { QueryOptions, showMutationError } from "../../apis/common";
+import { useAuth, useStoredSearchParam } from "../../hooks";
 import classes from '../common/Clickable.module.css';
+import { showSuccess } from "../common/notifications";
 import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
-import { useAuth, useStoredSearchParam } from "../../hooks";
 import { sortNaturalOccurrenceRegions } from "./NaturalOccurrenceRegionsSection";
 import { TraitValueDisplay } from '.';
-import { showSuccess } from "../common/notifications";
-import { QueryOptions, showMutationError } from "../../apis/common";
-import { modals } from "@mantine/modals";
 
 export default function PlantDetails() {
   const { plantId } = useParams();
@@ -104,46 +104,48 @@ export default function PlantDetails() {
   const { user } = useAuth();
 
   return (
-    <QueryLoader {...plantQueryOptions}>
-      {plant.data && 
-      <Container size={1000}>
-        <Group justify="space-between" pb={15}>
-          <Text fz="h2" fs="italic" fw={600}>{plant.data.acceptedTaxonName}</Text>
-          <Group>
-            <EditButton editMode={editMode} setEditMode={setEditMode} />
-            {plant.data.contentStatus === 'proposed' &&
-            <>
-              {(user?.isStaff || plant.data.contentProposer?.id === user?.id) && 
-              <RejectButton plant={plant.data} queryOptions={plantQueryOptions} />}
-              {user?.isStaff &&
-              <AcceptButton plant={plant.data} queryOptions={plantQueryOptions} />}
-            </>}
+    <ModalsProvider>
+      <QueryLoader {...plantQueryOptions}>
+        {plant.data && 
+        <Container size={1000}>
+          <Group justify="space-between" pb={15}>
+            <Text fz="h2" fs="italic" fw={600}>{plant.data.acceptedTaxonName}</Text>
+            <Group>
+              <EditButton editMode={editMode} setEditMode={setEditMode} />
+              {plant.data.contentStatus === 'proposed' &&
+              <>
+                {(user?.isStaff || plant.data.contentProposer?.id === user?.id) && 
+                <RejectButton plant={plant.data} queryOptions={plantQueryOptions} />}
+                {user?.isStaff &&
+                <AcceptButton plant={plant.data} queryOptions={plantQueryOptions} />}
+              </>}
+            </Group>
           </Group>
-        </Group>
-        {plant.data.contentStatus === 'proposed' && <>
-        <Alert variant="light" color="red" title="Cadastro pendente" icon={<IconAlertHexagon />}>
-          <Text pb={10}>Essa planta ainda consta com o status de <strong>proposta</strong> para o Catálogo.</Text>
-          <Text pb={10}>Adicione mais informações sobre ela para aumentar suas chances de inclusão definitiva.</Text>
-        </Alert>
-        <Space h={15} />
-        </>}
-        <QueryLoader {...popularNamesQueryOptions}>
-          {popularNames.data && (popularNames.data.length > 0 || editMode) &&
-          <PopularNamesSection popularNames={popularNames.data!}/>}
-        </QueryLoader>
-        <QueryLoader {...taxaQueryOptions}>
-          {taxa.data && (taxa.data.length > 0 || editMode) &&
-          <TaxonomySection taxa={taxa.data}/>}
-        </QueryLoader>
-        <QueryLoader {...traitValuesQueryOptions}>
-          {traitSections}
-        </QueryLoader>
-        <QueryLoader {...naturalOccurrenceRegionsQueryOptions}>
-          {naturalOccurrenceRegions.data && (naturalOccurrenceRegions.data.length > 0 || editMode) &&
-          <NaturalOccurrenceSection regions={naturalOccurrenceRegions.data}/>}
-        </QueryLoader>
-      </Container>}
-    </QueryLoader>
+          {plant.data.contentStatus === 'proposed' && <>
+          <Alert variant="light" color="red" title="Cadastro pendente" icon={<IconAlertHexagon />}>
+            <Text pb={10}>Essa planta ainda consta com o status de <strong>proposta</strong> para o Catálogo.</Text>
+            <Text pb={10}>Adicione mais informações sobre ela para aumentar suas chances de inclusão definitiva.</Text>
+          </Alert>
+          <Space h={15} />
+          </>}
+          <QueryLoader {...popularNamesQueryOptions}>
+            {popularNames.data && (popularNames.data.length > 0 || editMode) &&
+            <PopularNamesSection popularNames={popularNames.data!}/>}
+          </QueryLoader>
+          <QueryLoader {...taxaQueryOptions}>
+            {taxa.data && (taxa.data.length > 0 || editMode) &&
+            <TaxonomySection taxa={taxa.data}/>}
+          </QueryLoader>
+          <QueryLoader {...traitValuesQueryOptions}>
+            {traitSections}
+          </QueryLoader>
+          <QueryLoader {...naturalOccurrenceRegionsQueryOptions}>
+            {naturalOccurrenceRegions.data && (naturalOccurrenceRegions.data.length > 0 || editMode) &&
+            <NaturalOccurrenceSection regions={naturalOccurrenceRegions.data}/>}
+          </QueryLoader>
+        </Container>}
+      </QueryLoader>
+    </ModalsProvider>
   )
 }
 

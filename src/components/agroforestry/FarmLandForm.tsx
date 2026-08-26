@@ -44,7 +44,7 @@ export default function FarmLandForm({ farmCenter, farmForm, onSubmit, buttonPro
       landSummary.data?.state?.id?.toString() ?? '0',
     ],
     queryFn: getMunicipalityList,
-    enabled: landSummary.data?.state != undefined,
+    enabled: landSummary.data?.state !== undefined,
   };
   const municipalities = useQuery(municipalitiesQueryOptions);
   const municipalityOptions = municipalities.data ? geoDataToOptions(municipalities.data) : [];

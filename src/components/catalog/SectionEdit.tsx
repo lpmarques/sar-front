@@ -31,6 +31,7 @@ import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { SectionConfig, getSectionConfig, SectionSlug } from './SectionConfigs';
 import SectionItemsProposalForm from './SectionItemsProposalForm';
+import { ModalsProvider } from '@mantine/modals';
 
 export default function SectionEdit() {
   const { plantId, sectionSlug } = useParams();
@@ -45,30 +46,32 @@ export default function SectionEdit() {
   const sectionConfig = getSectionConfig(sectionSlug as SectionSlug);
   
   return (
-    <QueryLoader {...plantQueryOptions}>
-      {plant.data && sectionConfig &&
-      <>
-        {sectionSlug === "taxonomy" ?
-        <SectionEditBody<TaxonReadData, TaxonWriteRequestData>
-          plant={plant.data}
-          sectionConfig={sectionConfig as SectionConfig<TaxonReadData, TaxonWriteRequestData>}
-          size={1000}
-          /> : 
-        sectionSlug === "popular-names" ? 
-        <SectionEditBody<PopularNameReadData, PopularNameWriteRequestData>
-          plant={plant.data}
-          sectionConfig={sectionConfig as SectionConfig<PopularNameReadData, PopularNameWriteRequestData>}
-          size={600}
-          /> : 
-        sectionSlug === "natural-occurrence-regions" ? 
-        <SectionEditBody<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>
-          plant={plant.data}
-          sectionConfig={sectionConfig as SectionConfig<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>}
-          size={1000}
-          /> : 
-        <></>}
-      </>}
-    </QueryLoader>
+    <ModalsProvider>
+      <QueryLoader {...plantQueryOptions}>
+        {plant.data && sectionConfig &&
+        <>
+          {sectionSlug === "taxonomy" ?
+          <SectionEditBody<TaxonReadData, TaxonWriteRequestData>
+            plant={plant.data}
+            sectionConfig={sectionConfig as SectionConfig<TaxonReadData, TaxonWriteRequestData>}
+            size={1000}
+            /> : 
+          sectionSlug === "popular-names" ? 
+          <SectionEditBody<PopularNameReadData, PopularNameWriteRequestData>
+            plant={plant.data}
+            sectionConfig={sectionConfig as SectionConfig<PopularNameReadData, PopularNameWriteRequestData>}
+            size={600}
+            /> : 
+          sectionSlug === "natural-occurrence-regions" ? 
+          <SectionEditBody<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>
+            plant={plant.data}
+            sectionConfig={sectionConfig as SectionConfig<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>}
+            size={1000}
+            /> : 
+          <></>}
+        </>}
+      </QueryLoader>
+    </ModalsProvider>
   )
 }
 

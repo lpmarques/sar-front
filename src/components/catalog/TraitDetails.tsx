@@ -13,7 +13,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 
 import { useParams, useNavigate } from 'react-router';
 import { Accordion, Alert, Button, Container, Grid, List, Paper, Space, Table, Text, Tooltip } from '@mantine/core';
-import { modals } from '@mantine/modals';
+import { modals, ModalsProvider } from '@mantine/modals';
 import { IconAlertHexagon, IconCheckbox, IconEyeQuestion, IconInfoCircle, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -75,43 +75,45 @@ export default function TraitDetails() {
     "Nos ajude adicionando sua proposta abaixo.";
 
   return (
-    <QueryLoader {...traitValuesQueryOptions}>
-      {plant.data && trait &&
-      <Container size={1000}>
-        <TraitInfo trait={trait} />
-        <Space h={20} />
-        <ClickableText fs="italic" fz="h3" pb={15} onClick={() => navigate(`/plants/${plantId}`)}>
-          {plant.data.acceptedTaxonName}
-        </ClickableText>
-        <Text fz="h3" pb={15}>
-          [{trait.sectionName}] <Text span inherit fw={600}>{trait.name}</Text>
-        </Text>
-        {acceptedValue ? <>
-        <Grid columns={10} justify="space-between" mb={15}>
-          <Grid.Col span={{base: 10, sm: 5}}>
-            <AcceptedTraitValueDisplay data={acceptedValue} />
-            <Space h={15} />
-            <AcceptedValueEndorsements data={acceptedValue} />
-          </Grid.Col>
-          <Grid.Col span={{base: 10, sm: 5}}>
-            <AcceptedValueSource sourceId={acceptedValue.sourceId!} />
-          </Grid.Col>
-        </Grid>
-        <AcceptedValueHistory data={everAcceptedValues} />
-        <Space h={15} />
-        <Alert variant="light" color="gray" icon={<IconEyeQuestion />}>
-          <Text pb={10}>Não concorda com a informação apresentada?</Text>
-          <Text pb={10}>{callToActionMsg}</Text>
-        </Alert>
-        </> : 
-        <Alert variant="light" color="red" title="Informação pendente" icon={<IconAlertHexagon />}>
-          <Text pb={10}>Ainda não temos uma versão aceita do traço "{trait.name}" para {plant.data.acceptedTaxonName}.</Text>
-          <Text pb={10}>{callToActionMsg}</Text>
-        </Alert>}
-        <Space h={15} />
-        <ProposedValues plant={plant.data} proposals={proposedValues} proposalsQueryOptions={traitValuesQueryOptions} />
-      </Container>}
-    </QueryLoader>
+    <ModalsProvider>
+      <QueryLoader {...traitValuesQueryOptions}>
+        {plant.data && trait &&
+        <Container size={1000}>
+          <TraitInfo trait={trait} />
+          <Space h={20} />
+          <ClickableText fs="italic" fz="h3" pb={15} onClick={() => navigate(`/plants/${plantId}`)}>
+            {plant.data.acceptedTaxonName}
+          </ClickableText>
+          <Text fz="h3" pb={15}>
+            [{trait.sectionName}] <Text span inherit fw={600}>{trait.name}</Text>
+          </Text>
+          {acceptedValue ? <>
+          <Grid columns={10} justify="space-between" mb={15}>
+            <Grid.Col span={{base: 10, sm: 5}}>
+              <AcceptedTraitValueDisplay data={acceptedValue} />
+              <Space h={15} />
+              <AcceptedValueEndorsements data={acceptedValue} />
+            </Grid.Col>
+            <Grid.Col span={{base: 10, sm: 5}}>
+              <AcceptedValueSource sourceId={acceptedValue.sourceId!} />
+            </Grid.Col>
+          </Grid>
+          <AcceptedValueHistory data={everAcceptedValues} />
+          <Space h={15} />
+          <Alert variant="light" color="gray" icon={<IconEyeQuestion />}>
+            <Text pb={10}>Não concorda com a informação apresentada?</Text>
+            <Text pb={10}>{callToActionMsg}</Text>
+          </Alert>
+          </> : 
+          <Alert variant="light" color="red" title="Informação pendente" icon={<IconAlertHexagon />}>
+            <Text pb={10}>Ainda não temos uma versão aceita do traço "{trait.name}" para {plant.data.acceptedTaxonName}.</Text>
+            <Text pb={10}>{callToActionMsg}</Text>
+          </Alert>}
+          <Space h={15} />
+          <ProposedValues plant={plant.data} proposals={proposedValues} proposalsQueryOptions={traitValuesQueryOptions} />
+        </Container>}
+      </QueryLoader>
+    </ModalsProvider>
   )
 }
 

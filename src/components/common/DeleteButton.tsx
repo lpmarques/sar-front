@@ -11,9 +11,9 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
-import { Button, ButtonProps } from "@mantine/core";
-import { modals } from "@mantine/modals";
+import { ButtonProps } from "@mantine/core";
 import { IconTrash } from "@tabler/icons-react";
+import ConfirmingButton from "./ConfirmingButton";
 
 interface DeleteButtonProps extends Omit<ButtonProps, 'onClick'> {
   modalTitle: string,
@@ -22,19 +22,20 @@ interface DeleteButtonProps extends Omit<ButtonProps, 'onClick'> {
 }
 
 export default function DeleteButton({ modalTitle, modalContent, onModalConfirm, ...buttonProps }: DeleteButtonProps) {
-  const openDeleteConfirmModal = () => {
-    modals.openConfirmModal({
-      title: modalTitle,
-      children: modalContent,
-      labels: { confirm: 'Excluir', cancel: 'Cancelar exclusão' },
-      confirmProps: { color: 'red' },
-      onConfirm: onModalConfirm,
-    });
-  }
   
   return (
-    <Button variant="outline" size="compact-md" color="red" {...buttonProps} onClick={() => openDeleteConfirmModal()}>
+    <ConfirmingButton
+      variant="outline"
+      size="compact-md"
+      color="red"
+      {...buttonProps}
+      modalTitle={modalTitle}
+      modalContent={modalContent}
+      modalLabels={{ confirm: 'Excluir', cancel: 'Cancelar exclusão' }}
+      modalConfirmProps={{ color: 'red' }}
+      onModalConfirm={onModalConfirm}
+    >
       <IconTrash size={20} />
-    </Button>
+    </ConfirmingButton>
   )
 }

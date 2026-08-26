@@ -19,6 +19,7 @@ import { useEffect } from "react";
 export function useStoredSearchParam<T extends Primitive>(key: string, defaultValue: T) {
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParam = searchParams.get(key);
+  
   const setSearchParam = (value: T) => {
     setSearchParams((currParams) => {
       const newParams = new URLSearchParams(currParams);

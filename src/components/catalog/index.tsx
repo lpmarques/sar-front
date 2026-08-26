@@ -28,10 +28,12 @@ import TraitValueInput from './TraitValueInput';
 import TraitValueProposalForm from './TraitValueProposalForm';
 import CommentInput from './CommentInput';
 import SectionItemsProposalForm from './SectionItemsProposalForm';
+import PlantFullNameLabel from './PlantFullNameLabel';
 
 export {
   CommentInput,
   PlantDetails,
+  PlantFullNameLabel,
   PlantList,
   PlantNew,
   SectionItemsProposalForm,

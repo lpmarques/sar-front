@@ -11,39 +11,55 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
-import { Polygon } from "geojson";
-import { useState } from "react";
-import { Badge, Button, Group, Stack, Table, Text, TextInput, Tooltip } from "@mantine/core";
+import { useMemo } from "react";
+import { BoxProps, Button, Center, Container, Fieldset, Group, Loader, NumberInput, ScrollArea, Stack, Text, TextInput, Tooltip } from "@mantine/core";
 import { useForm, UseFormReturnType } from "@mantine/form";
-import { IconPencil, IconX } from "@tabler/icons-react";
+import { modals } from "@mantine/modals";
+import { IconChevronRight, IconInfoCircle, IconX } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createField, deleteField, FarmReadData, FieldReadData, FieldWriteRequestData, getFarmPlantFitnessList, SitePlantFitness, updateField } from "../../apis/agroforestry";
+import booleanEqual from "@turf/boolean-equal";
+import { createField, CroppingSummary, deleteField, FieldWriteRequestData, getCroppingPatternList, updateField } from "../../apis/agroforestry";
 import { showMutationError } from "../../apis/common";
+import { useAuth } from '../../hooks/useAuth';
+import { useProject } from "../../hooks/useProject";
+import ConfirmingButton from "../common/ConfirmingButton";
 import DeleteButton from "../common/DeleteButton";
 import FieldView from "../common/FieldView";
 import { showError, showSuccess } from "../common/notifications";
-import { modals } from "@mantine/modals";
-import { StickyHeaderTable } from "../common/StickyHeaderTable";
-import { QueryLoader } from "../common/QueryLoader";
-import ClickableRow from "../common/ClickableRow";
+import { CropLegend, CroppingPatternsModal } from ".";
 
 interface FieldMenuProps {
-  farm: FarmReadData,
-  field?: FieldReadData,
-  fieldPolygon: Polygon,
-  onFieldClose: () => void,
-  onFieldDelete: () => void,
+  inputsDisabled?: boolean;
+  isCroppingComputing: boolean;
+  onCroppingChange?: () => void;
 }
 
-export default function FieldMenu({ farm, field, fieldPolygon, onFieldClose, onFieldDelete }: FieldMenuProps) {
+export default function FieldMenu({
+  inputsDisabled = false,
+  isCroppingComputing,
+  onCroppingChange = () => {},
+}: FieldMenuProps) {
   const queryClient = useQueryClient();
-  
+  const {
+    farm,
+    fields,
+    initialFieldValues,
+    selectedFieldIndex,
+    unselectField,
+    replaceField,
+    removeField,
+    resetField
+  } = useProject();
+
+  const field = selectedFieldIndex !== null ? fields[selectedFieldIndex] : undefined;
+  const initialField = selectedFieldIndex !== null ? initialFieldValues[selectedFieldIndex] : undefined;
+
   const fieldSubmit = useMutation({
-    mutationFn: field ? updateField : createField,
+    mutationFn: initialField ? updateField : createField,
     onSuccess: (data) => {
       showSuccess(data.msg);
-      queryClient.refetchQueries({ predicate: (query) => { return query.queryKey[0] === 'fieldList' } });
-      onFieldClose();
+      queryClient.invalidateQueries({ predicate: (query) => { return query.queryKey[0] === 'fieldList' } });
+      unselectField();
     },
     onError: showMutationError
   });
@@ -53,7 +69,7 @@ export default function FieldMenu({ farm, field, fieldPolygon, onFieldClose, onF
     onSuccess: (data) => {
       showSuccess(data.msg);
       queryClient.invalidateQueries({ predicate: (query) => { return query.queryKey[0] === 'fieldList' } });
-      onFieldDelete();
+      removeField();
     },
     onError: showMutationError
   });
@@ -62,8 +78,14 @@ export default function FieldMenu({ farm, field, fieldPolygon, onFieldClose, onF
     mode: 'controlled',
     initialValues: {
       name: field?.name ?? "",
-      farmId: field?.farmId ?? farm.id,
-      polygon: fieldPolygon,
+      farmId: farm.id,
+      polygon: field?.polygon!,
+      cropping: field?.cropping ?? {
+        patternId: 0,
+        rowsAngleDeg: 0,
+        rowsOffsetM: 0,
+        cropsOffsetM: 0,
+      },
       traitValues: field?.traitValues ?? [],
     },
     validate: {
@@ -71,9 +93,16 @@ export default function FieldMenu({ farm, field, fieldPolygon, onFieldClose, onF
         if (!value.trim().length) return 'Campo obrigatório';
       },
     },
-    transformValues: ({ name, ...otherValues }) => ({
-      name: name.trim(),
-      ...otherValues
+    onValuesChange: (values) => {
+      replaceField({
+        ...values,
+        polygon: field!.polygon
+      });
+    },
+    transformValues: (values) => ({
+      ...values,
+      name: values.name.trim(),
+      cropping: values.cropping?.patternId ? values.cropping : null,
     })
   });
 
@@ -83,183 +112,352 @@ export default function FieldMenu({ farm, field, fieldPolygon, onFieldClose, onF
     if (fieldValidation.hasErrors)
       return showError("Há campos inválidos no formulário.", "Erro");
 
+    const values = fieldForm.getTransformedValues();
+
     fieldSubmit.mutate({
-      ...(field && {id: field.id}),
+      ...(initialField && {id: initialField.id}),
       data: {
-        farmId: fieldForm.getValues()['farmId'],
-        name: fieldForm.getTransformedValues()['name'],
-        polygon: fieldForm.getValues()['polygon'],
-        traitValues: fieldForm.getValues()['traitValues'],
+        ...values,
+        polygon: field!.polygon,
       },
     });
   }
 
-  const fieldDeleteButton = (    
-    <Tooltip label="Excluir área">
-      {field ?
-      <DeleteButton
-        modalTitle="Deseja mesmo excluir essa área?"
-        modalContent={
-          <Text size="sm" mb={20}>
-            Ao confirmar, você <strong>removerá</strong> o cadastro da 
-            área <Text span fw={700}>{field.name}</Text>,
-            junto com todos os dados vinculados a ela.
-          </Text>
-        }
-        onModalConfirm={() => fieldDelete.mutate(field.id)}
-      /> : 
-      <DeleteButton
-        modalTitle="Deseja mesmo excluir essa área?"
-        modalContent={
-          <Text size="sm" mb={20}>
-            Ao confirmar, você <strong>removerá</strong> a área desenhada.
-          </Text>
-        }
-        onModalConfirm={onFieldDelete}
-      />}
-    </Tooltip>
-  );
+  const onUnsavedFieldClose = () => {
+    resetField();
+    unselectField();
+  }
 
-  const fieldCloseButton = field &&
-    <Tooltip label="Fechar área">
-      <Button variant="outline" size="compact-md" color="var(--mantine-color-gray-6)" onClick={onFieldClose}>
-        <IconX />
-      </Button>  
+  const deleteButtonProps = initialField ? {
+    modalTitle: "Deseja mesmo excluir essa área de cultivo?",
+    modalContent: (
+      <Text size="sm" mb={20}>
+        Ao confirmar, você <strong>removerá</strong> o cadastro do 
+        SAF <Text span fw={700}>{initialField.name}</Text>,
+        junto com todos os dados vinculados a ele.
+      </Text>
+    ),
+    onModalConfirm: () => fieldDelete.mutate(initialField.id),
+  } : {
+    modalTitle: "Deseja mesmo excluir essa área de cultivo?",
+    modalContent: (
+      <Text size="sm" mb={20}>
+        Ao confirmar, você <strong>removerá</strong> a área desenhada.
+      </Text>
+    ),
+    onModalConfirm: () => removeField(),
+  };
+
+  const fieldDeleteButton = 
+    <Tooltip label="Excluir área de cultivo">
+      <DeleteButton {...deleteButtonProps}/>
     </Tooltip>;
 
-  const submitButton = (!field || fieldForm.isDirty()) && // TODO: triggar atualização da área tb quando o polígono for alterado
-    <Button onClick={handleSubmitButtonClick} loading={fieldSubmit.isPending}>
-      {field ? "Atualizar área" : "Cadastrar área"}
-    </Button>;
+  const isFieldChanged = !initialField || fieldForm.isDirty() || !booleanEqual(fieldForm.values.polygon, field!.polygon);
+
+  const closeButtonStyle = {
+    variant: "outline",
+    size: "compact-md",
+    color: "var(--mantine-color-gray-6)",
+  };
+
+  const fieldCloseButton = initialField &&
+    <Tooltip label="Fechar área de cultivo">
+      {isFieldChanged ?
+        <ConfirmingButton
+          modalTitle="Deseja descartar as mudanças?"
+          modalContent="Há mudanças não salvas nessa área de cultivo. Se fechar agora, elas serão descartadas."
+          modalLabels={{ confirm: 'Descartar mudanças', cancel: 'Cancelar' }}
+          modalConfirmProps={{ color: 'red' }}
+          onModalConfirm={onUnsavedFieldClose}
+          {...closeButtonStyle}
+        >
+          <IconX />
+        </ConfirmingButton> :
+        <Button onClick={unselectField} {...closeButtonStyle}>
+          <IconX />
+        </Button>
+      }
+    </Tooltip>;
+
+  const submitButton = isFieldChanged ?
+    <Button
+      size="lg"
+      onClick={handleSubmitButtonClick}
+      loading={fieldSubmit.isPending}
+      disabled={inputsDisabled}
+    >
+      Salvar SAF
+    </Button> : undefined;
 
   const headerHeight = "50px";
 
   return (
-    <>
+    <Container p={0} style={{ height: '600px' }}>
     <Group justify="space-between" align="baseline" style={{height: headerHeight}}>
       {fieldDeleteButton}
       {fieldCloseButton}
     </Group>
     <Stack justify="space-between" style={{height: `calc(100% - ${headerHeight})`}}>
-      <Stack align="stretch">
-        <EditableFieldView
-          editing={!field}
-          form={fieldForm}
-          fieldName="name"
-          fieldLabel="Nome da área"
-        />
-        {field &&
-        <PlantFitnessButton farm={farm} />}
-      </Stack>
+      <ScrollArea>
+        <Stack justify="initial">
+          <TextInput
+            label="Nome do SAF"
+            pb={10}
+            disabled={inputsDisabled}
+            {...fieldForm.getInputProps("name")}
+          />
+          <CroppingControls
+            fieldForm={fieldForm}
+            disabled={inputsDisabled}
+            onChange={onCroppingChange}
+          />
+          {field!.cropping?.patternId ? (
+            isCroppingComputing || !field!.cropping.summary ? (
+              <Center><Loader /></Center>
+            ) : (
+              <CroppingSummaryDetails summary={field!.cropping.summary} />
+            )
+          ) : undefined}
+        </Stack>
+      </ScrollArea>
       {submitButton}
     </Stack>
-    </>
+    </Container>
   )
 }
 
-interface EditableFieldViewProps {
-  editing: boolean,
-  form: UseFormReturnType<FieldWriteRequestData, (values: FieldWriteRequestData) => FieldWriteRequestData>,
-  fieldName: 'name',
-  fieldLabel: string,
-}
-
-function EditableFieldView({ editing, form, fieldName, fieldLabel }: EditableFieldViewProps) {
-  const [editMode, setEditMode] = useState<boolean>(editing);
-
-  const handleEditButtonClick = () => {
-    setEditMode((editMode) => !editMode);
-  };
-  
-  return (
-    <>
-    {editMode ?
-    <TextInput
-      label={fieldLabel}
-      pb={10}
-      {...form.getInputProps(fieldName)}
-    /> :
-    <Group>
-      <FieldView label={fieldLabel}>
-        {form.getValues()[fieldName]}
-      </FieldView>
-      <Button variant="default" size="compact-xs" color="dimmed" onClick={() => handleEditButtonClick()}>
-        <IconPencil size={20} />
-      </Button>
-    </Group>}
-    </>
-  )
-}
-
-function PlantFitnessButton({ farm }: { farm: FarmReadData }) {
-  const openPlantFitnessModal = () => {
-    modals.open({
-      title: "Ranking de plantas para essa área",
-      size: "lg",
-      children: <PlantFitnessTable farm={farm} />,
-    });
-  };
-
-  return (
-    <Button color="teal" onClick={() => openPlantFitnessModal()}>
-      Ranking de plantas
-    </Button>
-  )
-}
-
-function PlantFitnessTable({ farm }: { farm: FarmReadData }) {
-  const plantFitnessesQueryOptions = {
-    queryKey: ['farmPlantFitnessList', farm.id.toString()],
-    queryFn: getFarmPlantFitnessList,
-  }
-
-  const plantFitnesses = useQuery(plantFitnessesQueryOptions);
-  const plants = plantFitnesses.data ?? [];
-
-  const header = (
-    <Table.Tr>
-      <Table.Th>Nome científico</Table.Th>
-      <Table.Th w={100}></Table.Th>
-      <Table.Th>Pontuação</Table.Th>
-      <Table.Th>Por aptidão</Table.Th>
-      <Table.Th>Por naturalidade</Table.Th>
-    </Table.Tr>
+function CroppingSummaryDetails({ summary }: { summary: CroppingSummary }) {
+  const summaryTotals = (
+    <Fieldset key="totals" legend="Total" fw={500} p={10} mb={10}>
+      <Group gap="xs">
+        <FieldView
+          label="Quant."
+          fz={14}
+          legendProps={{fw: 500, c: "var(--mantine-color-gray-7)"}}
+          >
+          {summary.individualsCount} pés
+        </FieldView>
+        <FieldView
+          label="Densidade"
+          fz={14}
+          legendProps={{fw: 500, c: "var(--mantine-color-gray-7)"}}
+          >
+          {summary.densityPerHa} pés/ha
+        </FieldView>
+      </Group>
+    </Fieldset>
   );
 
-  const rows = plants.map((fitness: SitePlantFitness) => (
-    <ClickableRow
-      key={fitness.acceptedTaxonName}
-      onClick={() => handleRowClick(fitness.plantId)}
-      style={{'--hover-color': '#bef7ce'}}
-    >
-      <Table.Td>{fitness.acceptedTaxonName}</Table.Td>
-      <Table.Td><NativityBadge plantFitness={fitness} /></Table.Td>
-      <Table.Td>{fitness.fitnessScore + fitness.nativityScore}</Table.Td>
-      <Table.Td>{fitness.fitnessScore}</Table.Td>
-      <Table.Td>{fitness.nativityScore}</Table.Td>
-      <Table.Td></Table.Td>
-    </ClickableRow>
-  ));
+  const summaryCrops = Object.keys(summary.crops).sort().map(
+    (key) => (
+      <Fieldset key={key} legend={<CropLegend plant={summary.crops[key].plant} />} fw={500} p={10} mb={10}>
+        <Group gap="xs">
+          <FieldView
+            label="Quant."
+            fz={14}
+            legendProps={{fw: 500, c: "var(--mantine-color-gray-7)"}}
+            >
+            {summary.crops[key].metrics.individualsCount} pés
+          </FieldView>
+          <FieldView
+            label="Densidade"
+            fz={14}
+            legendProps={{fw: 500, c: "var(--mantine-color-gray-7)"}}
+            >
+            {summary.crops[key].metrics.densityPerHa} pés/ha
+          </FieldView>
+        </Group>
+      </Fieldset>
+    )
+  );
+  
+  return (
+    <Fieldset fz="h3" legend="Resumo do cultivo">
+      {summaryTotals}
+      {summaryCrops}
+    </Fieldset>
+  );
+}
 
-  const handleRowClick = (plantId: number) => {
-    window.open(`/plants/${plantId}?edit=false`, '_blank');
+interface CroppingControlsProps {
+  fieldForm: UseFormReturnType<FieldWriteRequestData>,
+  disabled: boolean,
+  onChange: () => void,
+}
+
+function CroppingControls({ fieldForm, disabled, onChange }: CroppingControlsProps) {
+  const offsetInputWidth = 110;
+
+  const rowsAngleInputLabel =
+    <Group>
+      Ângulo (graus)
+      <Tooltip label="Rotaciona as linhas a partir do eixo Norte-Sul (0°)">
+        <IconInfoCircle size={18} />
+      </Tooltip>
+    </Group>;
+
+  const rowsOffsetInputLabel =
+    <Group justify="space-between" w={offsetInputWidth}>
+      Das linhas
+      <Tooltip label="Move as linhas perpendicularmente">
+        <IconInfoCircle size={18} />
+      </Tooltip>
+    </Group>;
+
+  const cropsOffsetInputLabel =
+    <Group justify="space-between" w={offsetInputWidth}>
+      Das plantas
+      <Tooltip label="Move as plantas ao longo das linhas">
+        <IconInfoCircle size={18} />
+      </Tooltip>
+    </Group>;
+
+  type CroppingKey = 
+    'cropping.patternId' |
+    'cropping.rowsAngleDeg' |
+    'cropping.rowsOffsetM' |
+    'cropping.cropsOffsetM';
+
+  const handleChange = (path: CroppingKey) => {
+    return (value: any) => {
+      onChange();
+      fieldForm.setFieldValue(path, value);
+    }
   }
 
   return (
-    <QueryLoader {...plantFitnessesQueryOptions}>
-      <StickyHeaderTable
-        header={header}
-        rows={rows}
-        scrollWidth={600}
-        scrollHeight={550} 
+    <Fieldset legend="Configuração do Cultivo">
+      <CroppingPatternSelect 
+        label="Padrão de cultivo"
+        selectedPatternId={fieldForm.getValues().cropping?.patternId}
+        disabled={disabled}
+        mb={5}
+        onSelect={handleChange('cropping.patternId')}
+        onUnselect={() => fieldForm.setFieldValue('cropping.patternId', 0)}
       />
-    </QueryLoader>
-  )
+      {fieldForm.getValues().cropping?.patternId ? <>
+      <NumberInput
+        key={fieldForm.key('cropping.rowsAngleDeg')}
+        label={rowsAngleInputLabel}
+        defaultValue={0}
+        min={-180}
+        max={180}
+        step={5}
+        mb={5}
+        disabled={disabled}
+        {...fieldForm.getInputProps('cropping.rowsAngleDeg')}
+        onChange={handleChange('cropping.rowsAngleDeg')}
+      />
+      <Text fz="sm" fw={500}>Deslocamento (m)</Text>
+      <Fieldset p={10}>
+        <Group justify="space-evenly" gap="xs">
+          <NumberInput
+            key={fieldForm.key('cropping.rowsOffsetM')}
+            label={rowsOffsetInputLabel}
+            defaultValue={0}
+            min={-100}
+            max={100}
+            allowedDecimalSeparators={['.',',']}
+            decimalScale={2}
+            step={0.5}
+            w={offsetInputWidth}
+            disabled={disabled}
+            {...fieldForm.getInputProps('cropping.rowsOffsetM')}
+            onChange={handleChange('cropping.rowsOffsetM')}
+          />
+          <NumberInput
+            key={fieldForm.key('cropping.cropsOffsetM')}
+            label={cropsOffsetInputLabel}
+            defaultValue={0}
+            min={-100}
+            max={100}
+            allowDecimal={true}
+            allowedDecimalSeparators={['.',',']}
+            decimalScale={2}
+            step={0.25}
+            w={offsetInputWidth}        
+            disabled={disabled}
+            {...fieldForm.getInputProps('cropping.cropsOffsetM')}
+            onChange={handleChange('cropping.cropsOffsetM')}
+          />
+        </Group>
+      </Fieldset>
+      </> : <></>}
+    </Fieldset>
+  );
 }
 
-function NativityBadge({ plantFitness }: { plantFitness: SitePlantFitness }) {
-  if (plantFitness.isNative)
-    return <Badge variant="light" color="green">NATIVA</Badge>
-  if (plantFitness.isInvasive)
-    return <Badge variant="light" color="red">INVASORA</Badge>
+interface CroppingPatternSelectProps extends BoxProps {
+  selectedPatternId?: number;
+  label?: string;
+  disabled?: boolean;
+  onSelect: (patternId: number) => void;
+  onUnselect: () => void;
+}
+
+function CroppingPatternSelect({ selectedPatternId, label, disabled, onSelect, onUnselect, ...boxProps }: CroppingPatternSelectProps) {
+  const { user } = useAuth();
+
+  const publicPatternsQueryOptions = {
+    queryKey: [
+      'croppingPatternList',
+      'with_rows=false',
+      'is_public=true',
+    ],
+    queryFn: getCroppingPatternList,
+  };
+  const userPatternsQueryOptions = {
+    queryKey: [
+      'croppingPatternList',
+      'with_rows=false',
+      `author_id=${user!.id}`,
+    ],
+    queryFn: getCroppingPatternList,
+  };
+
+  const userPatterns = useQuery(userPatternsQueryOptions);
+  const publicPatterns = useQuery(publicPatternsQueryOptions);
+
+  const selectedPattern = useMemo(() => {
+    const allPatterns = [
+      ...(userPatterns.data ?? []),
+      ...(publicPatterns.data ?? []),
+    ];
+    return allPatterns.find(pattern => pattern.id === selectedPatternId);
+  }, [userPatterns.data, publicPatterns.data, selectedPatternId]);
+
+  const buttonLabel = selectedPattern?.name ?? 'Selecione um padrão';
+  const tooltipLabel = selectedPattern?.name ?? 'Ver padrões disponíveis';
+
+  const openPreviewModal = () => modals.open({
+    title: 'Padrões de cultivo',
+    size: 'xl',
+    children: (
+      <CroppingPatternsModal
+        selectedPatternId={selectedPatternId}
+        onSelect={onSelect}
+        onUnselect={onUnselect}
+      />
+    ),
+  });
+
+  return (
+    <Stack gap={4} {...boxProps}>
+      {label && <Text fz="sm" fw={500}>{label}</Text>}
+      <Tooltip label={tooltipLabel}>
+        <Button
+          variant="default"
+          onClick={openPreviewModal}
+          disabled={disabled}
+          fullWidth
+          justify="space-between"
+          fw="initial"
+          rightSection={<IconChevronRight size={16} />}
+        >
+          {buttonLabel}
+        </Button>
+      </Tooltip>
+    </Stack>
+  )
 }

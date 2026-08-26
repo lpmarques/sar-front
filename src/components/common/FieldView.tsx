@@ -16,12 +16,13 @@ import { Text, TextProps } from '@mantine/core';
 export interface FieldViewProps extends TextProps {
   label: string,
   children: React.ReactNode,
+  legendProps?: TextProps,
 }
 
-export default function FieldView({ label, children, ...textProps }: FieldViewProps) {
+export default function FieldView({ label, children, legendProps, ...textProps }: FieldViewProps) {
   return (
     <Text {...textProps}>
-      <Text span c="dimmed">{label}:</Text> {children}
+      <Text span c="dimmed" {...textProps} {...legendProps}>{label}:</Text> {children}
     </Text>
   )
 }

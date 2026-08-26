@@ -11,18 +11,16 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
-import { Point as GJPoint, Polygon as GJPolygon } from "geojson";
+import { Polygon as GJPolygon } from "geojson";
 import {
   DrawEvents,
-  GeometryUtil,
   latLngBounds,
-  LatLng,
   LeafletEventHandlerFnMap,
   LeafletMouseEvent,
   Map,
   Polygon as PolygonLayer,
 } from "leaflet";
-import { RefObject, useRef } from "react";
+import { RefObject, useMemo, useRef, useState } from "react";
 import {
   FeatureGroup,
   MapContainer,
@@ -31,73 +29,59 @@ import {
   MarkerProps,
   Polygon,
   PolygonProps,
-  Tooltip,
 } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
-import { MapStyle } from "@maptiler/leaflet-maptilersdk";
+import { MapStyle } from '@maptiler/sdk';
 import * as turf from "@turf/boolean-equal";
-import MapBoundsFraming from "./MapBoundsFraming";
-import MapCentering from "./MapCentering";
-import MaptilerVectorLayer from "./MaptilerVectorLayer";
-import classes from "./MapContainer.module.css";
-import { positionToLatLng } from "../../utils/common";
-import { ButtonControl } from ".";
+import { useProject } from "../../hooks/useProject";
+import { positionToLatLng } from "../../utils/agroforestry";
+import { ButtonControl, FieldFeatureGroup, MapBoundsFraming, MapCentering, MaptilerVectorLayer } from ".";
+
+const MAX_ZOOM = 22;
 
 interface FieldsMapProps extends MapContainerProps {
-  drawingMode: boolean,
-  fieldPolygons: GJPolygon[],
-  focusFieldIndex: number | undefined,
-  onFieldDraw: () => void,
-  onFieldCreated: (field: GJPolygon) => void,
-  onFieldEdited: (field: GJPolygon) => void,
-  onFieldDeleted: () => void,
-  onFieldClicked: (index: number | undefined) => void,
-  farmLocation: GJPoint | undefined,
-  farmPolygon: GJPolygon | undefined,
   farmMarkerProps?: Omit<MarkerProps, 'key' | 'position'>,
   farmPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
   fieldPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
-  focusedFieldPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
+  selectedFieldPolygonProps?: Omit<PolygonProps, 'key' | 'positions'>,
+  onFieldPolygonEditStart?: () => void,
+  onFieldPolygonEditStop?: () => void,
+  onCroppingComputeStart?: () => void,
+  onCroppingComputed?: () => void,
 }
 
 export default function FieldsMap({
   center,
   zoom,
   style={ width: '100%' },
-  drawingMode,
-  fieldPolygons,
-  focusFieldIndex,
-  onFieldDraw,
-  onFieldCreated,
-  onFieldEdited,
-  onFieldDeleted,
-  onFieldClicked,
-  farmLocation,
-  farmPolygon,
   farmMarkerProps,
   farmPolygonProps,
   fieldPolygonProps,
-  focusedFieldPolygonProps,
+  selectedFieldPolygonProps,
+  onFieldPolygonEditStart,
+  onFieldPolygonEditStop,
+  onCroppingComputed,
   ...mapContainerProps
 }: FieldsMapProps
 ) {
-  const maxZoom = 18;
+  const { farm, fields, selectedFieldIndex, selectField, addField } = useProject();
+  const [drawingNewField, setDrawingNewField] = useState<boolean>(false);
 
-  const focusIndex = useRef<number | undefined>(undefined);
-  focusIndex.current = focusFieldIndex; // using ref here to store state's current value is necessary to avoid stale closures (callbacks accessing old versions of the state)
+  const drawingMode = selectedFieldIndex !== null || drawingNewField;
 
-  const getPolygonAreaDisplay = (polygonLatLngs: LatLng[][]) => {
-    const polygonArea = GeometryUtil.geodesicArea(polygonLatLngs[0]);
-    return `${Math.round(polygonArea)} m²`;
-  }
+  const focusIndex = selectedFieldIndex;
+  const focusField = useMemo(
+    () => focusIndex !== null ? fields[focusIndex] : undefined,
+    [focusIndex]
+  );
 
   const polygonEventHandlers: LeafletEventHandlerFnMap = {
     click: (e: LeafletMouseEvent) => {
       const layer = e.target;
       if (!focusField && layer instanceof PolygonLayer) {
         const geoJson = layer.toGeoJSON();
-        const fieldIndex = fieldPolygons.findIndex((field) => turf.booleanEqual(field, geoJson.geometry));
-        onFieldClicked(fieldIndex);
+        const fieldIndex = fields.findIndex((field) => turf.booleanEqual(field.polygon, geoJson.geometry));
+        selectField(fieldIndex);
       }
     }
   };
@@ -105,52 +89,16 @@ export default function FieldsMap({
   const onCreated = (e: DrawEvents.Created) => {
     if (e.layer instanceof PolygonLayer) {
       const geoJson = e.layer.toGeoJSON();
-      onFieldCreated(geoJson.geometry as GJPolygon);
-    }
+      addField({ polygon: geoJson.geometry as GJPolygon });
+      setDrawingNewField(false);
 
-    e.layer.remove();
-  };
-
-  const onEdited = (e: DrawEvents.Edited) => {
-    const focusLayer = e.layers.getLayers()[0];
-    if (focusLayer instanceof PolygonLayer) {
-      onFieldEdited(focusLayer.toGeoJSON().geometry as GJPolygon);
+      e.layer.remove(); // removes leaflet-draw's layer to avoid duplication with to-be-rendered react-leaflet's Polygon
     }
   };
 
-  const focusField = focusIndex.current !== undefined ? fieldPolygons[focusIndex.current] : undefined;
-  const focusFieldLatLngs = focusField && positionToLatLng(focusField.coordinates);
-
-  const focusFieldFeatureGroup = focusField && focusFieldLatLngs && (
-    <FeatureGroup key={focusFieldLatLngs.toString()}>
-      <Polygon positions={focusFieldLatLngs} pathOptions={{color: 'orange'}} {...focusedFieldPolygonProps}>
-        <Tooltip permanent direction='center'>
-          {getPolygonAreaDisplay(focusFieldLatLngs)}
-        </Tooltip>
-      </Polygon>
-      <MapBoundsFraming bounds={latLngBounds(focusFieldLatLngs[0])} maxZoom={maxZoom} />
-      {drawingMode &&
-      <EditControl
-        position="topright"
-        onEdited={onEdited}
-        draw={{
-          polygon: false,
-          marker: false,
-          polyline: false,
-          rectangle: false,
-          circle: false,
-          circlemarker: false,
-        }}
-        edit={{
-          remove: false,
-        }}
-      />}
-    </FeatureGroup>
-  );
-
-  const otherFields = fieldPolygons.filter((_, index) => index !== focusIndex.current);
+  const otherFields = fields.filter((_, index) => index !== focusIndex);
   const otherFieldsFeatures = otherFields.map((field) => {
-    const latLngs = positionToLatLng(field.coordinates);
+    const latLngs = positionToLatLng(field.polygon.coordinates);
     return (
       <Polygon
         key={latLngs.toString()}
@@ -188,6 +136,9 @@ export default function FieldsMap({
       />}
     </FeatureGroup>
   );
+    
+  const farmPolygon = farm.polygon ?? undefined;
+  const farmLocation = !farmPolygon ? farm.location : undefined;
 
   const farmLocationLatLng = farmLocation && positionToLatLng(farmLocation.coordinates);
   const farmPolygonLatLngs = farmPolygon && positionToLatLng(farmPolygon.coordinates);
@@ -197,12 +148,12 @@ export default function FieldsMap({
       {farmPolygonLatLngs && <>
       <Polygon key={farmPolygonLatLngs.toString()} positions={farmPolygonLatLngs} pathOptions={{ fillColor: 'none', dashArray: '8' }} {...farmPolygonProps} />
       {!focusField &&
-      <MapBoundsFraming bounds={latLngBounds(farmPolygonLatLngs[0])} maxZoom={maxZoom} />}
+      <MapBoundsFraming bounds={latLngBounds(farmPolygonLatLngs[0])} maxZoom={MAX_ZOOM} />}
       </>}
       {farmLocationLatLng && <>
       <Marker key={farmLocationLatLng.toString()} position={farmLocationLatLng} opacity={0} {...farmMarkerProps} />
       {!focusField &&
-      <MapCentering center={farmLocationLatLng} zoom={maxZoom} />}
+      <MapCentering center={farmLocationLatLng} zoom={MAX_ZOOM} />}
       </>}
     </FeatureGroup>
   );
@@ -215,23 +166,28 @@ export default function FieldsMap({
       id="map-container"
       center={center}
       zoom={zoom}
-      style={style}
-      className={classes['map-container']}
+      style={{zIndex: 0, ...style}}
       whenReady={() => resizeMap(mapRef)}
       {...mapContainerProps}
     >
       <MaptilerVectorLayer style={MapStyle.HYBRID} />
       {!drawingMode &&
-      <ButtonControl position="topright" color="teal" onClick={onFieldDraw}>
-        Adicionar nova área
+      <ButtonControl position="topright" color="teal" onClick={() => setDrawingNewField(true)}>
+        Adicionar área de cultivo
       </ButtonControl>}
       {drawingMode && !focusField &&
-      <ButtonControl position="topright" color="red" onClick={onFieldDeleted}>
+      <ButtonControl position="topright" color="red" onClick={() => setDrawingNewField(false)}>
         Cancelar
       </ButtonControl>}
       {farmFeatureGroup}
       {fieldsFeatureGroup}
-      {focusFieldFeatureGroup}
+      {focusField &&
+      <FieldFeatureGroup
+        onPolygonEditStart={onFieldPolygonEditStart}
+        onPolygonEditStop={onFieldPolygonEditStop}
+        onCroppingComputed={onCroppingComputed}
+        extraPolygonProps={fieldPolygonProps}
+      />}
     </MapContainer>
   )
 }

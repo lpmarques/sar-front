@@ -101,8 +101,8 @@ interface DefaultQueryFnInput extends DefaultHTTPRequestFnInput {
   params?: string[]
 }
 
-export async function defaultQueryFn({ endpoint, params = [] }: DefaultQueryFnInput): Promise<any> {
-  let res = await axios.get(endpoint.toLowerCase() + (params && `?${params.join('&')}`));
+export async function defaultQueryFn({ endpoint, params=[] }: DefaultQueryFnInput): Promise<any> {
+  let res = await axios.get(endpoint.toLowerCase() + (params.length > 0 ? `?${params.join('&')}` : ""));
 
   return snakeToCamelCase(res.data);
 }

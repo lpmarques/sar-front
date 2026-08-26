@@ -13,11 +13,11 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 
 import { useNavigate, useParams } from "react-router";
 import { Avatar, Button, Center, Container, Group, Paper, Stack, Text } from '@mantine/core';
-import { modals } from '@mantine/modals';
+import { modals, ModalsProvider } from '@mantine/modals';
 import { IconMail, IconBuildings, IconMapPin } from '@tabler/icons-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { showMutationError } from '../../apis/common';
-import { deleteUser, deleteUserToken, getUser, UserReadData } from "../../apis/core";
+import { deleteUser, deleteUserToken, getOwnUser, getUser, UserReadData } from "../../apis/core";
 import { QueryLoader } from '../common/QueryLoader';
 import { useAuth } from "../../hooks/useAuth";
 import classes from './UserProfile.module.css';
@@ -26,23 +26,28 @@ export default function UserProfile() {
   let { userEmail } = useParams();
 
   let queryKey = ['user'];
-  if (userEmail !== undefined)
+  let queryFn = getOwnUser;
+  if (userEmail !== undefined) {
     queryKey.push(`email=${userEmail}`);
+    queryFn = getUser
+  }
 
   const userQueryOptions = {
     queryKey,
-    queryFn: getUser
-  }
+    queryFn,
+  };
   
   const { data } = useQuery(userQueryOptions);
 
   return (
-    <QueryLoader {...userQueryOptions}>
-      <Container size={300}>
-        <UserDataCard data={data!} />
-        {userEmail === undefined && <UserOptions />}
-      </Container>
-    </QueryLoader>
+    <ModalsProvider>
+      <QueryLoader {...userQueryOptions}>
+        <Container size={300}>
+          <UserDataCard data={data!} />
+          {userEmail === undefined && <UserOptions />}
+        </Container>
+      </QueryLoader>
+    </ModalsProvider>
   )
 }
 

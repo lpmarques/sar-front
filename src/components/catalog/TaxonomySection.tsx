@@ -12,7 +12,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
 import { useEffect } from 'react';
-import { Alert, List, NativeSelect, Table, Text, TextInput } from '@mantine/core';
+import { Alert, List, Select, Table, Text, TextInput } from '@mantine/core';
 import { FormErrors, isNotEmpty, useForm } from '@mantine/form';
 import { useQuery } from '@tanstack/react-query';
 import { getPlantTaxonList, TaxonReadData, TaxonWriteRequestData } from '../../apis/catalog';
@@ -218,9 +218,10 @@ export function TaxonFormRow({ forms, setForms, itemsQueryOptions }: ContentForm
   return (
     <>
     <Table.Td>
-      <NativeSelect
+      <Select
         key={form.key('taxonomicStatus')}
         data={statusOptions}
+        withScrollArea={false}
         {...form.getInputProps('taxonomicStatus')}
         />
     </Table.Td>

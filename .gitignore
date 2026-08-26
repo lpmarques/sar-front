@@ -133,3 +133,6 @@ build_push_image.sh
 
 # GCP credentials
 perma-*.json
+
+# Claude
+.claude
