@@ -142,7 +142,7 @@ export function AcceptedItems<ReadT extends ContentReadData, WriteT extends Cont
       <sectionConfig.Header />
       <Table.Th fz="h6" fw={550}>Fonte</Table.Th>
       <Table.Th fz="h6" fw={550}>Proponente</Table.Th>
-      <Table.Th fz="h6" fw={550}>Aceita em</Table.Th>
+      <Table.Th fz="h6" fw={550}>Aceito em</Table.Th>
       <Table.Th fz="h6" fw={550} w={170}>Apoios</Table.Th>
     </Table.Tr>
   );

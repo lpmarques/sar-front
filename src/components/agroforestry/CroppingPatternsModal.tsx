@@ -17,7 +17,7 @@ import CroppingPatternsTable from "./CroppingPatternsTable";
 import CroppingPatternPreview from "./CroppingPatternPreview";
 import { CroppingPatternReadData } from "../../apis/agroforestry";
 
-interface CroppingPatternsPreviewModalProps {
+interface CroppingPatternsModalProps {
   selectedPatternId?: number;
   onSelect: (patternId: number) => void;
   onUnselect: () => void;
@@ -31,38 +31,38 @@ type View = { kind: "list" } | { kind: "preview"; pattern: CroppingPatternReadDa
  * Holds the modal's internal view (list ↔ single-pattern preview) so callers
  * only ever supply a pattern id and a select/unselect callback.
  */
-export default function CroppingPatternsPreviewModal({
+export default function CroppingPatternsModal({
   selectedPatternId,
   onSelect,
   onUnselect,
-}: CroppingPatternsPreviewModalProps) {
+}: CroppingPatternsModalProps) {
   const [view, setView] = useState<View>({ kind: "list" });
 
-  if (view.kind === "preview") {
+  if (view.kind === "list") {
     return (
-      <CroppingPatternPreview
-        pattern={view.pattern}
+      <CroppingPatternsTable
+        selectedPatternId={selectedPatternId}
         onSelect={(patternId) => {
+          modals.closeAll();
           onSelect(patternId);
+        }}
+        onUnselect={() => {
+          onUnselect();
           modals.closeAll();
         }}
-        onBackToList={() => setView({ kind: "list" })}
+        onPreview={(pattern) => setView({ kind: "preview", pattern })}
       />
     );
   }
 
   return (
-    <CroppingPatternsTable
-      selectedPatternId={selectedPatternId}
+    <CroppingPatternPreview
+      pattern={view.pattern}
       onSelect={(patternId) => {
         onSelect(patternId);
         modals.closeAll();
       }}
-      onUnselect={() => {
-        onUnselect();
-        modals.closeAll();
-      }}
-      onPreview={(pattern) => setView({ kind: "preview", pattern })}
+      onBackToList={() => setView({ kind: "list" })}
     />
   );
 }

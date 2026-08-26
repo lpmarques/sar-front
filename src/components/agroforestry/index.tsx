@@ -15,7 +15,7 @@ import ArrowPolyline from './ArrowPolyline';
 import ButtonControl from './ButtonControl';
 import CroppingLayers from './CroppingLayers';
 import CroppingPatternPreview from './CroppingPatternPreview';
-import CroppingPatternsPreviewModal from './CroppingPatternsPreviewModal';
+import CroppingPatternsModal from './CroppingPatternsModal';
 import CroppingPatternsTable from './CroppingPatternsTable';
 import DeviceLocationControl from './DeviceLocationControl';
 import FarmDetails from './FarmDetails';
@@ -52,7 +52,7 @@ export {
   CroppingLayers,
   CroppingPatternPreview,
   CroppingPatternPreviewPage,
-  CroppingPatternsPreviewModal,
+  CroppingPatternsModal,
   CroppingPatternsTable,
   DeviceLocationControl,
   EditControl,

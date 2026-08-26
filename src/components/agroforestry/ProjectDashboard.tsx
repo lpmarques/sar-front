@@ -63,6 +63,7 @@ export default function ProjectDashboard() {
 function ProjectDashboardBody() {
   const { selectedFieldIndex } = useProject();
   const [isEditingFieldPolygon, setIsEditingFieldPolygon] = useState(false);
+  const [isCroppingComputing, setIsCroppingComputing] = useState(false);
 
   return (
     <Container size="100%" mb={5} mt={-30}>
@@ -70,8 +71,9 @@ function ProjectDashboardBody() {
         <Grid.Col span="auto">
           <Paper withBorder p={5}>
             <FieldsMap
-              onFieldPolygonEditStart={() => {setIsEditingFieldPolygon(true)}}
-              onFieldPolygonEditStop={() => {setIsEditingFieldPolygon(false)}}
+              onFieldPolygonEditStart={() => setIsEditingFieldPolygon(true)}
+              onFieldPolygonEditStop={() => setIsEditingFieldPolygon(false)}
+              onCroppingComputed={() => setIsCroppingComputing(false)}
               style={{ height: '600px' }}
             />
           </Paper>
@@ -81,7 +83,11 @@ function ProjectDashboardBody() {
             <Grid.Col span={3} style={{ ...transStyle }}>
               {selectedFieldIndex !== null &&
               <Paper withBorder p={10} style={{ height: '100%' }}>
-                <FieldMenu inputsDisabled={isEditingFieldPolygon} />
+                <FieldMenu
+                  inputsDisabled={isEditingFieldPolygon}
+                  isCroppingComputing={isCroppingComputing}
+                  onCroppingChange={() => setIsCroppingComputing(true)}
+                />
               </Paper>}
             </Grid.Col>
           )}

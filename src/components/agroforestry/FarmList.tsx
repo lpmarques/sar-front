@@ -12,7 +12,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
 import { useQuery } from "@tanstack/react-query";
-import { Container, Paper, Table, Text, Tooltip } from "@mantine/core";
+import { Container, Paper, Table, Text, Title, Tooltip } from "@mantine/core";
 import { FarmReadData, getFarmList } from "../../apis/agroforestry";
 import ClickableRow from "../common/ClickableRow";
 import { showError } from "../common/notifications";
@@ -102,7 +102,7 @@ function FarmsTable({ farms }: { farms: FarmReadData[] }) {
 
   return (
     <Container size={1200}>
-      <Text fz="h3" fw={600} mb={20}>Lista de Propriedades</Text>
+      <Title fz="h3" mb={20}>Lista de Propriedades</Title>
       <Paper withBorder>
         <StickyHeaderTable
           header={header}

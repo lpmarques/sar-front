@@ -19,7 +19,6 @@ import LocalizedFormat from 'dayjs/plugin/localizedFormat';
 // import { getAnalytics } from 'firebase/analytics';
 import { BrowserRouter, Routes, Route } from "react-router";
 import { MantineProvider } from "@mantine/core";
-import { ModalsProvider } from '@mantine/modals';
 import { Notifications } from '@mantine/notifications';
 import drawLocales from 'leaflet-draw-locales';
 import 'leaflet/dist/leaflet.css';
@@ -39,6 +38,9 @@ import { Login, UserContents, UserProfile, Signup } from './components/user';
 import { LanguageProvider } from './hooks/useLanguage';
 import { useAuth } from './hooks/useAuth';
 import { theme } from "./theme";
+import About from "./components/About";
+import { FuturePageInfo } from "./components/common/FuturePageInfo";
+import Support from "./components/Support";
 
 export default function App() {
   const auth = useAuth();
@@ -63,7 +65,7 @@ export default function App() {
   dayjs.extend(customParseFormat);
   dayjs.extend(LocalizedFormat);
 
-  maptilersdk.config.apiKey = "ySNElyovuaMoY8g0Bgmc";
+  maptilersdk.config.apiKey = import.meta.env.VITE_MAPTILER_API_KEY;
   drawLocales('pt');
 
   return (
@@ -76,6 +78,9 @@ export default function App() {
             <Shell>
               <Routes>
                 <Route index element={<Home />}/>
+                <Route path="about" element={<About />}/>
+                <Route path='demos' element={<FuturePageInfo pageName="Tutoriais" />} />
+                <Route path='support' element={<Support />} />
                 <Route path="login" element={<UnloggedOnlyRoute><Login /></UnloggedOnlyRoute>}/>
                 <Route path="signup" element={<UnloggedOnlyRoute><Signup /></UnloggedOnlyRoute>}/>
                 <Route path="user" element={<LoggedOnlyRoute><UserProfile /></LoggedOnlyRoute>}/>
