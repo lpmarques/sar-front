@@ -4,15 +4,24 @@ import ClickableText from "./common/ClickableText";
 export default function About() {
   return (
     <Container>
-      <Title pb={20}>Plataforma SAR</Title>
+      <Title pb={20}>
+        Plataforma SAR
+      </Title>
       <Text pb={25}>
         Mais da metade das pastagens e terras agricultáveis do Brasil apresentam algum nível de degradação.
-        Dessas áreas, pelo menos 28 milhões de hectares apresentam alto potencial de uso em cultivos agrícolas.
+        Dessas áreas, pelo menos 28 milhões de hectares{' '}
+        <ClickableText c="blue" path="https://www.embrapa.br/busca-de-publicacoes/-/publicacao/1162744/potencial-de-expansao-agricola-em-areas-de-pastagem-degradadas-no-brasil">
+          apresentam alto potencial agrícola
+        </ClickableText>.
         Sistemas produtivos biodiversos, como os sistemas agroflorestais (SAFs), podem ajudar na regeneração 
         dessas áreas, recuperando solo e recursos hídricos, e produzindo alimentos ao mesmo tempo. 
       </Text>
       <Text pb={25}>
-        A legislação ambiental brasileira incentiva o uso dos SAFs para recompor a flora nativa em áreas degradadas, 
+        A legislação ambiental brasileira{' '}
+        <ClickableText c="blue" path="https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2012/lei/l12651.htm">
+          incentiva o uso dos SAFs
+        </ClickableText>
+        {' '}para recompor a flora nativa em áreas degradadas, 
         permitindo ao pequeno produtor e agricultor familiar produzir e regularizar sua propriedade ao mesmo tempo. 
         Contudo, há poucas ferramentas que auxiliem o produtor no planejamento desses sistemas com dados da nossa 
         flora nativa.
@@ -60,7 +69,9 @@ export default function About() {
         valida a adequação do sistema às regras do órgão ambiental (em breve) e gera um relatório de apoio ao pedido de 
         autorização e implantação do cultivo agroflorestal (em breve).
       </Text>
-      <Title pt={25} pb={30}>Regenera Mata Atlântica</Title>
+      <ClickableText span={false} fz="h1" fw="bold" pt={20} pb={20} path="https://www.instagram.com/regeneramataatlantica">
+        Regenera Mata Atlântica
+      </ClickableText>
       <Text pb={25}>
         Criado em 2023 por docentes do Instituto de Agronomia da UFRRJ, o Regenera Mata Atlântica promove a restauração 
         produtiva e a agroecologia aliando conservação ambiental e geração de renda para a agricultura familiar. O projeto 

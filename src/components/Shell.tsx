@@ -15,7 +15,6 @@ import { AppShell, rem } from '@mantine/core';
 import { useHeadroom } from '@mantine/hooks';
 import Footer from './Footer';
 import Header from './Header';
-import HeaderMenu from './HeaderMenu';
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const pinned = useHeadroom({ fixedAt: 120 });
@@ -24,8 +23,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   return (
     <AppShell header={{height: 90, collapsed: !pinned, offset: false}} footer={{height: 80}}>
       <AppShell.Header bd={borderStyle}>
-        {/* <Header /> */}
-        <HeaderMenu />
+        <Header />
       </AppShell.Header>
       <AppShell.Main pt={rem(140)}>
         {children}
