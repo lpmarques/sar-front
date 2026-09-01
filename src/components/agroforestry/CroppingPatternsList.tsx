@@ -14,34 +14,35 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import { ActionIcon, Button, Center, CloseButton, Group, Table, Tooltip } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { IconArrowsMaximize, IconPlus } from "@tabler/icons-react";
+import { Fragment } from "react";
 import { CroppingPatternReadData, getCroppingPatternList } from "../../apis/agroforestry";
 import { useAuth } from "../../hooks/useAuth";
 import { StickyHeaderTable } from "../common/StickyHeaderTable";
 import { UserAvatar } from "../user";
 import ClickableRow from "../common/ClickableRow";
 import { QueryLoader } from "../common/QueryLoader";
+import AddRow from "../common/AddRow";
 
-interface CroppingPatternsTableProps {
+interface CroppingPatternsListProps {
   selectedPatternId?: number,
-  onSelect: (patternId: number) => void,
-  onUnselect: () => void,
-  onPreview: (pattern: CroppingPatternReadData) => void,
+  onSelect?: (patternId: number) => void,
+  onUnselect?: () => void,
+  onPreview: (patternId: number) => void,
   onCreate: () => void,
 }
 
-export default function CroppingPatternsTable({
+export default function CroppingPatternsList({
   selectedPatternId,
   onSelect,
   onUnselect,
   onPreview,
   onCreate,
-}: CroppingPatternsTableProps) {
+}: CroppingPatternsListProps) {
   const { user } = useAuth();
 
   const userPatternsQueryOptions = {
     queryKey: [
       'croppingPatternList',
-      'with_rows=true',
       `author_id=${user!.id}`,
     ],
     queryFn: getCroppingPatternList,
@@ -49,7 +50,6 @@ export default function CroppingPatternsTable({
   const publicPatternsQueryOptions = {
     queryKey: [
       'croppingPatternList',
-      'with_rows=true',
       'is_public=true',
     ],
     queryFn: getCroppingPatternList,
@@ -58,23 +58,21 @@ export default function CroppingPatternsTable({
   const userPatterns = useQuery(userPatternsQueryOptions);
   const publicPatterns = useQuery(publicPatternsQueryOptions);
 
-  if (userPatterns.isLoading) {
+  if (userPatterns.isLoading)
     return (
       <Center>
         <QueryLoader {...userPatternsQueryOptions}/>
       </Center>
     );
-  }
 
-  if (publicPatterns.isLoading) {
+  if (publicPatterns.isLoading)
     return (
       <Center>
         <QueryLoader {...publicPatternsQueryOptions} />
       </Center>
     );
-  }
 
-  const patterns = [...userPatterns.data!, ...publicPatterns.data!.filter(pattern => pattern.author.id !== user!.id)]
+  const patterns = [...userPatterns.data!, ...publicPatterns.data!.filter(pattern => pattern.author.id !== user!.id)];
 
   const header = (
     <Table.Tr>
@@ -99,28 +97,30 @@ export default function CroppingPatternsTable({
 
   const handleUnselect = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.stopPropagation();
-    onUnselect();
+    onUnselect?.();
   };
 
   const handlePreview = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, pattern: CroppingPatternReadData) => {
     e.stopPropagation();
-    onPreview(pattern);
+    onPreview(pattern.id);
   };
 
   const selectionColor = 'var(--mantine-color-blue-light)';
+
+  const Row = onSelect ? ClickableRow : Table.Tr;
 
   const rows = patterns.map((pattern) => {
     const isSelected = pattern.id === selectedPatternId;
     const backgroundColor = isSelected ? selectionColor : undefined;
 
-    return <ClickableRow
+    return <Row
       key={pattern.id}
-      onClick={() => onSelect(pattern.id)}
+      onClick={() => onSelect?.(pattern.id)}
       style={{'backgroundColor': backgroundColor, '--hover-color': selectionColor}}
     >
       <Table.Td>{pattern.name}</Table.Td>
       <Table.Td>
-        <UserAvatar size="md" user={user!}/>
+        <UserAvatar size="md" user={pattern.author}/>
       </Table.Td>
       <Table.Td>{distinctPlantCount(pattern)}</Table.Td>
       <Table.Td>
@@ -133,7 +133,7 @@ export default function CroppingPatternsTable({
             />
           </Tooltip>
           }
-          <Tooltip label="Pré-visualizar padrão">
+          <Tooltip label="Ver detalhes">
             <ActionIcon
               variant="subtle"
               size="sm"
@@ -144,19 +144,26 @@ export default function CroppingPatternsTable({
           </Tooltip>
         </Group>
       </Table.Td>
-    </ClickableRow>
+    </Row>
   });
+  
+  rows.push(
+    <Tooltip key={0} withArrow position="top" label="Clique para criar um novo padrão.">
+      <AddRow colSpan={5} onClick={onCreate} style={{'--hover-color': selectionColor}}/>
+    </Tooltip>
+  );
 
   return (
-    <>
+    <Fragment>
       {newPatternButton}
       <StickyHeaderTable
         header={header}
-        rows={rows}
         scrollWidth={600}
         scrollHeight={500}
-      />
-    </>
+      >
+        {rows}
+      </StickyHeaderTable>
+    </Fragment>
   );
 }
 

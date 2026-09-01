@@ -11,44 +11,37 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Button, ButtonProps } from "@mantine/core";
+import { Button, ButtonProps, Text } from "@mantine/core";
 import { IconTrash } from "@tabler/icons-react";
-import ConfirmingButton, { ConfirmModalProps } from "./ConfirmingButton";
+import ConfirmButton, { ConfirmModalProps } from "./ConfirmButton";
 
 interface DeleteButtonProps extends ButtonProps {
   confirmModal?: Omit<ConfirmModalProps, 'labels' | 'confirmProps'> & {
-    /**
-     * Pass-through to the underlying `ConfirmingButton`. Set to `true` when
-     * this button is rendered inside another modal so the confirmation
-     * overlays the parent without unmounting its children.
-     */
-    local?: boolean;
+    submodal?: boolean;
   };
   onClick?: () => void;
 }
 
 export default function DeleteButton({ confirmModal, onClick, ...otherButtonProps }: DeleteButtonProps) {
-
   const buttonProps = {
     variant: "outline",
-    size: "compact-md",
     color: "red",
     ...otherButtonProps,
   };
 
   if (confirmModal) {
     return (
-      <ConfirmingButton
+      <ConfirmButton
         {...buttonProps}
         modal={{
           ...confirmModal,
           labels: { confirm: 'Excluir', cancel: 'Cancelar exclusão' },
           confirmProps: { color: 'red' },
         }}
-        local={confirmModal.local}
+        useSubmodal={confirmModal.submodal}
       >
         <IconTrash size={20} />
-      </ConfirmingButton>
+      </ConfirmButton>
     )
   }
 

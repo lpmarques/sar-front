@@ -24,8 +24,8 @@ export default function AddRow({ colSpan, ...clickableRowProps }: AddRowProps) {
   const isMobile = useMediaQuery(`(max-width: ${em(500)})`);
 
   const iconsCount = isMobile ? Math.floor((colSpan-1)/3) || 1 : 1;
-  const icons = [...Array(iconsCount)].map(() => (
-    <IconCircleDashedPlus color="var(--mantine-color-gray-5)" size={35}/>
+  const icons = [...Array(iconsCount)].map((_, index) => (
+    <IconCircleDashedPlus key={index} color="var(--mantine-color-gray-5)" size={35}/>
   ));
 
   return (

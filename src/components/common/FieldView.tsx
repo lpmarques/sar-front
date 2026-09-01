@@ -21,7 +21,7 @@ export interface FieldViewProps extends TextProps {
 
 export default function FieldView({ label, children, legendProps, ...textProps }: FieldViewProps) {
   return (
-    <Text {...textProps}>
+    <Text component="div" {...textProps}>
       <Text span c="dimmed" {...textProps} {...legendProps}>{label}:</Text> {children}
     </Text>
   )

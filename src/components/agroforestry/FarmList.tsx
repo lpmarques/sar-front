@@ -106,13 +106,14 @@ function FarmsTable({ farms }: { farms: FarmReadData[] }) {
       <Paper withBorder>
         <StickyHeaderTable
           header={header}
-          rows={rows}
           scrollWidth={600}
           scrollHeight={550}
           striped
           stripedColor="#f0f2f2"
           withRowBorders={false}
-        />
+        >
+          {rows}
+        </StickyHeaderTable>
       </Paper>
     </Container>
   )

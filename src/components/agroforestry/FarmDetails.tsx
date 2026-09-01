@@ -61,15 +61,18 @@ export default function FarmDetails() {
             <Group mb={10} justify="space-between">
               <Text fz="h2" fw={600}>{farm.data.name}</Text>
               <DeleteButton
-                modalTitle="Deseja mesmo excluir essa propriedade?"
-                modalContent={
-                  <Text size="sm" mb={20}>
-                    Ao confirmar, você <strong>removerá</strong> o cadastro da 
-                    propriedade <Text span fw={700}>{farm.data.name}</Text>, 
-                    junto com todos os dados do projeto agroflorestal vinculado a ela.
-                  </Text>
-                }
-                onModalConfirm={() => farmDeletion.mutate(farm.data.id)}
+                size="compact-md"
+                confirmModal={{
+                  title: "Deseja mesmo excluir essa propriedade?",
+                  children: (
+                    <Text size="sm" mb={20}>
+                      Ao confirmar, você <strong>removerá</strong> o cadastro da 
+                      propriedade <Text span fw={700}>{farm.data.name}</Text>, 
+                      junto com todos os dados do projeto agroflorestal vinculado a ela.
+                    </Text>
+                  ),
+                  onConfirm: () => farmDeletion.mutate(farm.data.id),
+                }}
               />
             </Group>
             <Container px={10}>

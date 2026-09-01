@@ -14,7 +14,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 import { useState } from "react";
 import { Button, ButtonProps } from "@mantine/core";
 import { modals } from "@mantine/modals";
-import LocalConfirmModal from "./LocalConfirmModal";
+import ConfirmSubmodal from "./ConfirmSubmodal";
 
 export interface ConfirmModalProps {
   title: string;
@@ -27,45 +27,45 @@ export interface ConfirmModalProps {
   onConfirm: () => void;
 }
 
-interface ConfirmingButtonProps extends Omit<ButtonProps, 'onClick'> {
+interface ConfirmButtonProps extends Omit<ButtonProps, 'onClick'> {
   children: React.ReactNode;
   modal: ConfirmModalProps;
   /**
-   * When `true`, the confirmation is rendered as a `LocalConfirmModal` mounted
+   * When `true`, the confirmation is rendered as a `ConfirmSubmodal` mounted
    * inside the button's own component tree, instead of being pushed into the
    * global `@mantine/modals` registry. Use this from inside another modal:
    * the global registry only renders the topmost entry, which would unmount
-   * the parent modal's children and reset their `useState`. A local `Modal`
+   * the parent modal's children and reset their `useState`. A submodal
    * overlays the parent without unmounting it.
    */
-  local?: boolean;
+  useSubmodal?: boolean;
 }
 
-export default function ConfirmingButton({
+export default function ConfirmButton({
   children,
   modal,
-  local = false,
+  useSubmodal = false,
   ...buttonProps
-}: ConfirmingButtonProps) {
-  const [localOpened, setLocalOpened] = useState(false);
+}: ConfirmButtonProps) {
+  const [submodalOpened, setSubmodalOpened] = useState(false);
 
   const openConfirmModal = () => {
     modals.openConfirmModal(modal);
   };
 
-  if (local) {
+  if (useSubmodal) {
     return (
       <>
-        <Button {...buttonProps} onClick={() => setLocalOpened(true)}>
+        <Button {...buttonProps} onClick={() => setSubmodalOpened(true)}>
           {children}
         </Button>
-        <LocalConfirmModal
-          opened={localOpened}
-          onClose={() => setLocalOpened(false)}
+        <ConfirmSubmodal
+          opened={submodalOpened}
+          onClose={() => setSubmodalOpened(false)}
           {...modal}
         >
           {modal.children}
-        </LocalConfirmModal>
+        </ConfirmSubmodal>
       </>
     );
   }

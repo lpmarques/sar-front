@@ -39,12 +39,7 @@ interface ProjectContext {
 const ProjectContext = createContext<ProjectContext | undefined>(undefined);
 
 export const useProject = () => {
-  const projectContext = useContext(ProjectContext);
-  if (!projectContext) {
-    throw new Error("useProject has to be used within <ProjectProvider>");
-  }
-  
-  return projectContext;
+  return useContext(ProjectContext);
 }
 
 interface ProjectProviderProps {

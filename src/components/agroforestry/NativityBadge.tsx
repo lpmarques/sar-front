@@ -5,7 +5,7 @@ export default function NativityBadge({ plantFitness }: { plantFitness: SitePlan
   if (plantFitness.isNative)
     return <Badge variant="light" color="green">NATIVA</Badge>
   if (plantFitness.isInvasive)
-    return <Badge variant="light" color="red">INVASORA</Badge>
+    return <Badge variant="light" color="red">EXÓTICA INVASORA</Badge>
 
-  return <Badge variant="light" color="orange">EXÓTICA</Badge>
+  return <Badge variant="light" color="yellow">EXÓTICA</Badge>
 }

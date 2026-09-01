@@ -24,20 +24,20 @@ export default function FarmLandDetails({ farm }: { farm: FarmReadData }) {
   const farmArea = farm.areaM2 ? `${farm.areaM2} m² (${Math.round(farm.areaM2/100)/100} ha)` : absentInfo;
 
   const landTraitValues = farm.traitValues.filter(trait => trait.sectionSlug === "land").map((trait) => (
-    <Text pb={10}>
+    <Text pb={10} key={trait.traitSlug}>
       <Text span c="dimmed">{trait.traitName}</Text> {trait.value}
     </Text>
   ));
 
   return (
     <Fieldset mb={10} legend="Território">
-      <FieldView pb={10} label="País">{farm.country.name}</FieldView>
-      <FieldView pb={10} label="Estado">{farm.state ? farm.state.code : absentInfo}</FieldView>
-      <FieldView pb={10} label="Município">{farm.municipality ? farm.municipality.name : absentInfo}</FieldView>
-      <FieldView pb={10} label="Bioma">{farm.biome ? farm.biome.name : absentInfo}</FieldView>
-      <FieldView pb={10} label="Vegetação Natural">{farm.vegetationType ? farm.vegetationType.name : absentInfo}</FieldView>
-      <FieldView pb={10} label="Coordenadas">{farmCoords}</FieldView>
-      <FieldView pb={10} label="Área">{farmArea}</FieldView>
+      <FieldView pb={10} label="País" key="country">{farm.country.name}</FieldView>
+      <FieldView pb={10} label="Estado" key="state">{farm.state ? farm.state.code : absentInfo}</FieldView>
+      <FieldView pb={10} label="Município" key="municipality">{farm.municipality ? farm.municipality.name : absentInfo}</FieldView>
+      <FieldView pb={10} label="Bioma" key="biome">{farm.biome ? farm.biome.name : absentInfo}</FieldView>
+      <FieldView pb={10} label="Vegetação Natural" key="vegetation">{farm.vegetationType ? farm.vegetationType.name : absentInfo}</FieldView>
+      <FieldView pb={10} label="Coordenadas" key="latlong">{farmCoords}</FieldView>
+      <FieldView pb={10} label="Área" key="area">{farmArea}</FieldView>
       {landTraitValues}
     </Fieldset>
   )

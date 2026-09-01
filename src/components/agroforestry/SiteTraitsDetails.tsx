@@ -69,10 +69,10 @@ export default function SiteTraitsDetails({ site }: { site: SiteReadData }) {
 
   return (
     <QueryLoader {...siteTraitsQueryOptions}>
-      <Fieldset mb={10} legend={sections["climate"]}>
+      <Fieldset mb={10} key="climate" legend={sections["climate"]}>
         {climateFields}
       </Fieldset>
-      <Fieldset mb={10} legend={sections["soil"]}>
+      <Fieldset mb={10} key="soil" legend={sections["soil"]}>
         {soilFields}
       </Fieldset>
       {otherFieldsets}

@@ -13,12 +13,14 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 
 import ArrowPolyline from './ArrowPolyline';
 import ButtonControl from './ButtonControl';
+import CropLegend from './CropLegend';
 import CroppingLayers from './CroppingLayers';
 import CroppingPatternEdit from './CroppingPatternEdit';
-import CroppingPatternPreview from './CroppingPatternPreview';
+import CroppingPatternDetails from './CroppingPatternDetails';
 import CroppingPatternsModal from './CroppingPatternsModal';
-import CroppingPatternsTable from './CroppingPatternsTable';
+import CroppingPatternsList from './CroppingPatternsList';
 import DeviceLocationControl from './DeviceLocationControl';
+import EditControl from './EditControl';
 import FarmDetails from './FarmDetails';
 import FarmEdit from './FarmEdit';
 import FarmForm from './FarmForm';
@@ -27,26 +29,25 @@ import FarmLandForm from './FarmLandForm';
 import FarmList from './FarmList';
 import FarmMap from './FarmMap';
 import FarmNew from './FarmNew';
+import FieldFeatureGroup from './FieldFeatureGroup';
 import FieldMenu from './FieldMenu';
 import FieldsMap from './FieldsMap';
-import FieldFeatureGroup from './FieldFeatureGroup';
 import LayerVisibility from './LayerVisibility';
+import LeafletStyleButtonControl from './LeafletStyleButtonControl';
 import MapBoundsFraming from './MapBoundsFraming';
 import MapCentering from './MapCentering';
+import MapContainer from './MapContainer';
 import MapControl from './MapControl';
 import MaptilerVectorLayer from './MaptilerVectorLayer';
+import NativityBadge from './NativityBadge';
+import PlantListTable from './PlantListTable';
+import PolygonDrawing from './PolygonDrawing';
 import ProjectDashboard from './ProjectDashboard';
+import ShapeMarker from './ShapeMarker';
 import SiteTraitsDetails from './SiteTraitsDetails';
 import SiteTraitValueDisplay from './SiteTraitValueDisplay';
 import SiteTraitValueInput from './SiteTraitValueInput';
 import SiteTraitValuesForm from './SiteTraitValuesForm';
-import EditControl from './EditControl';
-import PolygonDrawing from './PolygonDrawing';
-import CroppingPatternPreviewPage from './CroppingPatternPreviewPage';
-import NativityBadge from './NativityBadge';
-import CropLegend from './CropLegend';
-import LeafletStyleButtonControl from './LeafletStyleButtonControl';
-import ShapeMarker from './ShapeMarker';
 
 export {
   ArrowPolyline,
@@ -54,10 +55,9 @@ export {
   CropLegend,
   CroppingLayers,
   CroppingPatternEdit,
-  CroppingPatternPreview,
-  CroppingPatternPreviewPage,
+  CroppingPatternDetails,
   CroppingPatternsModal,
-  CroppingPatternsTable,
+  CroppingPatternsList,
   DeviceLocationControl,
   EditControl,
   FarmDetails,
@@ -68,16 +68,18 @@ export {
   FarmList,
   FarmMap,
   FarmNew,
-  FieldsMap,
-  FieldMenu,
   FieldFeatureGroup,
+  FieldMenu,
+  FieldsMap,
   LayerVisibility,
   LeafletStyleButtonControl,
   MapBoundsFraming,
   MapCentering,
+  MapContainer,
   MapControl,
   MaptilerVectorLayer,
   NativityBadge,
+  PlantListTable,
   PolygonDrawing,
   ProjectDashboard,
   ShapeMarker,

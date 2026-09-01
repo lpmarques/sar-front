@@ -26,7 +26,6 @@ import { RefObject, useMemo, useRef, useState } from "react";
 import {
   FeatureGroup,
   LayersControl,
-  MapContainer,
   MapContainerProps,
   Marker,
   MarkerProps,
@@ -34,6 +33,7 @@ import {
   PolygonProps,
   ZoomControl,
 } from "react-leaflet";
+import { Text } from '@mantine/core';
 import { MapStyle } from '@maptiler/sdk';
 import booleanEqual from "@turf/boolean-equal";
 import booleanContains from "@turf/boolean-contains";
@@ -46,6 +46,7 @@ import {
   FieldFeatureGroup,
   MapBoundsFraming,
   MapCentering,
+  MapContainer,
   MaptilerVectorLayer,
 } from ".";
 
@@ -75,7 +76,19 @@ export default function FieldsMap({
   ...mapContainerProps
 }: FieldsMapProps
 ) {
-  const { farm, fields, selectedFieldIndex, selectField, addField } = useProject();
+  const project = useProject();
+
+  if (!project) {
+    throw new Error("FieldsMap has to be used within <ProjectProvider>");
+  }
+  const {
+    farm,
+    fields,
+    selectedFieldIndex,
+    selectField,
+    addField
+  } = project;
+
   const [drawingNewField, setDrawingNewField] = useState<boolean>(false);
 
   const drawingMode = selectedFieldIndex !== null || drawingNewField;
@@ -91,7 +104,7 @@ export default function FieldsMap({
       const layer = e.target;
       if (focusField) {
         openAlertModal({
-          title: <text><strong>{focusField.name}</strong> em foco</text>,
+          title: <Text><strong>{focusField.name}</strong> em foco</Text>,
           message: 'Feche a área atual, no menu lateral, antes de abrir outra área.'
         });
       } else if (layer instanceof PolygonLayer) {

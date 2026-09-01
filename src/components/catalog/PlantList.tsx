@@ -170,13 +170,14 @@ function PlantsTable({ data }: { data: PlantReadData[] }) {
       <Paper withBorder>
         <StickyHeaderTable
           header={header}
-          rows={rows}
           scrollWidth={600}
           scrollHeight={450}
           striped
           stripedColor="#f0f2f2"
           withRowBorders={false}
-        />
+        >
+          {rows}
+        </StickyHeaderTable>
       </Paper>
     </Container>
   )

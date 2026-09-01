@@ -51,7 +51,12 @@ export default function FieldFeatureGroup({
   editControlProps,
   extraPolygonProps,
 }: FieldFeatureGroupProps) {
-  const { farm, fields, selectedFieldIndex, replaceField } = useProject();
+  const project = useProject();
+
+  if (!project) {
+    throw new Error("FieldFeatureGroup has to be used within <ProjectProvider>");
+  }
+  const { farm, fields, selectedFieldIndex, replaceField } = project;
   
   const field = selectedFieldIndex !== null ? fields[selectedFieldIndex] : undefined;
   const fieldRef = useRef(field);

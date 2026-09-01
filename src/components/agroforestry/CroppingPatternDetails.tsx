@@ -25,19 +25,22 @@ import {
 import {
   IconChevronLeft,
   IconExternalLink,
-  IconTrash,
 } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CroppingPatternReadData,
   deleteCroppingPattern,
-  PatternRow,
+  getCroppingPattern,
 } from "../../apis/agroforestry";
-import { getPlantPopularNameList, PlantReadData } from "../../apis/catalog";
+import { getPlantPopularNameList } from "../../apis/catalog";
+import { showMutationError } from "../../apis/common";
 import { useAuth } from "../../hooks/useAuth";
 import { useProject } from "../../hooks/useProject";
-import { QueryLoader } from "../common/QueryLoader";
+import { capitalize } from "../../utils/common";
+import DeleteButton from "../common/DeleteButton";
 import FieldView from "../common/FieldView";
+import { showSuccess } from "../common/notifications";
+import { QueryLoader } from "../common/QueryLoader";
 import { UserName } from "../user";
 import PatternPreviewPanel, {
   buildPreviewGeometry,
@@ -45,34 +48,48 @@ import PatternPreviewPanel, {
   SelectedElement,
 } from "./PatternPreviewPanel";
 import { CropLegend, NativityBadge } from ".";
-import { capitalize } from "../../utils/common";
-import { showSuccess } from "../common/notifications";
-import { showMutationError } from "../../apis/common";
-import DeleteButton from "../common/DeleteButton";
 
-interface CroppingPatternPreviewProps {
-  pattern: CroppingPatternReadData;
-  onSelect: (patternId: number) => void;
+interface CroppingPatternDetailsProps {
+  patternId: number;
   onBackToList: () => void;
-  onEdit: (patternId: number) => void;
-  onClone: (patternId: number) => void;
-  onDeleted: () => void;
+  onSelect?: () => void;
+  onEdit?: () => void;
+  onCopy?: () => void;
+  onDeleted?: () => void;
 }
 
-export default function CroppingPatternPreview({
-  pattern,
+export default function CroppingPatternDetails({
+  patternId,
   onBackToList,
   onSelect,
   onEdit,
-  onClone,
+  onCopy,
   onDeleted,
-}: CroppingPatternPreviewProps) {
+}: CroppingPatternDetailsProps) {
   const { user } = useAuth();
   const [selected, setSelected] = useState<SelectedElement | null>(null);
   const queryClient = useQueryClient();
+  
+  const patternQueryOptions = {
+    queryKey: [
+      'croppingPattern',
+      patternId.toString(),
+      'with_user_count=true',
+    ],
+    queryFn: getCroppingPattern,
+  };
 
-  const isAuthor = user?.id === pattern.author.id;
+  const patternQuery = useQuery(patternQueryOptions);
+  const pattern = patternQuery.data;
 
+  const isAuthor = user?.id === pattern?.author.id;
+  const isOnUse = (pattern?.usersCount ?? 0) > 0;
+  
+  const { totalYM } = useMemo(
+    () => pattern ? buildPreviewGeometry(pattern) : { totalYM: 0 },
+    [pattern]
+  );
+  
   const patternDeletion = useMutation({
     mutationFn: deleteCroppingPattern,
     onSuccess: (data) => {
@@ -80,14 +97,16 @@ export default function CroppingPatternPreview({
       queryClient.refetchQueries({
         predicate: (q) => q.queryKey[0] === 'croppingPatternList',
       });
-      onDeleted();
+      onDeleted?.();
     },
     onError: showMutationError,
   });
 
   const handleCropSelect = ({ rowIndex, cropIndex }: CropPosition) => {
     setSelected((prev) => {
-      const isReselection = prev?.kind === 'crop' && prev.rowIndex === rowIndex && prev.cropIndex === cropIndex;
+      const isReselection = prev?.kind === 'crop' 
+        && prev.rowIndex === rowIndex 
+        && prev.cropIndex === cropIndex;
       if (isReselection) return null;
 
       return {
@@ -110,39 +129,31 @@ export default function CroppingPatternPreview({
     });
   };
 
-  const handlePatternDelete = () => {
-    patternDeletion.mutate(pattern.id);
-  };
-
   const selectedRow = selected?.kind === 'row' ? selected : null;
   const selectedCrop = selected?.kind === 'crop' ? selected : null;
-  const selectedRowData = selectedRow !== null
-    ? pattern.rows[selectedRow.rowIndex]
-    : null;
-  const selectedCropData = selectedCrop !== null
-    ? pattern.rows[selectedCrop.rowIndex]?.crops[selectedCrop.cropIndex] ?? null
-    : null;
-
-  const { totalYM } = useMemo(
-    () => buildPreviewGeometry(pattern),
-    [pattern]
-  );
 
   const panelHeightPx = Math.max(400, totalYM * 30);
+
+  if (!pattern)
+    return (
+      <QueryLoader {...patternQueryOptions} />
+    )
 
   return (
     <Stack gap="md">
       {onBackToList &&
       <Group justify="space-between" align="center">
-        <Button
-          variant="subtle"
-          size="xs"
-          w={155}
-          leftSection={<IconChevronLeft size={16} />}
-          onClick={onBackToList}
-        >
-          Voltar para a lista
-        </Button>
+        <Tooltip label="Listar todos os padrões disponíveis">
+          <Button
+            variant="subtle"
+            size="xs"
+            w={155}
+            leftSection={<IconChevronLeft size={16} />}
+            onClick={onBackToList}
+            >
+            Ver mais padrões
+          </Button>
+        </Tooltip>
         <Text p={0} fw={600} fz="md">{pattern.name}</Text>
         <div style={{ width: 100 }} />
       </Group>}
@@ -168,48 +179,71 @@ export default function CroppingPatternPreview({
           w="30%"
           style={{ minHeight: panelHeightPx }}
         >
-          {selectedCropData ? (
-            <PlantInfoPanel plant={selectedCropData.plant} />
-          ) : selectedRowData ? (
-            <RowInfoPanel row={selectedRowData} />
+          {selectedCrop ? (
+            <CropInfoPanel pattern={pattern} cropPosition={selectedCrop} />
+          ) : selectedRow ? (
+            <RowInfoPanel pattern={pattern} rowIndex={selectedRow.rowIndex} />
           ) : (
             <PatternInfoPanel pattern={pattern} />
           )}
         </Paper>
       </Group>
 
-      <Group justify="space-between" gap="xs">
-        <Group gap="xs">
-          {onSelect &&
-          <Button onClick={() => onSelect(pattern.id)}>
-            Selecionar padrão
-          </Button>}
-          {onClone &&
-          <Tooltip label="Copiar padrão para criar um novo">
-            <Button
-              variant="default"
-              onClick={() => onClone(pattern.id)}
-            >
-              Copiar
-            </Button>
-          </Tooltip>}
+      <Group gap="xs">
+        {onSelect &&
+        <Button onClick={onSelect}>
+          Selecionar padrão
+        </Button>}
+        {onCopy &&
+        <Tooltip label="Criar um novo padrão a partir deste">
+          <Button
+            variant="default"
+            onClick={onCopy}
+          >
+            Copiar
+          </Button>
+        </Tooltip>}
         {isAuthor && onEdit &&
-          <Tooltip label="Editar padrão, substituindo-o">
-            <Button
-              variant="default"
-              onClick={() => onEdit(pattern.id)}
-            >
-              Editar
-            </Button>
-          </Tooltip>}
+        <Tooltip label={
+          isOnUse 
+            ? "Não pode ser editado enquanto em uso por outros usuários"
+            : "Editar padrão, substituindo-o"
+          }
+        >
+          <Button
+            variant="default"
+            onClick={onEdit}
+            disabled={isOnUse}
+          >
+            Editar
+          </Button>
+        </Tooltip>}
         {isAuthor &&
-          <Tooltip label="Excluir padrão">
-            <DeleteButton
-              size="lg"
-              onClick={handlePatternDelete}
-            />
-          </Tooltip>}
-        </Group>
+        <Tooltip label={
+          isOnUse 
+            ? "Não pode ser excluído enquanto em uso por outros usuários"
+            : "Excluir padrão"
+          }>
+          <DeleteButton
+            disabled={isOnUse}
+            confirmModal={{
+              title: "Remover padrão?",
+              children: (
+                <Text size="sm">
+                  Você está prestes a <strong>excluir</strong> o padrão
+                  {' '}<strong>{pattern.name}</strong>. Isso afetará
+                  {' '}suas áreas de cultivo que estejam utilizando ele.
+                  <br/>
+                  <br/>
+                  Obs.: só será possível excluir o padrão se ele não estiver 
+                  {' '}em uso por outros usuários da plataforma.
+                </Text>
+              ),
+              onConfirm: () => patternDeletion.mutate(pattern.id),
+              submodal: true,
+            }}
+          />
+        </Tooltip>}
       </Group>
     </Stack>
   );
@@ -233,9 +267,16 @@ function PatternInfoPanel({ pattern }: { pattern: CroppingPatternReadData }) {
   )
 }
 
-function RowInfoPanel({ row }: { row: PatternRow }) {
-  const cropsLegend = row.crops.map(c =>
-    <CropLegend key={`crop-${c.plant.id}`} plant={c.plant} />
+interface RowInfoPanelProps {
+  pattern: CroppingPatternReadData;
+  rowIndex: number;
+}
+
+function RowInfoPanel({ pattern, rowIndex }: RowInfoPanelProps) {
+  const row = pattern.rows[rowIndex];
+
+  const cropsLegend = row.crops.map((c, i) =>
+    <CropLegend key={`crop-${i}`} plant={c.plant} />
   );
 
   return (
@@ -243,25 +284,31 @@ function RowInfoPanel({ row }: { row: PatternRow }) {
       <Text fw="bold">
         Linha {row.position}
       </Text>
-      <FieldView fz={15} label="Função">
+      <FieldView fz={15} label="Função" key="purpose">
         {capitalize(row.purpose)}
       </FieldView>
-      <FieldView fz={15} label="Cultivos">
+      <FieldView fz={15} label="Cultivos" key="crops">
         {cropsLegend}
       </FieldView>
     </Stack>
   );
 }
 
-function PlantInfoPanel({ plant }: { plant: PlantReadData }) {
-  const { plantsFitnessMap } = useProject();
+interface CropInfoPanelProps {
+  pattern: CroppingPatternReadData;
+  cropPosition: CropPosition;
+}
 
-  const plantFitness = plantsFitnessMap[plant.acceptedTaxonName];
+function CropInfoPanel({ pattern, cropPosition }: CropInfoPanelProps) {
+  const project = useProject();
+
+  const crop = pattern.rows[cropPosition.rowIndex].crops[cropPosition.cropIndex];
+  const plantFitness = project?.plantsFitnessMap[crop.plant.acceptedTaxonName];
 
   const popularNamesQueryOptions = {
     queryKey: [
       'plantPopularNameList',
-      plant.id.toString(),
+      crop.plant.id.toString(),
     ],
     queryFn: getPlantPopularNameList
   };
@@ -274,14 +321,14 @@ function PlantInfoPanel({ plant }: { plant: PlantReadData }) {
     <Stack gap="xs">
       <Group gap={6} wrap="nowrap" align="baseline">
         <Text fw="bold" fs="italic" style={{ flex: 1 }}>
-          {plant.acceptedTaxonName}
+          {crop.plant.acceptedTaxonName}
         </Text>
         {plantFitness &&
         <NativityBadge plantFitness={plantFitness} />}
         <ActionIcon
           variant="subtle"
           size="sm"
-          onClick={() => window.open(`/plants/${plant.id}`, "_blank")}
+          onClick={() => window.open(`/plants/${crop.plant.id}`, "_blank")}
           aria-label="Abrir página da planta em nova aba"
         >
           <IconExternalLink size={14} />
@@ -292,6 +339,8 @@ function PlantInfoPanel({ plant }: { plant: PlantReadData }) {
         <Text fz={15}>
           {popularNames.data.map(item => item.name).join(", ")}
         </Text>}
+        <FieldView fz="sm" label="Linha" key="row-pos">{cropPosition.rowIndex + 1}</FieldView>
+        <FieldView fz="sm" label="Posição" key="crop-pos">{cropPosition.cropIndex + 1}</FieldView>
       </Stack>
     </Stack>
   );

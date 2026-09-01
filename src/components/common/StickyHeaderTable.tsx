@@ -18,13 +18,20 @@ import classes from './StickyHeaderTable.module.css';
 
 interface StickyHeaderTableProps extends TableProps {
   header: ReactElement,
-  rows: ReactElement[],
   scrollWidth: number,
   scrollHeight: number,
   headerStyle?: MantineStyleProp,
+  children: React.ReactNode,
 }
 
-export function StickyHeaderTable ({ header, rows, scrollWidth, scrollHeight, headerStyle, ...tableProps }: StickyHeaderTableProps) {
+export function StickyHeaderTable ({
+  header,
+  scrollWidth,
+  scrollHeight,
+  headerStyle,
+  children,
+  ...tableProps
+}: StickyHeaderTableProps) {
   const [scrolled, setScrolled] = useState(false);
 
   return (
@@ -43,7 +50,7 @@ export function StickyHeaderTable ({ header, rows, scrollWidth, scrollHeight, he
           {header}
         </Table.Thead>
         <Table.Tbody>
-          {rows}
+          {children}
         </Table.Tbody>
       </Table>
     </Table.ScrollContainer>

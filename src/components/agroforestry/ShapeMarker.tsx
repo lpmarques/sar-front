@@ -1,8 +1,5 @@
 import * as L from "leaflet";
-import { PropsWithChildren } from "react";
-import {
-  Marker,
-} from "react-leaflet";
+import { Marker } from "react-leaflet";
 
 /**
  * Hover-overlay shapes for the editor's spacing interactivity. We render them

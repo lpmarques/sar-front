@@ -29,27 +29,27 @@ import { PlantReadData } from "../../apis/catalog";
 import { PlantFullNameLabel } from "../catalog";
 import { MapBoundsFraming, ArrowPolyline, LeafletStyleButtonControl, ShapeMarker } from ".";
 import { BBox } from "../../utils/agroforestry";
+import { useMapPixelConverter } from "../../hooks/useMapPixelConverter";
 
-const PX_PER_M = 30;
 const PATTERN_LEFT_PADDING_M = 1.4;
 const PATTERN_BOTTOM_PADDING_M = 0;
 const PATTERN_RIGHT_PADDING_M = 1;
 const PATTERN_TOP_PADDING_M = 1.5;
-const ROW_START_OFFSET_LABEL_GAP_M = 0.4;
-const ROW_LABEL_GAP_M = 1.25;
-const CROP_RADIUS_M = 0.3;
-const CROP_SPACING_LABEL_GAP_M = 0.4;
-const SPACING_PADDING_M = 0.1;
+
+const CROP_RADIUS_PX = 10;
+const ROW_LABEL_GAP_PX = 50;
+const ROW_ARROW_SHAPES_GAP_PX = 15;
+const ROW_OFFSET_LABEL_GAP_PX = 20;
+const SPACING_LABEL_GAP_PX = 20;
+const SPACING_PADDING_PX = 3;
 
 /**
  * Sizes for the hover-overlay shape markers. Tuned to match the spacing
  * labels visually.
- */
-const ADD_CROP_SHAPE_RADIUS_PX = 11;
+*/
 const OFFSET_SHAPE_RADIUS_PX = 9;
 const SPACING_SHAPE_RADIUS_PX = 8;
 const ROW_ARROW_SHAPE_RADIUS_PX = 5;
-const ROW_ARROW_SHAPES_GAP_M = 0.4;
 
 const BACKGROUND_COLOR = "#fafafa";
 const TEXT_COLOR = "var(--mantine-color-dark-7)";
@@ -100,7 +100,7 @@ export function buildPreviewGeometry(pattern: CroppingPatternReadData) {
     0,
     ...rowLayouts.map(r => r.rowLengthM)
   );
-  const totalYM = PATTERN_TOP_PADDING_M + ROW_LABEL_GAP_M + longestRowLengthM + PATTERN_BOTTOM_PADDING_M;
+  const totalYM = PATTERN_TOP_PADDING_M + ROW_LABEL_GAP_PX/30 + longestRowLengthM + PATTERN_BOTTOM_PADDING_M;
 
   return { rowLayouts, longestRowLengthM, totalXM, totalYM };
 }
@@ -199,29 +199,41 @@ export function renderRows(
   return { rows, totalXM, totalYM };
 }
 
+function spacingLabelIcon(label: string, anchor: [number, number], isRep?: boolean) {
+  return L.divIcon({
+    className: isRep ?
+      "pattern-preview-label pattern-preview-label--spacing--rep" :
+      "pattern-preview-label pattern-preview-label--spacing",
+    html: `<div class="pattern-preview-label__inner">${label}</div>`,
+    iconAnchor: anchor,
+  });
+}
+
 /**
- * Calculates start and end edges for a spacing arrow that A) is proportional to spacing length,
+ * Computes start and end edges for a spacing arrow that A) is proportional to spacing length,
  * B) is limited by min and max values and C) prevents a negative distance between arrow heads
  * when spacing length is too small
  */
-function calcSpacingArrowEdges({
+function spacingArrowEdges({
   spacingStartM,
   spacingEndM,
-  minPaddingM = 0,
-  maxPaddingM = CROP_RADIUS_M + SPACING_PADDING_M,
+  minPaddingM,
+  maxPaddingM,
 }: {
   spacingStartM: number,
   spacingEndM: number,
   minPaddingM?: number,
   maxPaddingM?: number,
 }) {
+  const { pixelsToMeters } = useMapPixelConverter();
+
   const spacingLengthM = spacingEndM - spacingStartM;
   const arrowPaddingM = Math.min(
     Math.max(
-      minPaddingM,
-      (spacingLengthM - CROP_RADIUS_M * 2) / 2
+      minPaddingM ?? 0,
+      (spacingLengthM - pixelsToMeters(CROP_RADIUS_PX) * 1.5) / 2
     ),
-    maxPaddingM
+    maxPaddingM ?? pixelsToMeters(CROP_RADIUS_PX + SPACING_PADDING_PX)
   );
     
   const arrowStartM = Math.min(spacingStartM + arrowPaddingM, spacingEndM);
@@ -317,7 +329,7 @@ export default function PatternPreviewPanel({
   edit = false,
   editHandlers = {},
 }: PatternPreviewPanelProps) {
-  const [showReps, setShowReps] = useState(!edit);
+  const [showReps, setShowReps] = useState(true);
   
   const { rows, totalXM, totalYM } = useMemo(
     () => renderRows(pattern),
@@ -336,77 +348,7 @@ export default function PatternPreviewPanel({
     onEditRowSpacing,
   } = editHandlers;
 
-  const rowLabelIcon = (label: string, anchor: [number, number], isRep?: boolean) =>
-    L.divIcon({
-      className: isRep ?
-        "pattern-preview-label pattern-preview-label--row--rep" :
-        "pattern-preview-label pattern-preview-label--row",
-      html: `<div class="pattern-preview-label__inner">${label}</div>`,
-      iconAnchor: anchor,
-    });
-  const spacingLabelIcon = (label: string, anchor: [number, number], isRep?: boolean) =>
-    L.divIcon({
-      className: isRep ?
-        "pattern-preview-label pattern-preview-label--spacing--rep" :
-        "pattern-preview-label pattern-preview-label--spacing",
-      html: `<div class="pattern-preview-label__inner">${label}</div>`,
-      iconAnchor: anchor,
-    });
-
   const nonRepRows = rows.filter(r => !r.isRep);
-  
-  /**
-   * Renders a row's label with permanent left/right arrow triangles that swap
-   * the row's position with its neighbour. Triangles are drawn via
-   * `TriangleArrowMarker` (a `L.shapeMarker` rotated triangle).
-   */
-  const renderRowLabel = (r: RenderedRow, i: number) => {
-    if (r.isRep && !showReps) return null;
-
-    const row = pattern.rows[r.rowIndex];
-    const labelText = `Linha ${row.position}`;
-    const labelYM = r.rowStartYM - ROW_LABEL_GAP_M;
-
-    const hasLeft = i > 0 && onRowMoveLeft !== undefined;
-    const hasRight = i < (nonRepRows.length - 1) && onRowMoveRight !== undefined;
-    const arrowsYM = labelYM - ROW_LABEL_GAP_M / 3;
-    
-    const leftArrow = edit && !r.isRep && hasLeft && (
-      <TriangleArrowMarker
-        key={`row-arrow-left-${i}`}
-        latLng={[rowYToLat(arrowsYM), r.rowXM - ROW_ARROW_SHAPES_GAP_M / 2]}
-        radiusPx={ROW_ARROW_SHAPE_RADIUS_PX}
-        rotation={-90}
-        onClick={() => onRowMoveLeft?.(r.rowIndex)}
-      />
-    );
-    const rightArrow = edit && !r.isRep && hasRight && (
-      <TriangleArrowMarker
-        key={`row-arrow-right-${i}`}
-        latLng={[rowYToLat(arrowsYM), r.rowXM + ROW_ARROW_SHAPES_GAP_M / 2]}
-        radiusPx={ROW_ARROW_SHAPE_RADIUS_PX}
-        rotation={90}
-        onClick={() => onRowMoveRight?.(r.rowIndex)}
-      />
-    );
-
-    return (
-      <Fragment key={`row-label-fragment-${i}`}>
-        <Marker
-          key={`row-label-${i}`}
-          position={[rowYToLat(labelYM), r.rowXM]}
-          icon={rowLabelIcon(labelText, [20, 0], r.isRep)}
-          interactive={true}
-          keyboard={false}
-          eventHandlers={{
-            click: () => onRowSelect(r.rowIndex),
-          }}
-        />
-        {leftArrow}
-        {rightArrow}
-      </Fragment>
-    );
-  };
 
   return (
     <Fragment>
@@ -443,7 +385,21 @@ export default function PatternPreviewPanel({
         </LeafletStyleButtonControl>
 
         {/* Row labels at the top */}
-        {rows.map((r, i) => renderRowLabel(r, i))}
+        {rows.map((r, i) => (
+          <RowLabel
+            key={`row-label-${i}`}
+            position={pattern.rows[r.rowIndex].position}
+            row={r}
+            showReps={showReps}
+            edit={edit}
+            hasLeft={i > 0}
+            hasRight={i < (nonRepRows.length - 1)}
+            onRowSelect={onRowSelect}
+            onRowMoveLeft={onRowMoveLeft}
+            onRowMoveRight={onRowMoveRight}
+            rowYToLat={rowYToLat}
+          />
+        ))}
 
         {/* Per-row geometry */}
         {rows.map((r, i) => (
@@ -468,7 +424,7 @@ export default function PatternPreviewPanel({
             yM={r.spacingYM}
             startXM={r.spacingStartXM}
             endXM={r.spacingEndXM}
-            labelIcon={spacingLabelIcon(r.spacingLabel, [10, 6])}
+            label={r.spacingLabel}
             edit={edit}
             isSelected={selectedElement?.kind === 'rowSpacing' && selectedElement?.afterRowIndex === r.rowIndex}
             rowYToLat={rowYToLat}
@@ -480,6 +436,90 @@ export default function PatternPreviewPanel({
     </Fragment>
   );
 }
+
+/**
+ * Renders a row's label with permanent left/right arrow triangles that swap
+ * the row's position with its neighbour. Triangles are drawn via
+ * `TriangleArrowMarker` (a `L.shapeMarker` rotated triangle).
+ */
+function RowLabel({
+  position,
+  row: r,
+  hasLeft,
+  hasRight,
+  edit,
+  showReps,
+  onRowSelect,
+  onRowMoveLeft,
+  onRowMoveRight,
+  rowYToLat,
+}: {
+  position: number;
+  row: RenderedRow;
+  hasLeft: boolean;
+  hasRight: boolean;
+  edit: boolean;
+  showReps: boolean;
+  onRowSelect: (rowIndex: number) => void;
+  onRowMoveLeft?: (rowIndex: number) => void;
+  onRowMoveRight?: (rowIndex: number) => void;
+  rowYToLat: (yM: number) => number;
+}) {
+  if (r.isRep && !showReps) return null;
+
+  const { pixelsToMeters } = useMapPixelConverter();
+
+  const rowLabelIcon = (label: string, anchor: [number, number], isRep?: boolean) =>
+    L.divIcon({
+      className: isRep ?
+        "pattern-preview-label pattern-preview-label--row--rep" :
+        "pattern-preview-label pattern-preview-label--row",
+      html: `<div class="pattern-preview-label__inner">${label}</div>`,
+      iconAnchor: anchor,
+    });
+
+  const labelText = `Linha ${position}`;
+  const labelYM = r.rowStartYM - pixelsToMeters(ROW_LABEL_GAP_PX);
+
+  const arrowsYM = labelYM - pixelsToMeters(ROW_LABEL_GAP_PX) / 3;
+  const arrowsGap = pixelsToMeters(ROW_ARROW_SHAPES_GAP_PX);
+  
+  const leftArrow = edit && !r.isRep && hasLeft && onRowMoveLeft && (
+    <TriangleArrowMarker
+      key={`row-arrow-left`}
+      latLng={[rowYToLat(arrowsYM), r.rowXM - arrowsGap / 2]}
+      radiusPx={ROW_ARROW_SHAPE_RADIUS_PX}
+      rotation={-90}
+      onClick={() => onRowMoveLeft?.(r.rowIndex)}
+    />
+  );
+  const rightArrow = edit && !r.isRep && hasRight && onRowMoveRight && (
+    <TriangleArrowMarker
+      key={`row-arrow-right`}
+      latLng={[rowYToLat(arrowsYM), r.rowXM + arrowsGap / 2]}
+      radiusPx={ROW_ARROW_SHAPE_RADIUS_PX}
+      rotation={90}
+      onClick={() => onRowMoveRight?.(r.rowIndex)}
+    />
+  );
+
+  return (
+    <Fragment key="row-label-fragment">
+      <Marker
+        key="row-label"
+        position={[rowYToLat(labelYM), r.rowXM]}
+        icon={rowLabelIcon(labelText, [20, 0], r.isRep)}
+        interactive={true}
+        keyboard={false}
+        eventHandlers={{
+          click: () => onRowSelect(r.rowIndex),
+        }}
+      />
+      {leftArrow}
+      {rightArrow}
+    </Fragment>
+  );
+};
 
 /**
  * Renders a single row's geometry: the start-offset line (or empty-offset
@@ -506,6 +546,9 @@ function RowGeometry({
   onCropSelect: (pos: CropPosition) => void;
   rowYToLat: (yM: number) => number;
 }) {
+  const { pixelsToMeters } = useMapPixelConverter();
+  const cropRadiusM = pixelsToMeters(CROP_RADIUS_PX);
+
   const {
     onAddRowLast,
     onAddCropFirst,
@@ -584,11 +627,7 @@ function RowGeometry({
             startYM={c.spacingStartYM}
             endYM={c.spacingEndYM}
             xM={c.spacingXM}
-            labelIcon={spacingLabelIcon(
-              c.spacingLabel,
-              [10, 6],
-              c.isRep
-            )}
+            label={c.spacingLabel}
             edit={edit}
             isRep={c.isRep}
             isSelected={isSelectedSpacing}
@@ -626,7 +665,7 @@ function RowGeometry({
           && pendingCrop?.cropIndex === c.cropIndex;
         return (
           <Crop
-            key={`crop-${j}`}
+            key={`crop-rep-${j}`}
             yM={c.cropYM}
             xM={c.cropXM}
             color={c.crop.plant.colorHex}
@@ -646,7 +685,7 @@ function RowGeometry({
           && selectedSpacing?.afterCropIndex === c.cropIndex;
         return (
           <CropSpacing
-            key={`cs-${j}`}
+            key={`cs-rep-${j}`}
             startYM={c.spacingStartYM}
             endYM={c.spacingEndYM}
             xM={c.spacingXM}
@@ -668,11 +707,11 @@ function RowGeometry({
       {!r.isRep && r.crops.length > 0 && (
         <CirclePlusMarker
           latLng={[rowYToLat(repCrops[0].cropYM), r.rowXM]}
-          radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
+          radiusPx={CROP_RADIUS_PX}
           onClick={() => onAddCropLast?.(r.rowIndex)} // TODO: when clicked, a placeholder crop should show-up
         >
           <LeafletTooltip direction="bottom" offset={[0, 6]}>
-            Adicionar cultivo (fim)
+            Adicionar cultivo
           </LeafletTooltip>
         </CirclePlusMarker>
       )}
@@ -684,7 +723,7 @@ function RowGeometry({
       {r.isRep && (
         <CirclePlusMarker
           latLng={[rowYToLat(r.rowStartYM), r.rowXM]}
-          radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
+          radiusPx={CROP_RADIUS_PX}
           onClick={onAddRowLast} // TODO: when clicked, a placeholder row should show-up
         >
           <LeafletTooltip direction="top" offset={[0, -6]}>
@@ -698,10 +737,10 @@ function RowGeometry({
   const topRepCrop = repCrops[0];
   const botRepCrop = repCrops[repCrops.length-1];
   const repsBBox: BBox = {
-    minX: r.rowXM - CROP_RADIUS_M,
-    maxX: r.rowXM + CROP_RADIUS_M,
-    minY: rowYToLat((r.isRep ? r.rowEndYM : botRepCrop.cropYM) + CROP_RADIUS_M),
-    maxY: rowYToLat((r.isRep ? r.rowStartYM : topRepCrop.cropYM) - CROP_RADIUS_M),
+    minX: r.rowXM - cropRadiusM,
+    maxX: r.rowXM + cropRadiusM,
+    minY: rowYToLat((r.isRep ? r.rowEndYM : botRepCrop.cropYM) + cropRadiusM),
+    maxY: rowYToLat((r.isRep ? r.rowStartYM : topRepCrop.cropYM) - cropRadiusM),
   }
 
   return (
@@ -750,7 +789,7 @@ function Crop({
   return (
     <CircleMarker
       center={[rowYToLat(yM), xM]}
-      radius={CROP_RADIUS_M * PX_PER_M}
+      radius={CROP_RADIUS_PX}
       pathOptions={{
         color: TEXT_COLOR,
         weight: isSelected ? 2 : (isRep ? 0.85 : 0.75),
@@ -779,7 +818,7 @@ function CropSpacing({
   startYM,
   endYM,
   xM,
-  labelIcon,
+  label,
   edit,
   isRep,
   isSelected,
@@ -790,7 +829,7 @@ function CropSpacing({
   startYM: number;
   endYM: number;
   xM: number;
-  labelIcon?: L.DivIcon;
+  label?: string;
   edit: boolean;
   isRep: boolean;
   isSelected: boolean;
@@ -798,10 +837,15 @@ function CropSpacing({
   onEditSpacing: () => void;
   onAddCrop: () => void;
 }) {
-  const [arrowStartYM, arrowEndYM] = calcSpacingArrowEdges({
+  const { pixelsToMeters } = useMapPixelConverter();
+  const [arrowStartYM, arrowEndYM] = spacingArrowEdges({
     spacingStartM: startYM,
     spacingEndM: endYM,
   });
+
+  const labelGapM = pixelsToMeters(SPACING_LABEL_GAP_PX);
+  const cropRadiusM = pixelsToMeters(CROP_RADIUS_PX);
+  const diamondRadiusM = pixelsToMeters(SPACING_SHAPE_RADIUS_PX);
 
   const arrowPositions: L.LatLngExpression[] = [
     [rowYToLat(arrowStartYM), xM],
@@ -809,26 +853,24 @@ function CropSpacing({
   ];
   const labelLatLng: L.LatLngExpression = [
     rowYToLat((startYM + endYM) / 2),
-    xM - CROP_SPACING_LABEL_GAP_M,
+    xM - labelGapM,
   ];
   const addCropLatLng: L.LatLngExpression = [
     rowYToLat((startYM + endYM) / 2),
-    xM + CROP_SPACING_LABEL_GAP_M,
+    xM + labelGapM,
   ];
 
-  const diamondRadiusM = SPACING_SHAPE_RADIUS_PX / PX_PER_M;
-
   const spacingBB: BBox = {
-    minX: xM - CROP_SPACING_LABEL_GAP_M - diamondRadiusM,
-    maxX: xM + CROP_SPACING_LABEL_GAP_M + CROP_RADIUS_M,
+    minX: xM - labelGapM - diamondRadiusM,
+    maxX: xM + labelGapM + cropRadiusM,
     minY: rowYToLat(arrowStartYM),
     maxY: rowYToLat(arrowEndYM),
   };
 
-  const label = labelIcon && (
+  const labelMarker = label && (
     <Marker
       position={labelLatLng}
-      icon={labelIcon}
+      icon={spacingLabelIcon(label, [10, 6], isRep)}
       interactive={false}
       zIndexOffset={1}
     />
@@ -837,7 +879,7 @@ function CropSpacing({
   const addCropMarker = (
     <CirclePlusMarker
       latLng={addCropLatLng}
-      radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
+      radiusPx={CROP_RADIUS_PX}
       onClick={onAddCrop}
     >
       <LeafletTooltip direction="top" offset={[0, -6]}>
@@ -872,20 +914,20 @@ function CropSpacing({
                 radiusPx={SPACING_SHAPE_RADIUS_PX}
                 onClick={onEditSpacing}
               >
-                {label}
+                {labelMarker}
               </DiamondMarker>
               <ShowOnHoverBox boundingBox={spacingBB}>
                 {addCropMarker}
               </ShowOnHoverBox>
             </Fragment>
           ) : (
-            <ShowOnHoverBox boundingBox={spacingBB} placeholder={label}>
+            <ShowOnHoverBox boundingBox={spacingBB} placeholder={labelMarker}>
               <DiamondMarker
                 latLng={labelLatLng}
                 radiusPx={SPACING_SHAPE_RADIUS_PX}
                 onClick={onEditSpacing}
               >
-                {label}
+                {labelMarker}
                 <LeafletTooltip direction="top" offset={[0, -6]}>
                   Alterar espaçamento
                 </LeafletTooltip>
@@ -893,7 +935,7 @@ function CropSpacing({
               {addCropMarker}
             </ShowOnHoverBox>
           )
-        : label
+        : labelMarker
       }
     </FeatureGroup>
   );
@@ -908,7 +950,7 @@ function RowSpacing({
   yM,
   startXM,
   endXM,
-  labelIcon,
+  label,
   edit,
   isSelected,
   rowYToLat,
@@ -918,44 +960,48 @@ function RowSpacing({
   yM: number;
   startXM: number;
   endXM: number;
-  labelIcon: L.DivIcon;
+  label: string;
   edit: boolean;
   isSelected: boolean;
   rowYToLat: (yM: number) => number;
   onEditSpacing: () => void;
   onAddRow: () => void;
 }) {
-  const [arrowStartXM, arrowEndXM] = calcSpacingArrowEdges({
+  const { pixelsToMeters } = useMapPixelConverter();
+  const [arrowStartXM, arrowEndXM] = spacingArrowEdges({
     spacingStartM: startXM,
     spacingEndM: endXM,
   });
+
+  const labelGapM = pixelsToMeters(SPACING_LABEL_GAP_PX);
+  const cropRadiusM = pixelsToMeters(CROP_RADIUS_PX);
+  const diamondRadiusM = pixelsToMeters(SPACING_SHAPE_RADIUS_PX);
 
   const arrowPositions: L.LatLngExpression[] = [
     [rowYToLat(yM), arrowStartXM],
     [rowYToLat(yM), arrowEndXM],
   ];
   const labelLatLng: L.LatLngExpression = [
-    rowYToLat(yM - CROP_SPACING_LABEL_GAP_M),
+    rowYToLat(yM - labelGapM),
     (startXM + endXM) / 2,
   ];
   const addCropLatLng: L.LatLngExpression = [
-    rowYToLat(yM + CROP_SPACING_LABEL_GAP_M),
+    rowYToLat(yM + labelGapM),
     (startXM + endXM) / 2
   ];
 
-  const diamondRadiusM = SPACING_SHAPE_RADIUS_PX / PX_PER_M;
 
   const spacingBB: BBox = {
     minX: arrowStartXM,
     maxX: arrowEndXM,
-    minY: rowYToLat(yM - CROP_SPACING_LABEL_GAP_M - diamondRadiusM),
-    maxY: rowYToLat(yM + CROP_SPACING_LABEL_GAP_M + CROP_RADIUS_M),
+    minY: rowYToLat(yM - labelGapM - diamondRadiusM),
+    maxY: rowYToLat(yM + labelGapM + cropRadiusM),
   }
 
-  const label = (
+  const labelMarker = (
     <Marker
       position={labelLatLng}
-      icon={labelIcon}
+      icon={spacingLabelIcon(label, [10, 6])}
       interactive={false}
       zIndexOffset={1}
     />
@@ -964,7 +1010,7 @@ function RowSpacing({
   const addCropMarker = (
     <CirclePlusMarker
       latLng={addCropLatLng}
-      radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
+      radiusPx={CROP_RADIUS_PX}
       onClick={onAddRow}
     >
       <LeafletTooltip direction="bottom" offset={[0, 6]}>
@@ -988,15 +1034,15 @@ function RowSpacing({
                 radiusPx={SPACING_SHAPE_RADIUS_PX}
                 onClick={onEditSpacing}
               >
-                {label}
+                {labelMarker}
               </DiamondMarker>
               <ShowOnHoverBox boundingBox={spacingBB}>
                 {addCropMarker}
               </ShowOnHoverBox>
             </Fragment>
           ) : (
-            <ShowOnHoverBox boundingBox={spacingBB} placeholder={label}>
-              {label}
+            <ShowOnHoverBox boundingBox={spacingBB} placeholder={labelMarker}>
+              {labelMarker}
               <DiamondMarker
                 latLng={labelLatLng}
                 radiusPx={SPACING_SHAPE_RADIUS_PX}
@@ -1009,7 +1055,7 @@ function RowSpacing({
               {addCropMarker}
             </ShowOnHoverBox>
           )
-        : label
+        : labelMarker
       }
     </FeatureGroup>
   );
@@ -1046,32 +1092,36 @@ function RowOffset({
   onEditOffset?: () => void;
   onAddCrop?: () => void;
 }) {
-  const midYM = (startYM + endYM) / 2;
-  const [_, arrowEndYM] = calcSpacingArrowEdges({
+  const { pixelsToMeters } = useMapPixelConverter();
+
+  const labelGapM = pixelsToMeters(ROW_OFFSET_LABEL_GAP_PX);
+  const cropRadiusM = pixelsToMeters(CROP_RADIUS_PX);
+  const triangleSideM = pixelsToMeters(OFFSET_SHAPE_RADIUS_PX);
+  
+  const [_, arrowEndYM] = spacingArrowEdges({
     spacingStartM: startYM,
     spacingEndM: endYM,
-    minPaddingM: CROP_RADIUS_M,
+    minPaddingM: cropRadiusM,
   });
+  const midYM = (startYM + endYM) / 2;
 
   const arrowPositions: L.LatLngExpression[] = [
     [rowYToLat(startYM), xM],
     [rowYToLat(arrowEndYM), xM],
   ];
   const labelLatLng: L.LatLngExpression = [
-    rowYToLat(midYM - CROP_RADIUS_M / 2),
-    xM - ROW_START_OFFSET_LABEL_GAP_M,
+    rowYToLat(midYM - cropRadiusM / 2),
+    xM - labelGapM,
   ];
   const addCropLatLng: L.LatLngExpression = [
-    rowYToLat(midYM - CROP_RADIUS_M / 2 + 0.02),
-    xM + ROW_START_OFFSET_LABEL_GAP_M,
+    rowYToLat(midYM - cropRadiusM / 2 + 0.02),
+    xM + labelGapM,
   ];
 
-  const triangleSideM = OFFSET_SHAPE_RADIUS_PX / PX_PER_M;
-
   const offsetBB: BBox = {
-    minX: xM - ROW_START_OFFSET_LABEL_GAP_M - triangleSideM,
-    maxX: xM + ROW_START_OFFSET_LABEL_GAP_M + CROP_RADIUS_M,
-    minY: rowYToLat(startYM - CROP_RADIUS_M - ROW_LABEL_GAP_M / 2),
+    minX: xM - labelGapM - triangleSideM,
+    maxX: xM + labelGapM + cropRadiusM,
+    minY: rowYToLat(startYM - cropRadiusM - pixelsToMeters(ROW_LABEL_GAP_PX) / 2),
     maxY: rowYToLat(arrowEndYM),
   };
 
@@ -1087,11 +1137,11 @@ function RowOffset({
   const addCropMarker = (
     <CirclePlusMarker
       latLng={addCropLatLng}
-      radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
+      radiusPx={CROP_RADIUS_PX}
       onClick={onAddCrop}
     >
       <LeafletTooltip direction="top" offset={[0, -6]}>
-        Adicionar cultivo (início)
+        Adicionar cultivo
       </LeafletTooltip>
     </CirclePlusMarker>
   );
@@ -1185,34 +1235,37 @@ function NullOffsetMarkers({
   onAddCrop?: () => void;
   rowYToLat: (yM: number) => number;
 }) {
-  const midYM = startYM - ROW_LABEL_GAP_M / 2;
+  const { pixelsToMeters } = useMapPixelConverter();
+  const midYM = startYM - pixelsToMeters(ROW_LABEL_GAP_PX) / 2;
+
+  const labelGapM = pixelsToMeters(ROW_OFFSET_LABEL_GAP_PX);
+  const cropRadiusM = pixelsToMeters(CROP_RADIUS_PX);
+  const triangleSideM = pixelsToMeters(OFFSET_SHAPE_RADIUS_PX);
 
   const triangleLatLng: L.LatLngExpression = [
     rowYToLat(midYM),
-    xM - ROW_START_OFFSET_LABEL_GAP_M,
+    xM - labelGapM,
   ];
   const addCropLatLng: L.LatLngExpression = [
-    rowYToLat(midYM + 0.02),
-    xM + ROW_START_OFFSET_LABEL_GAP_M,
+    rowYToLat(midYM + pixelsToMeters(3)),
+    xM + labelGapM,
   ];
 
-  const triangleSideM = OFFSET_SHAPE_RADIUS_PX / PX_PER_M;
-
   const offsetBB: BBox = {
-    minX: xM - ROW_START_OFFSET_LABEL_GAP_M - triangleSideM,
-    maxX: xM + ROW_START_OFFSET_LABEL_GAP_M + CROP_RADIUS_M,
-    minY: rowYToLat(midYM - CROP_RADIUS_M),
-    maxY: rowYToLat(midYM + CROP_RADIUS_M),
+    minX: xM - labelGapM - triangleSideM,
+    maxX: xM + labelGapM + cropRadiusM,
+    minY: rowYToLat(midYM - cropRadiusM),
+    maxY: rowYToLat(midYM + cropRadiusM),
   };
 
   const addCropMarker = (
     <CirclePlusMarker
       latLng={addCropLatLng}
-      radiusPx={ADD_CROP_SHAPE_RADIUS_PX}
+      radiusPx={CROP_RADIUS_PX}
       onClick={onAddCrop}
     >
       <LeafletTooltip direction="top" offset={[0, -6]}>
-        Adicionar cultivo (início)
+        Adicionar cultivo
       </LeafletTooltip>
     </CirclePlusMarker>
   );
@@ -1289,8 +1342,8 @@ function PreviewLabelStyles() {
         color: ${SPACING_REP_COLOR};
       }
       .pattern-preview-circle-plus__inner {
-        width: ${ADD_CROP_SHAPE_RADIUS_PX * 2}px;
-        height: ${ADD_CROP_SHAPE_RADIUS_PX * 2}px;
+        width: ${CROP_RADIUS_PX * 2}px;
+        height: ${CROP_RADIUS_PX * 2}px;
         border-radius: 50%;
         background: ${BACKGROUND_COLOR};
         border: 1px solid #9aa0a6;

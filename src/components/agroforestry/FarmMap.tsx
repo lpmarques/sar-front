@@ -15,12 +15,12 @@ import {
   LatLng,
   latLngBounds,
 } from "leaflet";
-import { FeatureGroup, MapContainer, MapContainerProps, Polygon, PolygonProps, Tooltip } from "react-leaflet";
+import { FeatureGroup, MapContainerProps, Polygon, PolygonProps, Tooltip } from "react-leaflet";
 import { EditControlProps } from "react-leaflet-draw";
 import { MapStyle } from "@maptiler/leaflet-maptilersdk";
 import area from '@turf/area';
 import { polygon } from '@turf/helpers';
-import { DeviceLocationControl, MapBoundsFraming, MaptilerVectorLayer, PolygonDrawing } from ".";
+import { DeviceLocationControl, MapBoundsFraming, MapContainer, MaptilerVectorLayer, PolygonDrawing } from ".";
 import { latLngToPosition } from "../../utils/agroforestry";
 
 interface FarmMapProps extends MapContainerProps {

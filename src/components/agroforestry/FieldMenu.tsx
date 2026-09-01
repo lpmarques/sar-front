@@ -11,10 +11,9 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
-import { useMemo } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { BoxProps, Button, Center, Container, Fieldset, Group, Loader, NumberInput, ScrollArea, Stack, Text, TextInput, Tooltip } from "@mantine/core";
 import { useForm, UseFormReturnType } from "@mantine/form";
-import { modals } from "@mantine/modals";
 import { IconChevronRight, IconInfoCircle, IconX } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import booleanEqual from "@turf/boolean-equal";
@@ -22,7 +21,7 @@ import { createField, CroppingSummary, deleteField, FieldWriteRequestData, getCr
 import { showMutationError } from "../../apis/common";
 import { useAuth } from '../../hooks/useAuth';
 import { useProject } from "../../hooks/useProject";
-import ConfirmingButton from "../common/ConfirmingButton";
+import ConfirmButton from "../common/ConfirmButton";
 import DeleteButton from "../common/DeleteButton";
 import FieldView from "../common/FieldView";
 import { showError, showSuccess } from "../common/notifications";
@@ -40,6 +39,11 @@ export default function FieldMenu({
   onCroppingChange = () => {},
 }: FieldMenuProps) {
   const queryClient = useQueryClient();
+  const project = useProject();
+
+  if (!project) {
+    throw new Error("FieldMenu has to be used within <ProjectProvider>");
+  }
   const {
     farm,
     fields,
@@ -49,7 +53,7 @@ export default function FieldMenu({
     replaceField,
     removeField,
     resetField
-  } = useProject();
+  } = project;
 
   const field = selectedFieldIndex !== null ? fields[selectedFieldIndex] : undefined;
   const initialField = selectedFieldIndex !== null ? initialFieldValues[selectedFieldIndex] : undefined;
@@ -96,7 +100,11 @@ export default function FieldMenu({
     onValuesChange: (values) => {
       replaceField({
         ...values,
-        polygon: field!.polygon
+        polygon: field!.polygon,
+        cropping: values.cropping ? {
+          ...values.cropping,
+          summary: field!.cropping?.summary,
+        } : undefined,
       });
     },
     transformValues: (values) => ({
@@ -121,14 +129,14 @@ export default function FieldMenu({
         polygon: field!.polygon,
       },
     });
-  }
+  };
 
   const handleUnsavedClose = () => {
     resetField();
     unselectField();
-  }
+  };
 
-  const deleteButtonProps = initialField ? {
+  const deleteModalProps = initialField ? {
     title: "Deseja mesmo excluir essa área de cultivo?",
     children: (
       <Text size="sm" mb={20}>
@@ -150,7 +158,7 @@ export default function FieldMenu({
 
   const fieldDeleteButton = 
     <Tooltip label="Excluir área de cultivo">
-      <DeleteButton {...deleteButtonProps}/>
+      <DeleteButton size="compact-md" confirmModal={deleteModalProps}/>
     </Tooltip>;
 
   const isFieldChanged = !initialField || fieldForm.isDirty() || !booleanEqual(fieldForm.values.polygon, field!.polygon);
@@ -164,7 +172,7 @@ export default function FieldMenu({
   const fieldCloseButton = initialField &&
     <Tooltip label="Fechar área de cultivo">
       {isFieldChanged ?
-        <ConfirmingButton
+        <ConfirmButton
           modal={{
             title: "Deseja descartar as mudanças?",
             children: (
@@ -181,7 +189,7 @@ export default function FieldMenu({
           {...closeButtonStyle}
         >
           <IconX />
-        </ConfirmingButton> :
+        </ConfirmButton> :
         <Button onClick={unselectField} {...closeButtonStyle}>
           <IconX />
         </Button>
@@ -221,7 +229,7 @@ export default function FieldMenu({
             onChange={onCroppingChange}
           />
           {field!.cropping?.patternId ? (
-            isCroppingComputing || !field!.cropping.summary ? (
+            isCroppingComputing || field!.cropping.summary === undefined ? (
               <Center><Loader /></Center>
             ) : (
               <CroppingSummaryDetails summary={field!.cropping.summary} />
@@ -296,6 +304,7 @@ interface CroppingControlsProps {
 
 function CroppingControls({ fieldForm, disabled, onChange }: CroppingControlsProps) {
   const offsetInputWidth = 110;
+  const currentValues = fieldForm.getValues().cropping ?? null;
 
   const rowsAngleInputLabel =
     <Group>
@@ -332,19 +341,26 @@ function CroppingControls({ fieldForm, disabled, onChange }: CroppingControlsPro
       onChange();
       fieldForm.setFieldValue(path, value);
     }
-  }
+  };
+
+  const handlePatternChange = (patternId: number) => {
+    onChange();
+    fieldForm.setFieldValue('cropping.patternId', patternId);
+  };
 
   return (
     <Fieldset legend="Configuração do Cultivo">
       <CroppingPatternSelect 
         label="Padrão de cultivo"
-        selectedPatternId={fieldForm.getValues().cropping?.patternId}
+        selectedPatternId={currentValues?.patternId}
         disabled={disabled}
         mb={5}
-        onSelect={handleChange('cropping.patternId')}
+        onSelect={(patternId) => patternId !== currentValues?.patternId 
+          ? handlePatternChange(patternId)
+          : {}}
         onUnselect={() => fieldForm.setFieldValue('cropping.patternId', 0)}
       />
-      {fieldForm.getValues().cropping?.patternId ? <>
+      {currentValues?.patternId ? <>
       <NumberInput
         key={fieldForm.key('cropping.rowsAngleDeg')}
         label={rowsAngleInputLabel}
@@ -406,6 +422,8 @@ interface CroppingPatternSelectProps extends BoxProps {
 
 function CroppingPatternSelect({ selectedPatternId, label, disabled, onSelect, onUnselect, ...boxProps }: CroppingPatternSelectProps) {
   const { user } = useAuth();
+  const project = useProject();
+  const [modalOpen, setModalOpen] = useState(false);
 
   const publicPatternsQueryOptions = {
     queryKey: [
@@ -438,34 +456,54 @@ function CroppingPatternSelect({ selectedPatternId, label, disabled, onSelect, o
   const buttonLabel = selectedPattern?.name ?? 'Selecione um padrão';
   const tooltipLabel = selectedPattern?.name ?? 'Ver padrões disponíveis';
 
-  const openPreviewModal = () => modals.open({
-    title: 'Padrões de cultivo',
-    size: '75%',
-    children: (
-      <CroppingPatternsModal
-        selectedPatternId={selectedPatternId}
-        onSelect={onSelect}
-        onUnselect={onUnselect}
-      />
-    ),
-  });
+  const handleSelect = (patternId: number) => {
+    setModalOpen(false);
+    onSelect(patternId);
+  };
+
+  const handleUnselect = () => {
+    setModalOpen(false);
+    onUnselect();
+  };
+
+  const handlePatternDeleted = (patternId: number) => {
+    project?.setFields(prev => prev.map((f) =>
+      f.cropping?.patternId === patternId
+        ? { ...f, cropping: { ...f.cropping, patternId: 0, summary: undefined } }
+        : f
+    ));
+    if (patternId === selectedPatternId)
+      onUnselect();
+  };
 
   return (
-    <Stack gap={4} {...boxProps}>
-      {label && <Text fz="sm" fw={500}>{label}</Text>}
-      <Tooltip label={tooltipLabel}>
-        <Button
-          variant="default"
-          onClick={openPreviewModal}
-          disabled={disabled}
-          fullWidth
-          justify="space-between"
-          fw="initial"
-          rightSection={<IconChevronRight size={16} />}
-        >
-          {buttonLabel}
-        </Button>
-      </Tooltip>
-    </Stack>
+    <Fragment>
+      <Stack gap={4} {...boxProps}>
+        {label && <Text fz="sm" fw={500}>{label}</Text>}
+        <Tooltip label={tooltipLabel}>
+          <Button
+            variant="default"
+            onClick={() => setModalOpen(true)}
+            disabled={disabled}
+            fullWidth
+            justify="space-between"
+            fw="initial"
+            rightSection={<IconChevronRight size={16} />}
+          >
+            {buttonLabel}
+          </Button>
+        </Tooltip>
+      </Stack>
+      <CroppingPatternsModal
+        title='Padrões de cultivo'
+        size='75%'
+        opened={modalOpen}
+        selectedPatternId={selectedPatternId}
+        onClose={() => setModalOpen(false)}
+        onSelect={handleSelect}
+        onUnselect={handleUnselect}
+        onPatternDeleted={handlePatternDeleted}
+      />
+    </Fragment>
   )
 }

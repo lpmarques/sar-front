@@ -11,9 +11,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Button, ButtonProps, getDefaultZIndex, Group, Modal, Text } from "@mantine/core";
+import { Button, ButtonProps, Group, Text } from "@mantine/core";
+import Submodal from "./Submodal";
 
-interface LocalConfirmModalProps {
+interface ConfirmSubmodalProps {
   opened: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -34,12 +35,8 @@ interface LocalConfirmModalProps {
  * modal: the global registry only renders the topmost entry at any time,
  * which would unmount the parent modal's children and reset their
  * `useState`. A local `Modal` overlays the parent without unmounting it.
- *
- * The `zIndex` is bumped above the parent's level so the confirm visibly
- * stacks on top of the cropping-patterns modal (which is rendered through
- * `ModalsProvider` at `getDefaultZIndex("modal") + 1`).
  */
-export default function LocalConfirmModal({
+export default function ConfirmSubmodal({
   opened,
   onClose,
   onConfirm,
@@ -47,16 +44,10 @@ export default function LocalConfirmModal({
   children,
   labels,
   confirmProps,
-}: LocalConfirmModalProps) {
+}: ConfirmSubmodalProps) {
   return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      title={title}
-      centered
-      zIndex={getDefaultZIndex("modal") + 2}
-    >
-      <Text size="sm">{children}</Text>
+    <Submodal opened={opened} onClose={onClose} title={title}>
+      {children}
       <Group justify="flex-end" mt="md">
         <Button variant="default" onClick={onClose}>
           {labels.cancel}
@@ -71,6 +62,6 @@ export default function LocalConfirmModal({
           {labels.confirm}
         </Button>
       </Group>
-    </Modal>
+    </Submodal>
   );
 }

@@ -66,7 +66,7 @@ export default function CroppingLayers({
   // Recompute geometry only when relevant props change
   const croppingLayers = useMemo<CroppingLayers>(() => 
     computeCroppingLayers(fieldCoords, pattern.rows, rowsAngleDeg, rowsOffsetM, cropsOffsetM),
-    [fieldCentroid.lat, fieldCentroid.lng, pattern.id, rowsAngleDeg, rowsOffsetM, cropsOffsetM]
+    [fieldCentroid.lat, fieldCentroid.lng, pattern, rowsAngleDeg, rowsOffsetM, cropsOffsetM]
   );
 
   // Recompute summary only when geometry changes

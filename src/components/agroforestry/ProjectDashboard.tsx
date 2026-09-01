@@ -61,7 +61,7 @@ export default function ProjectDashboard() {
 }
 
 function ProjectDashboardBody() {
-  const { selectedFieldIndex } = useProject();
+  const { selectedFieldIndex } = useProject()!;
   const [isEditingFieldPolygon, setIsEditingFieldPolygon] = useState(false);
   const [isCroppingComputing, setIsCroppingComputing] = useState(false);
 

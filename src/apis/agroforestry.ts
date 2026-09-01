@@ -100,6 +100,8 @@ export interface PatternRowWrite {
 export interface CroppingPatternWriteRequestData {
   name: string;
   description: string;
+  isPublic?: boolean;
+  sourcePatternId?: number;
   rows: PatternRowWrite[];
 }
 
@@ -255,7 +257,8 @@ export interface CroppingPatternReadData {
   name: string;
   description: string;
   isPublic: boolean;
-  sourcePatternId: number;
+  sourcePatternId: number | null;
+  usersCount?: number;
   author: UserReadData;
   rows: PatternRow[];
 }
