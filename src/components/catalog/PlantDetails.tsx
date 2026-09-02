@@ -391,12 +391,13 @@ function NaturalOccurrenceSection({ regions }: { regions: NaturalOccurrenceRegio
       {regions.length > 0 ?
       <StickyHeaderTable
         header={header}
-        rows={rows}
         scrollWidth={600}
         scrollHeight={300}
         striped
         stripedColor="#f0f2f2"
-      /> :
+      >
+        {rows}
+      </StickyHeaderTable> :
       <ContentPlaceholder size={50} />}
     </Section>
   )

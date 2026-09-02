@@ -218,7 +218,13 @@ function AcceptedValueHistory({ data }: { data: TraitValueReadData[] }) {
   return (
     <Paper withBorder p={15}>
       <Text fz="h5" fw={600} pb={10}>Histórico de versões</Text>
-      <StickyHeaderTable header={header} rows={rows} scrollWidth={600} scrollHeight={220} />
+      <StickyHeaderTable
+        header={header}
+        scrollWidth={600}
+        scrollHeight={220}
+      >
+        {rows}
+      </StickyHeaderTable>
     </Paper>
   )
 }
@@ -368,7 +374,13 @@ function ProposedValues({
   return (
     <Paper withBorder p={15} mb={25}>
       <Text fz="h5" fw={600} pb={10}>Outras propostas</Text>
-      <StickyHeaderTable header={header} rows={rows} scrollWidth={600} scrollHeight={220} />
+      <StickyHeaderTable
+        header={header}
+        scrollWidth={600}
+        scrollHeight={220}
+      >
+        {rows}
+      </StickyHeaderTable>
     </Paper>
   )
 }

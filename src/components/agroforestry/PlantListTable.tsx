@@ -18,7 +18,6 @@ import {
   Table,
   Text,
   TextInput,
-  Tooltip,
 } from "@mantine/core";
 import { IconExternalLink, IconSearch } from "@tabler/icons-react";
 import { PlantReadData } from "../../apis/catalog";

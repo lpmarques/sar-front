@@ -182,11 +182,12 @@ export function AcceptedItems<ReadT extends ContentReadData, WriteT extends Cont
         <Text fz="h5" fw={600} pb={10}>Itens aceitos</Text>
         <StickyHeaderTable
           header={header}
-          rows={rows}
           scrollWidth={(sectionConfig.formKeys.length+2)*125}
           scrollHeight={250}
           withRowBorders={false}
-        />
+        >
+          {rows}
+        </StickyHeaderTable>
       </Paper>
       <Space h={15} />
       <Alert variant="light" color="gray" icon={<IconEyeQuestion />}>
@@ -352,10 +353,11 @@ function ProposedItems<ReadT extends ContentReadData, WriteT extends ContentWrit
         <Text fz="h5" fw={600} pb={10}>Itens propostos</Text>
         <StickyHeaderTable
           header={header}
-          rows={rows}
           scrollWidth={(sectionConfig.formKeys.length+2)*125}
           scrollHeight={250}
-        />
+        >
+          {rows}
+        </StickyHeaderTable>
       </Paper>
     </QueryLoader>
   )

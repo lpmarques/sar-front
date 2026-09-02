@@ -77,10 +77,11 @@ export default function UserContents() {
       <Paper withBorder>
         <StickyHeaderTable
           header={header}
-          rows={rows}
           scrollWidth={600}
           scrollHeight={550}
-          />
+        >
+          {rows}
+        </StickyHeaderTable>
       </Paper>
     </Container>
   )

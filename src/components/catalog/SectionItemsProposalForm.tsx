@@ -223,11 +223,12 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
         <Text fz="h5" fw={600} pb={10}>Proposta</Text>
         <StickyHeaderTable
           header={header}
-          rows={[...rows, footer]}
           scrollWidth={sectionConfig.formKeys.length*125}
           scrollHeight={500}
           headerStyle={style}
-        />
+        >
+          {[...rows, footer]}
+        </StickyHeaderTable>
         {divider}
         <Text fz="h5" fw={600} pb={10}>Fonte</Text>
         <SourceSelect field={sourceField} />

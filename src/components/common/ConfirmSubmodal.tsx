@@ -11,7 +11,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Button, ButtonProps, Group, Text } from "@mantine/core";
+import { Button, ButtonProps, Group } from "@mantine/core";
 import Submodal from "./Submodal";
 
 interface ConfirmSubmodalProps {

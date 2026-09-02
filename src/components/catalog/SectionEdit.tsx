@@ -150,11 +150,12 @@ export function AcceptedItems<ReadT extends ContentReadData, WriteT extends Cont
         <Text fz="h5" fw={600} pb={10} ta="center">Itens aceitos</Text>
         <StickyHeaderTable
           header={header}
-          rows={rows}
           scrollWidth={sectionConfig.formKeys.length*125}
           scrollHeight={300}
           withRowBorders={false}
-        />
+        >
+          {rows}
+        </StickyHeaderTable>
       </Paper>
       <Space h={15} />
       </>}
