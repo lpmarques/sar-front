@@ -29,10 +29,9 @@ export default function MaptilerVectorLayer({ style }: { style: maptilersdk.Refe
     container.addLayer(mtLayer);
 
     return () => {
-      context.layerContainer?.removeLayer(mtLayer);
-      context.map.removeLayer(mtLayer);
+      container.removeLayer(mtLayer);
     };
-  }, [context, style]);
+  }, [style]);
 
   return null;
 };
