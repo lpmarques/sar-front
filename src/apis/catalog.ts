@@ -12,7 +12,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 */
 
 import axios from 'axios';
-import { defaultDeleteFn, defaultPostFn, defaultQueryFn, GenericResponse, QueryFnInput, snakeToCamelCase } from './common';
+import { defaultDeleteFn, defaultPostFn, defaultQueryFn, formPostFn, GenericResponse, QueryFnInput, snakeToCamelCase } from './common';
 import { ContentReadData, ContentWriteRequestData, ContentWriteResponseData } from './core';
 import { BiomeData, CountryData, StateData, VegetationTypeData } from './geography';
 
@@ -109,6 +109,25 @@ export async function acceptPopularName(popularNameId: number): Promise<GenericR
 
 export async function rejectPopularName(popularNameId: number): Promise<GenericResponse> {
   return defaultDeleteFn({ endpoint: `/catalog/popular-names/${popularNameId}` });
+}
+
+export interface ImageWriteRequestData extends ContentWriteRequestData {
+  plantId: number,
+  image: File,
+}
+
+export async function proposeImage(data: ImageWriteRequestData): Promise<ContentWriteResponseData> {
+  return formPostFn({ endpoint: "/catalog/images", data });
+}
+
+export async function acceptImage(imageId: number): Promise<GenericResponse> {
+  const res = await axios.patch(`/catalog/images/${imageId}`);
+  
+  return snakeToCamelCase(res.data);
+}
+
+export async function rejectImage(imageId: number): Promise<GenericResponse> {
+  return defaultDeleteFn({ endpoint: `/catalog/images/${imageId}` });
 }
 
 export interface NaturalOccurrenceRegionWriteRequestData extends ContentWriteRequestData {
@@ -233,6 +252,23 @@ export async function getPopularNameList({ queryKey: [_, ...params] }: QueryFnIn
 
 export async function getPlantPopularNameList({ queryKey: [_, plantId, ...params] }: QueryFnInput): Promise<PopularNameReadData[]> {
   return defaultQueryFn({ endpoint: `/catalog/plants/${plantId}/popular-names`, params });
+}
+
+export interface ImageReadData extends ContentReadData {
+  plantId: number,
+  url: string,
+}
+
+export async function getImage({ queryKey: [_, imageId, ...params] }: QueryFnInput ): Promise<ImageReadData[]> {
+  return defaultQueryFn({ endpoint: `/catalog/images/${imageId}`, params });
+}
+
+export async function getImageList({ queryKey: [_, ...params] }: QueryFnInput ): Promise<ImageReadData[]> {
+  return defaultQueryFn({ endpoint: `/catalog/images`, params });
+}
+
+export async function getPlantImageList({ queryKey: [_, plantId, ...params] }: QueryFnInput): Promise<ImageReadData[]> {
+  return defaultQueryFn({ endpoint: `/catalog/plants/${plantId}/images`, params });
 }
 
 export interface NaturalOccurrenceRegionReadData extends ContentReadData {

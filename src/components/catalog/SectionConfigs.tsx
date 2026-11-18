@@ -14,21 +14,26 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 import { ComponentType } from 'react';
 import { TableTdProps } from '@mantine/core';
 import {
-  proposeNaturalOccurrenceRegion,
-  proposePopularName,
-  proposeTaxon,
-  rejectNaturalOccurrenceRegion,
-  rejectPopularName,
-  rejectTaxon,
+  acceptImage,
+  acceptNaturalOccurrenceRegion,
+  acceptPopularName,
+  acceptTaxon,
+  ImageReadData,
+  ImageWriteRequestData,
   NaturalOccurrenceRegionReadData,
   NaturalOccurrenceRegionWriteRequestData,
   PopularNameReadData,
   PopularNameWriteRequestData,
+  proposeImage,
+  proposeNaturalOccurrenceRegion,
+  proposePopularName,
+  proposeTaxon,
+  rejectImage,
+  rejectNaturalOccurrenceRegion,
+  rejectPopularName,
+  rejectTaxon,
   TaxonReadData,
   TaxonWriteRequestData,
-  acceptTaxon,
-  acceptPopularName,
-  acceptNaturalOccurrenceRegion,
 } from '../../apis/catalog';
 import { GenericResponse, QueryOptions } from '../../apis/common';
 import { ContentReadData, ContentWriteRequestData, ContentWriteResponseData } from '../../apis/core';
@@ -65,8 +70,9 @@ import {
   validateNaturalOccurrenceRegionFormToReadDataDiff,
   NaturalOccurrenceRegionSectionInfo,
 } from './NaturalOccurrenceRegionsSection';
+import { buildImageListQueryOptions, buildImageWriteRequestData, imageFormKeys, ImageFormRow, ImageHeader, ImageRow, ImageSectionInfo } from './ImagesSection';
 
-export type SectionSlug = 'popular-names' | 'taxonomy' | 'natural-occurrence-regions';
+export type SectionSlug = 'popular-names' | 'taxonomy' | 'images' | 'natural-occurrence-regions';
 
 export type ContentForm<WriteT> = Omit<WriteT, keyof ContentWriteRequestData | 'plantId'>;
 
@@ -97,17 +103,17 @@ export interface SectionConfig<ReadT extends ContentReadData, WriteT extends Con
   FormRow: ComponentType<ContentFormRowProps<ReadT, WriteT>>,
   formKeys: (keyof ContentForm<WriteT>)[],
   validateFormsDiff?: (a: ContentForm<WriteT>, b: ContentForm<WriteT>, errMsg: string) => FormErrors | undefined,
-  validateFormToReadDataDiff: (formValues: ContentForm<WriteT>, readData: ReadT, errMsg: string) => FormErrors | undefined,
+  validateFormToReadDataDiff?: (formValues: ContentForm<WriteT>, readData: ReadT, errMsg: string) => FormErrors | undefined,
   buildWriteRequestData: (props: BuildWriteRequestDataProps<WriteT>) => WriteT,
   proposeMutationFunction: (data: WriteT) => Promise<ContentWriteResponseData>,
   acceptMutationFunction: (id: number) => Promise<GenericResponse>,
   rejectMutationFunction: (id: number) => Promise<GenericResponse>,
 }
 
-// TODO: convert into a hook
-export const getSectionConfig = (sectionSlug: SectionSlug):
+export const useSectionConfig = (sectionSlug: SectionSlug):
   SectionConfig<TaxonReadData, TaxonWriteRequestData> |
   SectionConfig<PopularNameReadData, PopularNameWriteRequestData> |
+  SectionConfig<ImageReadData, ImageWriteRequestData> |
   SectionConfig<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData> |
   undefined => {
   switch (sectionSlug) {
@@ -142,6 +148,20 @@ export const getSectionConfig = (sectionSlug: SectionSlug):
         acceptMutationFunction: acceptPopularName,
         rejectMutationFunction: rejectPopularName,
       } as SectionConfig<PopularNameReadData, PopularNameWriteRequestData>;
+    case 'images':
+      return {
+        sectionName: 'Imagens',
+        SectionInfo: ImageSectionInfo,
+        buildQueryOptions: buildImageListQueryOptions,
+        Header: ImageHeader,
+        DisplayRow: ImageRow,
+        FormRow: ImageFormRow,
+        formKeys: imageFormKeys,
+        buildWriteRequestData: buildImageWriteRequestData,
+        proposeMutationFunction: proposeImage,
+        acceptMutationFunction: acceptImage,
+        rejectMutationFunction: rejectImage,
+      } as SectionConfig<ImageReadData, ImageWriteRequestData>;
     case 'natural-occurrence-regions':
       return {
         sectionName: 'Regiões de Ocorrência Natural',
@@ -160,3 +180,4 @@ export const getSectionConfig = (sectionSlug: SectionSlug):
       } as SectionConfig<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>;
   }
 }
+

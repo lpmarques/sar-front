@@ -14,6 +14,7 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 import axios, { AxiosError } from 'axios';
 import { showError } from '../components/common/notifications';
 import { UseQueryOptions } from '@tanstack/react-query';
+import { objectToFormData } from '../utils/common';
 
 export type MonthNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
@@ -97,6 +98,13 @@ export async function defaultDeleteFn({ endpoint }: DefaultHTTPRequestFnInput): 
   return snakeToCamelCase(res.data);
 }
 
+export async function formPostFn({ endpoint, data }: DefaultMutationFnInput): Promise<any> {
+  const formData = objectToFormData(camelToSnakeCase(data));
+  const res = await axios.post(endpoint.toLowerCase(), formData);
+  
+  return snakeToCamelCase(res.data);
+}
+
 interface DefaultQueryFnInput extends DefaultHTTPRequestFnInput {
   params?: string[]
 }
@@ -130,6 +138,10 @@ export async function showMutationError(error: Error){
 
 export function camelToSnakeCase<T>(obj: T): any {
   if (typeof obj !== 'object' || obj === null) {
+    return obj;
+  }
+
+  if (obj instanceof Blob) {
     return obj;
   }
 
