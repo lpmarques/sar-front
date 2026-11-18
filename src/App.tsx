@@ -21,6 +21,7 @@ import { Notifications } from '@mantine/notifications';
 import drawLocales from 'leaflet-draw-locales';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
+import '@mantine/carousel/styles.css';
 import "@mantine/core/styles.css";
 import '@mantine/dates/styles.css';
 import '@mantine/notifications/styles.css';

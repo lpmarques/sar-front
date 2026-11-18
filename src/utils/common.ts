@@ -72,3 +72,18 @@ export function convertStringToPrimitiveType(str: string, primitive: Primitive) 
 export function unaccent(str: string) {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
+
+export function objectToFormData (obj: Record<string, any>): FormData {
+  const formData = new FormData();
+
+  Object.entries(obj).forEach(([key, value]) => {
+    if (value === undefined || value === null)
+      return;
+    if (value instanceof Blob)
+      formData.append(key, value);
+    else
+      formData.append(key, String(value));
+  });
+
+  return formData;
+};

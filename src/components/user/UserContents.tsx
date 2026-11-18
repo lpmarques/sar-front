@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { Badge, Container, Paper, Table } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
-import { getNaturalOccurrenceRegionList, getPlantList, getPopularNameList, getTaxonList, getTraitValueList } from "../../apis/catalog";
+import { getImageList, getNaturalOccurrenceRegionList, getPlantList, getPopularNameList, getTaxonList, getTraitValueList } from "../../apis/catalog";
 import { ContentPreviewReadData, getContentPreviewList, getOwnUser, getUser } from "../../apis/core";
 import ClickableRow from "../common/ClickableRow";
 import { StickyHeaderTable } from "../common/StickyHeaderTable";
@@ -112,6 +112,11 @@ function ContentRow({ content }: { content: ContentPreviewReadData }) {
         return {
           label: 'Nome Popular',
           PageOpening: PopularNamePageOpening,
+        };
+      case 'image':
+        return {
+          label: 'Imagem',
+          PageOpening: ImagePageOpening,
         };
       case 'natural_occurrence_region':
         return {
@@ -253,6 +258,27 @@ function PopularNamePageOpening({ content, clicked, onOpen }: PageOpeningProps) 
       }
     },
     [clicked, popularName]
+  );
+
+  return null;
+}
+
+function ImagePageOpening({ content, clicked, onOpen }: PageOpeningProps) {
+  const query = useQuery({
+    queryKey: ['imageList', `content_id=${content.id}`],
+    queryFn: getImageList,
+    enabled: clicked,
+  });
+
+  const images = query.data && query.data.length > 0 ? query.data[0] : undefined;
+  useEffect(
+    () => {
+      if (clicked && images) {
+        window.open(`/plants/${images.plantId}/images`);
+        onOpen();
+      }
+    },
+    [clicked, images]
   );
 
   return null;

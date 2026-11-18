@@ -116,23 +116,25 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
         }
       }
 
+      if (sectionConfig.validateFormToReadDataDiff) {
       // uniqueness validation between form and accepted items
-      for (const item of acceptedItems) {
-        let matchErrors = sectionConfig.validateFormToReadDataDiff(values, item, "Igual a item aceito");
-        if (matchErrors) {
-          form.setErrors(matchErrors);
-          acc.push(matchErrors);
-          return acc;
+        for (const item of acceptedItems) {
+          let matchErrors = sectionConfig.validateFormToReadDataDiff(values, item, "Igual a item aceito");
+          if (matchErrors) {
+            form.setErrors(matchErrors);
+            acc.push(matchErrors);
+            return acc;
+          }
         }
-      }
 
-      // uniqueness validation between form and proposed items
-      for (const item of proposedItems) {
-        let matchErrors = sectionConfig.validateFormToReadDataDiff(values, item, "Igual a item já proposto");
-        if (matchErrors) {
-          form.setErrors(matchErrors);
-          acc.push(matchErrors);
-          return acc;
+        // uniqueness validation between form and proposed items
+        for (const item of proposedItems) {
+          let matchErrors = sectionConfig.validateFormToReadDataDiff(values, item, "Igual a item já proposto");
+          if (matchErrors) {
+            form.setErrors(matchErrors);
+            acc.push(matchErrors);
+            return acc;
+          }
         }
       }
       
@@ -190,18 +192,25 @@ export default function SectionItemsProposalForm<ReadT extends ContentReadData, 
       <Table.Th w={42}></Table.Th>
     </Table.Tr>
   );
-  const rows = useMemo(() => rowKeys.map((key) => (    
-    <Table.Tr key={key}>
-      <sectionConfig.FormRow
-        forms={forms}
-        setForms={setForms} // passing setter here is necessary since you can't call the useForm hook conditionally
-        itemsQueryOptions={itemsQueryOptions}
-      />
-      <Table.Td>
-        <CloseButton size="sm" onClick={() => handleRemoveButtonClick(key)} />
-      </Table.Td>
-    </Table.Tr>
-  )), [rowKeys]);
+  const rows = useMemo(() => rowKeys.map((key) => {
+    const isFormDirty = forms[key] === undefined
+    ? false
+    : forms[key].isDirty();
+    console.log(isFormDirty);
+    
+    return (
+      <Table.Tr key={key}>
+        <sectionConfig.FormRow
+          forms={forms}
+          setForms={setForms} // passing setter here is necessary since you can't call the useForm hook conditionally
+          itemsQueryOptions={itemsQueryOptions}
+        />
+        <Table.Td>
+          <CloseButton size="sm" onClick={() => handleRemoveButtonClick(key)} />
+        </Table.Td>
+      </Table.Tr>
+    )
+  }), [rowKeys]);
 
   const footer = (
     <Tooltip key={-1} withArrow label="Clique para adicionar um novo item a sua proposta." position="bottom">

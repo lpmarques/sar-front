@@ -17,6 +17,8 @@ import { IconInfoCircle } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import {
   getPlant,
+  ImageReadData,
+  ImageWriteRequestData,
   NaturalOccurrenceRegionReadData,
   NaturalOccurrenceRegionWriteRequestData,
   PlantReadData,
@@ -29,7 +31,7 @@ import { ContentReadData, ContentWriteRequestData } from '../../apis/core';
 import ClickableText from '../common/ClickableText';
 import { QueryLoader } from '../common/QueryLoader';
 import { StickyHeaderTable } from '../common/StickyHeaderTable';
-import { SectionConfig, getSectionConfig, SectionSlug } from './SectionConfigs';
+import { SectionConfig, useSectionConfig, SectionSlug } from './SectionConfigs';
 import SectionItemsProposalForm from './SectionItemsProposalForm';
 import { ModalsProvider } from '@mantine/modals';
 
@@ -43,7 +45,7 @@ export default function SectionEdit() {
   
   const plant = useQuery(plantQueryOptions);
   
-  const sectionConfig = getSectionConfig(sectionSlug as SectionSlug);
+  const sectionConfig = useSectionConfig(sectionSlug as SectionSlug);
   
   return (
     <ModalsProvider>
@@ -60,6 +62,12 @@ export default function SectionEdit() {
           <SectionEditBody<PopularNameReadData, PopularNameWriteRequestData>
             plant={plant.data}
             sectionConfig={sectionConfig as SectionConfig<PopularNameReadData, PopularNameWriteRequestData>}
+            size={600}
+            /> : 
+          sectionSlug === "images" ? 
+          <SectionEditBody<ImageReadData, ImageWriteRequestData>
+            plant={plant.data}
+            sectionConfig={sectionConfig as SectionConfig<ImageReadData, ImageWriteRequestData>}
             size={600}
             /> : 
           sectionSlug === "natural-occurrence-regions" ? 
@@ -132,14 +140,14 @@ export function AcceptedItems<ReadT extends ContentReadData, WriteT extends Cont
   const header = (
     <Table.Tr>
       <sectionConfig.Header />
-      <Table.Th w={42}></Table.Th>
+      {/* <Table.Th w={42}></Table.Th> */}
     </Table.Tr>
   );
   
   const rows = sortedItems.map((item) => (
     <Table.Tr key={item.contentId}>
       <sectionConfig.DisplayRow data={item} style={{backgroundColor: "#bef7ce"}} />
-      <Table.Td style={{backgroundColor: "#bef7ce"}}></Table.Td>
+      {/* <Table.Td style={{backgroundColor: "#bef7ce"}}></Table.Td> */}
     </Table.Tr>
   ));
 

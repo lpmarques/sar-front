@@ -18,6 +18,8 @@ import { IconAlertHexagon, IconCheckbox, IconEyeQuestion, IconTrash } from '@tab
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getPlant,
+  ImageReadData,
+  ImageWriteRequestData,
   NaturalOccurrenceRegionReadData,
   NaturalOccurrenceRegionWriteRequestData,
   PlantReadData,
@@ -35,10 +37,11 @@ import { StickyHeaderTable } from '../common/StickyHeaderTable';
 import { useAuth } from '../../hooks/useAuth';
 import { useLanguage } from '../../hooks/useLanguage';
 import { EndorsementCounter, UserAvatar } from '../user';
-import { SectionConfig, getSectionConfig, SectionSlug } from './SectionConfigs';
+import { SectionConfig, SectionSlug, useSectionConfig } from './SectionConfigs';
 import { SourceRef } from '.';
 import AddRow from '../common/AddRow';
 import LoaderRow from '../common/LoaderRow';
+import { HttpError } from '../common/HttpError';
 
 export default function SectionDetails() {
   const { plantId, sectionSlug } = useParams();
@@ -49,7 +52,10 @@ export default function SectionDetails() {
   };
 
   const plant = useQuery(plantQueryOptions);
-  const sectionConfig = getSectionConfig(sectionSlug as SectionSlug);
+  const sectionConfig = useSectionConfig(sectionSlug as SectionSlug);
+
+  if (sectionConfig === undefined)
+    return <HttpError status={404} statusText="Página inexistente"/>
   
   return (
     <ModalsProvider>
@@ -67,6 +73,12 @@ export default function SectionDetails() {
             plant={plant.data}
             sectionConfig={sectionConfig as SectionConfig<PopularNameReadData, PopularNameWriteRequestData>}
             size={700}
+            /> : 
+          sectionSlug === "images" ? 
+          <SectionDetailsBody<ImageReadData, ImageWriteRequestData>
+            plant={plant.data}
+            sectionConfig={sectionConfig as SectionConfig<ImageReadData, ImageWriteRequestData>}
+            size={900}
             /> : 
           sectionSlug === "natural-occurrence-regions" ? 
           <SectionDetailsBody<NaturalOccurrenceRegionReadData, NaturalOccurrenceRegionWriteRequestData>

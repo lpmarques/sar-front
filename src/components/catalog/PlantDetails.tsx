@@ -13,7 +13,8 @@ along with this program. If not, see <https://www.gnu.org/licenses>.
 
 import { ReactElement, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { Alert, Button, Center, Container, Group, Paper, SimpleGrid, Space, Table, Text } from '@mantine/core';
+import { Carousel } from '@mantine/carousel';
+import { Alert, Button, Center, Container, Grid, Group, Image, Paper, SimpleGrid, Space, Table, Text } from '@mantine/core';
 import { modals, ModalsProvider } from "@mantine/modals";
 import { IconAlertHexagon, IconCheckbox, IconCircleDashedPlus, IconPencil, IconPencilOff, IconTrash } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -33,6 +34,8 @@ import {
   TraitReadData,
   TraitValueReadData,
   acceptPlant,
+  ImageReadData,
+  getPlantImageList,
 } from "../../apis/catalog";
 import { QueryOptions, showMutationError } from "../../apis/common";
 import { useAuth, useStoredSearchParam } from "../../hooks";
@@ -59,6 +62,10 @@ export default function PlantDetails() {
     queryKey: ['plantPopularNameList', plantId!, 'status=accepted'],
     queryFn: getPlantPopularNameList
   };
+  const imagesQueryOptions = {
+    queryKey: ['imageList', plantId!, 'status=accepted'],
+    queryFn: getPlantImageList
+  };
   const traitsQueryOptions = {
     queryKey: ['traitList'],
     queryFn: getTraitList
@@ -75,6 +82,7 @@ export default function PlantDetails() {
   const plant = useQuery(plantQueryOptions);
   const taxa = useQuery(taxaQueryOptions);
   const popularNames = useQuery(popularNamesQueryOptions);
+  const images = useQuery(imagesQueryOptions);
   const traits = useQuery(traitsQueryOptions);
   const traitValues = useQuery(traitValuesQueryOptions);
   const naturalOccurrenceRegions = useQuery(naturalOccurrenceRegionsQueryOptions);
@@ -102,6 +110,7 @@ export default function PlantDetails() {
   }, []);
 
   const { user } = useAuth();
+  const showImagesSection = images.data && (images.data.length > 0 || editMode);
 
   return (
     <ModalsProvider>
@@ -128,14 +137,25 @@ export default function PlantDetails() {
           </Alert>
           <Space h={15} />
           </>}
-          <QueryLoader {...popularNamesQueryOptions}>
-            {popularNames.data && (popularNames.data.length > 0 || editMode) &&
-            <PopularNamesSection popularNames={popularNames.data!}/>}
-          </QueryLoader>
-          <QueryLoader {...taxaQueryOptions}>
-            {taxa.data && (taxa.data.length > 0 || editMode) &&
-            <TaxonomySection taxa={taxa.data}/>}
-          </QueryLoader>
+          <Grid columns={10} justify="space-between" mb={15}>
+            <Grid.Col span={{base: 10, sm: showImagesSection ? 5 : 10}}>
+              <QueryLoader {...popularNamesQueryOptions}>
+                {popularNames.data && (popularNames.data.length > 0 || editMode) &&
+                <PopularNamesSection popularNames={popularNames.data!}/>}
+              </QueryLoader>
+              <Space h={15} />
+              <QueryLoader {...taxaQueryOptions}>
+                {taxa.data && (taxa.data.length > 0 || editMode) &&
+                <TaxonomySection taxa={taxa.data}/>}
+              </QueryLoader>
+            </Grid.Col>
+            <QueryLoader {...imagesQueryOptions}>
+              {showImagesSection &&
+              <Grid.Col span={{base: 10, sm: 5}}>
+                <ImagesSection images={images.data!}/>
+              </Grid.Col>}
+            </QueryLoader>
+          </Grid>
           <QueryLoader {...traitValuesQueryOptions}>
             {traitSections}
           </QueryLoader>
@@ -260,14 +280,14 @@ function ContentPlaceholder({ size }: { size: number }) {
 }
 
 interface SectionProps extends React.ComponentProps<'section'> {
-  title: string,
+  title?: string,
 }
 
 function Section({ title, children, ...sectionProps }: SectionProps) {
   return (
     <>
     <Paper withBorder shadow="xs" p={10} component="section" {...sectionProps}>
-      <Text fz="h5" fw={600} pb={10}>{title}</Text>
+      {title && <Text fz="h5" fw={600} pb={10}>{title}</Text>}
       { children }
     </Paper>
     <Space h={15}/>
@@ -319,6 +339,30 @@ function TaxonomySection({ taxa }: { taxa: TaxonReadData[] }) {
         </Text>}
       </> :
       <ContentPlaceholder size={50} />}
+    </Section>
+  )
+}
+
+function ImagesSection({ images }: { images: ImageReadData[] }) {
+  const navigate = useNavigate();
+  const slides = images.map((img, i) =>
+    <Carousel.Slide key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Image src={img.url} h={200} fit="contain" onClick={() => navigate('images')}/>
+    </Carousel.Slide>
+  );
+  
+  return (
+    <Section style={{cursor: 'pointer'}}>
+      {images.length > 0 
+        ? <Carousel
+            withIndicators
+            height={200}
+            slideSize={{ base: '80%' }}
+            emblaOptions={{ loop: true, align: 'center' }}
+          >
+            {slides}
+          </Carousel>
+        : <ContentPlaceholder size={50} />}
     </Section>
   )
 }
