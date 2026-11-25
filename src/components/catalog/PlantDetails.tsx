@@ -271,12 +271,16 @@ function AcceptButton({ plant, queryOptions }: { plant: PlantReadData, queryOpti
   )
 }
 
-function ContentPlaceholder({ size }: { size: number }) {
+interface ContentPlanceholderProps extends React.ComponentProps<'div'> {
+  size: number
+}
+
+function ContentPlaceholder({ size, ...divProps }: ContentPlanceholderProps) {
   return (
-    <Center py={10}>
+    <Center py={10} {...divProps}>
       <IconCircleDashedPlus size={size} color="var(--mantine-color-dark-2)" />
     </Center>
-  ) 
+  )
 }
 
 interface SectionProps extends React.ComponentProps<'section'> {
@@ -352,7 +356,7 @@ function ImagesSection({ images }: { images: ImageReadData[] }) {
   );
   
   return (
-    <Section style={{cursor: 'pointer'}}>
+    <Section style={{height: 221, justifyItems: 'center'}}>
       {images.length > 0 
         ? <Carousel
             withIndicators
@@ -362,7 +366,10 @@ function ImagesSection({ images }: { images: ImageReadData[] }) {
           >
             {slides}
           </Carousel>
-        : <ContentPlaceholder size={50} />}
+        : <>
+          <Text fz="h5" fw={600} pb={10}>Imagens</Text>
+          <ContentPlaceholder size={100} onClick={() => navigate('images')} />
+        </>}
     </Section>
   )
 }
@@ -392,7 +399,7 @@ function TraitSection({
             <Text fz="h6" fw={550} p={5} c="var(--mantine-color-gray-6)">{item.name}</Text>
             <ContentPlaceholder size={40} />
           </>}
-        </Paper>    
+        </Paper>
       )
     }
     return acc;
