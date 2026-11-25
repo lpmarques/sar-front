@@ -350,8 +350,17 @@ function TaxonomySection({ taxa }: { taxa: TaxonReadData[] }) {
 function ImagesSection({ images }: { images: ImageReadData[] }) {
   const navigate = useNavigate();
   const slides = images.map((img, i) =>
-    <Carousel.Slide key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Image src={img.url} h={200} fit="contain" onClick={() => navigate('images')}/>
+    <Carousel.Slide
+      key={i}
+      onClick={() => navigate('images')}
+      style={{
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
+      <Image src={img.url} h={200} fit="contain"/>
     </Carousel.Slide>
   );
   

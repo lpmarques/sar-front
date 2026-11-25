@@ -1,7 +1,3 @@
 map $host $backend_api_url {
   default "$VITE_BACKEND_API_URL";
 }
-
-map $host $storage_url {
-  default "$VITE_STORAGE_URL";
-}
